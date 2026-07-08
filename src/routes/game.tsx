@@ -340,9 +340,12 @@ function loadSave(): SaveState {
     const base = defaultSave();
     for (const k of ATTR_ORDER) {
       if (!parsed.attrs?.[k]) parsed.attrs[k] = { level: 0 };
-
     }
+    if (!parsed.equipment) parsed.equipment = emptyEquipment();
+    if (!Array.isArray(parsed.inventory)) parsed.inventory = [];
+    if (typeof parsed.pvpWins !== "number") parsed.pvpWins = 0;
     return { ...base, ...parsed, attrs: parsed.attrs };
+
   } catch {
     return defaultSave();
   }
