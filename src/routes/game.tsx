@@ -70,6 +70,31 @@ type DailyState = {
 
 type FreeChestState = { lastFreeAt: number; lastRareAt: number };
 
+// ===== Missões (Bloco 2 — Fase 2) =====
+type MissionKind = "enemies" | "bosses" | "upgrades" | "chests" | "playMinutes";
+type MissionReward = { gold: number; gems: number; essence: number; chest: 0 | 1 | 2 };
+type Mission = {
+  id: string;
+  kind: MissionKind;
+  goal: number;
+  snapshot: number;   // valor do contador no momento da criação
+  reward: MissionReward;
+  claimed: boolean;
+};
+type MissionsState = {
+  daily: Mission[];
+  weekly: Mission[];
+  dailyKey: string;
+  weeklyKey: string;
+};
+type Counters = {
+  enemies: number;
+  bosses: number;
+  upgrades: number;
+  chests: number;
+  playMs: number;
+};
+
 type SaveState = {
   level: number;
   xp: number;
@@ -89,6 +114,9 @@ type SaveState = {
   daily: DailyState;
   freeChest: FreeChestState;
   lastSeenAt: number;
+  // Missões (Fase 2 — Bloco 2)
+  counters: Counters;
+  missions: MissionsState;
   version: number;
 };
 
@@ -101,6 +129,87 @@ const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
 const RARE_CHEST_MS = 24 * 60 * 60 * 1000;  // 24h
 const OFFLINE_MAX_MS = 8 * 60 * 60 * 1000;  // 8h
 const STREAK_MILESTONES = [7, 14, 30, 60, 100] as const;
+
+// ===== Missões =====
+function weekKey(d = new Date()) {
+  // ISO-week style YYYY-Www
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((tmp.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return `${tmp.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+const MISSION_LABELS: Record<MissionKind, (n: number) => string> = {
+  enemies: (n) => `Derrote ${n} inimigos`,
+  bosses: (n) => `Derrote ${n} chefes`,
+  upgrades: (n) => `Evolua ${n} atributos`,
+  chests: (n) => `Abra ${n} baús`,
+  playMinutes: (n) => `Jogue ${n} minutos`,
+};
+const MISSION_ICONS: Record<MissionKind, string> = {
+  enemies: "⚔️", bosses: "👑", upgrades: "⬆️", chests: "📦", playMinutes: "⏱️",
+};
+
+type MissionSpec = { kind: MissionKind; base: number; scale: number };
+const DAILY_POOL: MissionSpec[] = [
+  { kind: "enemies", base: 30, scale: 3 },
+  { kind: "bosses", base: 2, scale: 0.3 },
+  { kind: "upgrades", base: 3, scale: 0.2 },
+  { kind: "chests", base: 1, scale: 0.05 },
+  { kind: "playMinutes", base: 10, scale: 0 },
+];
+const WEEKLY_POOL: MissionSpec[] = [
+  { kind: "enemies", base: 300, scale: 20 },
+  { kind: "bosses", base: 15, scale: 1.5 },
+  { kind: "upgrades", base: 25, scale: 1 },
+  { kind: "chests", base: 8, scale: 0.3 },
+  { kind: "playMinutes", base: 60, scale: 0 },
+];
+
+function counterOf(c: Counters, k: MissionKind): number {
+  if (k === "playMinutes") return Math.floor(c.playMs / 60000);
+  return c[k];
+}
+
+function makeMission(spec: MissionSpec, stage: number, counters: Counters, weekly: boolean): Mission {
+  const goal = Math.max(1, Math.floor(spec.base + spec.scale * stage));
+  const mult = weekly ? 10 : 1;
+  return {
+    id: `${spec.kind}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    kind: spec.kind,
+    goal,
+    snapshot: counterOf(counters, spec.kind),
+    reward: weekly
+      ? { gold: goal * 20, gems: 15 + Math.floor(goal / 20), essence: 2, chest: 2 }
+      : { gold: goal * 8,  gems: 5 + Math.floor(goal / 20), essence: 0, chest: goal >= 5 ? 1 : 0 },
+    claimed: false,
+  };
+}
+
+function pickN<T>(arr: T[], n: number): T[] {
+  const pool = [...arr];
+  const out: T[] = [];
+  while (out.length < n && pool.length) {
+    out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  }
+  return out;
+}
+
+function generateDaily(stage: number, counters: Counters): Mission[] {
+  const n = 3 + Math.floor(Math.random() * 3); // 3..5
+  return pickN(DAILY_POOL, Math.min(n, DAILY_POOL.length)).map((s) => makeMission(s, stage, counters, false));
+}
+function generateWeekly(stage: number, counters: Counters): Mission[] {
+  return pickN(WEEKLY_POOL, 4).map((s) => makeMission(s, stage, counters, true));
+}
+function emptyCounters(): Counters {
+  return { enemies: 0, bosses: 0, upgrades: 0, chests: 0, playMs: 0 };
+}
+function emptyMissions(): MissionsState {
+  return { daily: [], weekly: [], dailyKey: "", weeklyKey: "" };
+}
 
 function todayKey(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -447,6 +556,8 @@ function defaultSave(): SaveState {
     daily: { lastClaimDay: null, cycleDay: 0, streak: 0, bestStreak: 0, streakClaimed: [] },
     freeChest: { lastFreeAt: 0, lastRareAt: 0 },
     lastSeenAt: Date.now(),
+    counters: emptyCounters(),
+    missions: emptyMissions(),
     version: SAVE_VERSION,
   };
 }
@@ -470,6 +581,13 @@ function loadSave(): SaveState {
       daily: { ...base.daily, ...(parsed.daily ?? {}), streakClaimed: Array.isArray(parsed.daily?.streakClaimed) ? parsed.daily.streakClaimed : [] },
       freeChest: { ...base.freeChest, ...(parsed.freeChest ?? {}) },
       lastSeenAt: typeof parsed.lastSeenAt === "number" ? parsed.lastSeenAt : Date.now(),
+      counters: { ...emptyCounters(), ...(parsed.counters ?? {}) },
+      missions: {
+        ...emptyMissions(),
+        ...(parsed.missions ?? {}),
+        daily: Array.isArray(parsed.missions?.daily) ? parsed.missions.daily : [],
+        weekly: Array.isArray(parsed.missions?.weekly) ? parsed.missions.weekly : [],
+      },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
@@ -532,7 +650,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -565,6 +683,15 @@ function GamePage() {
     } else {
       s.lastSeenAt = now;
     }
+    // ==== Rotação de missões ====
+    const dk = todayKey();
+    const wk = weekKey();
+    if (s.missions.dailyKey !== dk || s.missions.daily.length === 0) {
+      s.missions = { ...s.missions, daily: generateDaily(s.stage, s.counters), dailyKey: dk };
+    }
+    if (s.missions.weeklyKey !== wk || s.missions.weekly.length === 0) {
+      s.missions = { ...s.missions, weekly: generateWeekly(s.stage, s.counters), weeklyKey: wk };
+    }
     setSave(s);
     saveRef.current = s;
     const stats = computeStats(s);
@@ -577,10 +704,27 @@ function GamePage() {
     prevLevelRef.current = s.level;
   }, []);
 
-  // Marca "visto agora" a cada 30s e antes de sair
+  // Marca "visto agora" a cada 30s, contabiliza playtime e checa rotação de missões
   useEffect(() => {
     const iv = setInterval(() => {
-      setSave((p) => (p ? { ...p, lastSeenAt: Date.now() } : p));
+      setSave((p) => {
+        if (!p) return p;
+        const dk = todayKey();
+        const wk = weekKey();
+        let missions = p.missions;
+        if (missions.dailyKey !== dk) {
+          missions = { ...missions, daily: generateDaily(p.stage, p.counters), dailyKey: dk };
+        }
+        if (missions.weeklyKey !== wk) {
+          missions = { ...missions, weekly: generateWeekly(p.stage, p.counters), weeklyKey: wk };
+        }
+        return {
+          ...p,
+          lastSeenAt: Date.now(),
+          counters: { ...p.counters, playMs: p.counters.playMs + 30_000 },
+          missions,
+        };
+      });
     }, 30_000);
     const onHide = () => {
       const cur = saveRef.current;
@@ -765,6 +909,11 @@ function GamePage() {
       stage: nextStage,
       maxStage: Math.max(cur.maxStage ?? 1, nextStage),
       inventory: drop ? [...cur.inventory, drop].slice(-60) : cur.inventory,
+      counters: {
+        ...cur.counters,
+        enemies: cur.counters.enemies + 1,
+        bosses: cur.counters.bosses + (enemy.isBoss ? 1 : 0),
+      },
     };
     setSave(next);
     saveRef.current = next;
@@ -792,6 +941,7 @@ function GamePage() {
           ...prev.attrs,
           [key]: { level: prev.attrs[key].level + 1 },
         },
+        counters: { ...prev.counters, upgrades: prev.counters.upgrades + 1 },
       };
       saveRef.current = next;
       // if hp upgraded, keep ratio
@@ -887,7 +1037,7 @@ function GamePage() {
           // random equipment for a random slot at current stage
           const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
           const item = rollItem(slot, next.stage);
-          next = { ...next, inventory: [...next.inventory, item].slice(-60) };
+          next = { ...next, inventory: [...next.inventory, item].slice(-60), counters: { ...next.counters, chests: next.counters.chests + 1 } };
           flashToast(`📦 ${item.rarity} ${SLOTS.find((s) => s.key === slot)!.label}`);
           break;
         }
@@ -993,7 +1143,7 @@ function GamePage() {
       const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
       inv = [...inv, rollItem(slot, next.stage + bonusStage)].slice(-60);
     }
-    return { next: { ...next, inventory: inv }, msg: `${r.icon} ${r.label} aberto!` };
+    return { next: { ...next, inventory: inv, counters: { ...next.counters, chests: next.counters.chests + count } }, msg: `${r.icon} ${r.label} aberto!` };
   }, []);
 
   const claimDaily = useCallback(() => {
@@ -1051,6 +1201,7 @@ function GamePage() {
       return {
         ...prev,
         inventory: [...prev.inventory, item].slice(-60),
+        counters: { ...prev.counters, chests: prev.counters.chests + 1 },
         freeChest: tier === "free"
           ? { ...prev.freeChest, lastFreeAt: now }
           : { ...prev.freeChest, lastRareAt: now },
@@ -1059,6 +1210,46 @@ function GamePage() {
   }, [flashToast]);
 
   const closeOfflineReport = useCallback(() => setOfflineReport(null), []);
+
+  // ==== Missões: reivindicar ====
+  const claimMission = useCallback((scope: "daily" | "weekly", id: string) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const list = prev.missions[scope];
+      const m = list.find((x) => x.id === id);
+      if (!m || m.claimed) return prev;
+      const progress = Math.min(m.goal, counterOf(prev.counters, m.kind) - m.snapshot);
+      if (progress < m.goal) { flashToast("Missão ainda incompleta"); return prev; }
+      // aplicar recompensa
+      let inv = prev.inventory;
+      let chestCount = 0;
+      for (let i = 0; i < m.reward.chest; i++) {
+        const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+        inv = [...inv, rollItem(slot, prev.stage + (scope === "weekly" ? 3 : 0))].slice(-60);
+        chestCount++;
+      }
+      const parts = [
+        m.reward.gold > 0 ? `+${fmt(m.reward.gold)}🪙` : null,
+        m.reward.gems > 0 ? `+${m.reward.gems}💎` : null,
+        m.reward.essence > 0 ? `+${m.reward.essence}✨` : null,
+        chestCount > 0 ? `+${chestCount}📦` : null,
+      ].filter(Boolean).join(" ");
+      flashToast(`🏅 Missão! ${parts}`);
+      return {
+        ...prev,
+        gold: prev.gold + m.reward.gold,
+        gems: prev.gems + m.reward.gems,
+        essence: prev.essence + m.reward.essence,
+        inventory: inv,
+        counters: { ...prev.counters, chests: prev.counters.chests + chestCount },
+        missions: {
+          ...prev.missions,
+          [scope]: list.map((x) => x.id === id ? { ...x, claimed: true } : x),
+        },
+      };
+    });
+  }, [flashToast]);
+
 
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
@@ -1171,7 +1362,7 @@ function GamePage() {
               onClick={() => setModal("rebirth")}
             />
             <QuickCartoonBtn icon={<Calendar className="h-3 w-3" />} label="DIÁRIO" onClick={() => setModal("daily")} />
-            <QuickCartoonBtn icon={<Ticket className="h-3 w-3" />} label="PASSE" onClick={() => flashToast("Passe em breve")} />
+            <QuickCartoonBtn icon={<Target className="h-3 w-3" />} label="MISSÕES" onClick={() => setModal("missions")} />
           </div>
         </div>
       </header>
@@ -1509,6 +1700,13 @@ function GamePage() {
           onClaimDaily={claimDaily}
           onClaimStreak={claimStreak}
           onClaimChest={claimFreeChest}
+        />
+      )}
+      {modal === "missions" && (
+        <MissionsModal
+          save={save}
+          onClose={() => setModal(null)}
+          onClaim={claimMission}
         />
       )}
       {offlineReport && (
@@ -2455,6 +2653,99 @@ function OfflineModal({
         >
           Coletar
         </button>
+      </div>
+    </div>
+  );
+}
+
+// -------- Missions Modal --------
+function MissionsModal({
+  save,
+  onClose,
+  onClaim,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onClaim: (scope: "daily" | "weekly", id: string) => void;
+}) {
+  const [tab, setTab] = useState<"daily" | "weekly">("daily");
+  const list = save.missions[tab];
+  const nextResetLabel = tab === "daily" ? "Reseta em 24h" : "Reseta na segunda-feira";
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🎯 Missões</h2>
+          <div className="text-[10px] opacity-70">{nextResetLabel}</div>
+        </div>
+
+        <div className="mb-3 flex gap-2">
+          {(["daily", "weekly"] as const).map((k) => (
+            <button
+              key={k}
+              onClick={() => setTab(k)}
+              className={`flex-1 rounded-lg border-2 border-[#1A0F08] py-1.5 text-xs font-black ${
+                tab === k ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+              }`}
+            >
+              {k === "daily" ? "📅 Diárias" : "📆 Semanais"}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2 max-h-[52vh] overflow-y-auto pr-1">
+          {list.length === 0 && (
+            <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs opacity-70">
+              Gerando missões...
+            </div>
+          )}
+          {list.map((m) => {
+            const progress = Math.min(m.goal, counterOf(save.counters, m.kind) - m.snapshot);
+            const pct = Math.min(100, (progress / m.goal) * 100);
+            const done = progress >= m.goal;
+            return (
+              <div key={m.id} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="text-xl">{MISSION_ICONS[m.kind]}</div>
+                    <div>
+                      <div className="text-xs font-black">{MISSION_LABELS[m.kind](m.goal)}</div>
+                      <div className="text-[10px] opacity-70">
+                        {m.reward.gold > 0 && `🪙${fmt(m.reward.gold)} `}
+                        {m.reward.gems > 0 && `💎${m.reward.gems} `}
+                        {m.reward.essence > 0 && `✨${m.reward.essence} `}
+                        {m.reward.chest > 0 && `📦x${m.reward.chest}`}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onClaim(tab, m.id)}
+                    disabled={!done || m.claimed}
+                    className={`shrink-0 rounded-md border-2 border-[#1A0F08] px-3 py-1 text-[10px] font-black ${
+                      m.claimed ? "bg-emerald-900 opacity-50"
+                        : done ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950 animate-pulse"
+                        : "bg-[#3E2723] opacity-60"
+                    }`}
+                  >
+                    {m.claimed ? "✓" : done ? "COLETAR" : `${progress}/${m.goal}`}
+                  </button>
+                </div>
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full border border-[#1A0F08] bg-[#1A0F08]">
+                  <div
+                    className={`h-full transition-all ${done ? "bg-emerald-400" : "bg-gradient-to-r from-amber-400 to-orange-400"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
       </div>
     </div>
   );
