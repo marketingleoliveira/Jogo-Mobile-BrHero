@@ -146,8 +146,22 @@ type TowerState = { bestFloor: number; runs: number; lastRunAt: number };
 // ===== Bênçãos =====
 type BlessingKind = "gold" | "xp" | "drop" | "atk" | "hp";
 
+// ===== Guilda =====
+type GuildId = "leao" | "corvo" | "dragao";
+type GuildState = {
+  id: GuildId | null;
+  joinedAt: number;
+  xp: number;
+  donationsToday: number;
+  lastDonateDay: string | null;
+  bossLastAt: number;
+  bossKills: number;
+  contribWeek: number;
+  weekKey: string;
+};
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 10;
+const SAVE_VERSION = 11;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
