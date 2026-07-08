@@ -129,6 +129,8 @@ type SaveState = {
   blessings: Record<BlessingKind, number>; // expiresAt (ms) — 0 = inativa
   // Guilda (Fase 3 — Bloco 5)
   guild: GuildState;
+  // Arena PvP Assíncrona (Fase 3 — Bloco 6)
+  arena: ArenaState;
   version: number;
 };
 
@@ -160,8 +162,19 @@ type GuildState = {
   weekKey: string;
 };
 
+// ===== Arena PvP Assíncrona =====
+type ArenaState = {
+  points: number;
+  wins: number;
+  losses: number;
+  ticketsToday: number;
+  lastTicketDay: string | null;
+  extraTickets: number; // comprados com cristais
+  lastDailyClaim: string | null;
+};
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 11;
+const SAVE_VERSION = 12;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
