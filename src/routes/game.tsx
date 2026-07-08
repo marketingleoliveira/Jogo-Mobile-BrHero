@@ -1211,6 +1211,46 @@ function GamePage() {
 
   const closeOfflineReport = useCallback(() => setOfflineReport(null), []);
 
+  // ==== Missões: reivindicar ====
+  const claimMission = useCallback((scope: "daily" | "weekly", id: string) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const list = prev.missions[scope];
+      const m = list.find((x) => x.id === id);
+      if (!m || m.claimed) return prev;
+      const progress = Math.min(m.goal, counterOf(prev.counters, m.kind) - m.snapshot);
+      if (progress < m.goal) { flashToast("Missão ainda incompleta"); return prev; }
+      // aplicar recompensa
+      let inv = prev.inventory;
+      let chestCount = 0;
+      for (let i = 0; i < m.reward.chest; i++) {
+        const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+        inv = [...inv, rollItem(slot, prev.stage + (scope === "weekly" ? 3 : 0))].slice(-60);
+        chestCount++;
+      }
+      const parts = [
+        m.reward.gold > 0 ? `+${fmt(m.reward.gold)}🪙` : null,
+        m.reward.gems > 0 ? `+${m.reward.gems}💎` : null,
+        m.reward.essence > 0 ? `+${m.reward.essence}✨` : null,
+        chestCount > 0 ? `+${chestCount}📦` : null,
+      ].filter(Boolean).join(" ");
+      flashToast(`🏅 Missão! ${parts}`);
+      return {
+        ...prev,
+        gold: prev.gold + m.reward.gold,
+        gems: prev.gems + m.reward.gems,
+        essence: prev.essence + m.reward.essence,
+        inventory: inv,
+        counters: { ...prev.counters, chests: prev.counters.chests + chestCount },
+        missions: {
+          ...prev.missions,
+          [scope]: list.map((x) => x.id === id ? { ...x, claimed: true } : x),
+        },
+      };
+    });
+  }, [flashToast]);
+
+
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
   const biome = useMemo(() => biomeFor(save?.stage ?? 1), [save?.stage]);
