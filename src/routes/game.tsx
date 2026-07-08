@@ -651,7 +651,7 @@ const ACHIEVEMENTS: AchievementDef[] = [
   { id: "reb_25",     category: "progressao", icon: "🌟", label: "Ascendido",               desc: "Faça 25 Rebirths",           goal: 25,    metric: (s) => s.prestigeLevel,             reward: { essence: 150, gems: 500, chest: 2 } },
   // Progressão — estágios
   { id: "stg_50",     category: "progressao", icon: "🗺️", label: "Explorador",              desc: "Alcance o estágio 50",       goal: 50,    metric: (s) => s.maxStage,                  reward: { gold: 5000, gems: 15 } },
-  { id: "stg_200",    category: "progressao", icon: "🗺️", label: "Desbravador",             desc: "Alcance o estágio 200",      goal: 200,   metric: (s) => s.maxStage,                  reward: { gold: 50000, gems: 60, chest: 1 } },
+  { id: "stg_200",    category: "progressao", icon: "🗺️", label: "Desbravador",             desc: "Alcance o estágio 200",      goal: 200,   metric: (s) => s.maxStage,                  reward: { gold: 50000, gems: 60, chest: 1, cosmetic: "axe_gold" } },
   { id: "stg_1000",   category: "progressao", icon: "🗺️", label: "Andarilho Infinito",      desc: "Alcance o estágio 1000",     goal: 1000,  metric: (s) => s.maxStage,                  reward: { gems: 300, essence: 50, chest: 2 } },
   // Progressão — Torre
   { id: "twr_10",     category: "progressao", icon: "🗼", label: "Escalador",               desc: "Suba ao andar 10 da Torre",  goal: 10,    metric: (s) => s.tower.bestFloor,           reward: { gold: 4000, gems: 15 } },
