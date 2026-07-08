@@ -193,8 +193,12 @@ type EventState = {
 type SkinId = "classic" | "green" | "gold" | "brasil" | "shadow";
 type SkinsState = { owned: SkinId[]; equipped: SkinId };
 
+// ===== Conquistas / Achievements (Fase 3 — Bloco 9) =====
+type AchievementId = string;
+type AchievementsState = { claimed: AchievementId[] };
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 14;
+const SAVE_VERSION = 15;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
