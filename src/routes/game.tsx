@@ -137,6 +137,8 @@ type SaveState = {
   skins: SkinsState;
   // Conquistas (Fase 3 — Bloco 9)
   achievements: AchievementsState;
+  // Runas / Encantamentos (Fase 3 — Bloco 10)
+  runes: RunesState;
   version: number;
 };
 
