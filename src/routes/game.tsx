@@ -3908,3 +3908,155 @@ function BlessingsModal({
     </div>
   );
 }
+
+// -------- Guild Modal (Fase 3 — Bloco 5) --------
+function GuildModal({
+  save,
+  onClose,
+  onJoin,
+  onDonate,
+  onFightBoss,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onJoin: (id: GuildId) => void;
+  onDonate: () => void;
+  onFightBoss: () => void;
+}) {
+  const locked = save.level < GUILD_UNLOCK_LEVEL;
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const g = save.guild;
+  const today = todayKey();
+  const donationsToday = g.lastDonateDay === today ? g.donationsToday : 0;
+  const donationsLeft = GUILD_DAILY_DONATIONS - donationsToday;
+  const cost = guildDonationCost(save.level, donationsToday);
+  const lvl = guildLevel(g.xp);
+  const nextXp = guildXpForLevel(lvl + 1);
+  const prevXp = guildXpForLevel(lvl);
+  const pct = lvl >= GUILD_MAX_LEVEL ? 100 : Math.min(100, ((g.xp - prevXp) / (nextXp - prevXp)) * 100);
+  const now = Date.now();
+  const bossReadyIn = Math.max(0, GUILD_BOSS_COOLDOWN_MS - (now - g.bossLastAt));
+  const bossReady = bossReadyIn === 0;
+  const bossHours = Math.ceil(bossReadyIn / (60 * 60 * 1000));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🏰 Guilda</h2>
+          <div className="text-[10px] opacity-70">Buffs passivos + chefão semanal</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {GUILD_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && !g.id && (
+          <div className="space-y-2">
+            <div className="text-center text-xs opacity-80 mb-2">Escolha sua guilda (permanente por enquanto):</div>
+            {(Object.keys(GUILD_DEFS) as GuildId[]).map((id) => {
+              const def = GUILD_DEFS[id];
+              return (
+                <button
+                  key={id}
+                  onClick={() => onJoin(id)}
+                  className={`w-full rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-3 text-left active:scale-95`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="text-3xl">{def.icon}</div>
+                    <div>
+                      <div className="text-sm font-black text-amber-50 drop-shadow">{def.name}</div>
+                      <div className="text-[11px] text-amber-50/90">{def.desc}</div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {!locked && g.id && (
+          <div className="space-y-3">
+            {(() => {
+              const def = GUILD_DEFS[g.id!];
+              return (
+                <div className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-3`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="text-3xl">{def.icon}</div>
+                      <div>
+                        <div className="text-sm font-black text-amber-50 drop-shadow">{def.name}</div>
+                        <div className="text-[10px] text-amber-50/90">Nível {lvl}/{GUILD_MAX_LEVEL} · Bias +{def.bias.toUpperCase()}</div>
+                      </div>
+                    </div>
+                    <div className="text-right text-[10px] text-amber-50">
+                      <div>🏆 {g.bossKills}</div>
+                    </div>
+                  </div>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full border border-[#1A0F08] bg-black/40">
+                    <div className="h-full bg-amber-300" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="mt-1 text-center text-[10px] text-amber-50/90">
+                    {lvl >= GUILD_MAX_LEVEL ? "MAX" : `${fmt(g.xp - prevXp)} / ${fmt(nextXp - prevXp)} XP`}
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-3">
+              <div className="mb-1 flex items-center justify-between">
+                <div className="text-xs font-black">🎁 Doar Ouro</div>
+                <div className="text-[10px] opacity-70">Restam {donationsLeft}/{GUILD_DAILY_DONATIONS} hoje</div>
+              </div>
+              <div className="text-[10px] opacity-80 mb-2">Aumenta o nível da guilda e a contribuição semanal.</div>
+              <button
+                onClick={onDonate}
+                disabled={donationsLeft <= 0 || save.gold < cost}
+                className="w-full rounded-md border-2 border-[#1A0F08] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-1.5 text-xs font-black text-amber-950 disabled:opacity-50"
+              >
+                Doar 🪙 {fmt(cost)}
+              </button>
+              <div className="mt-1 text-center text-[10px] opacity-70">
+                Contrib. semanal: {fmt(g.weekKey === weekKey() ? g.contribWeek : 0)}
+              </div>
+            </div>
+
+            <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-3">
+              <div className="mb-1 flex items-center justify-between">
+                <div className="text-xs font-black">🐲 Chefão Semanal</div>
+                <div className="text-[10px] opacity-70">
+                  {bossReady ? "Pronto!" : `⏳ ${bossHours}h`}
+                </div>
+              </div>
+              <div className="text-[10px] opacity-80 mb-2">Recompensas: ouro alto, cristais e essência.</div>
+              <button
+                onClick={onFightBoss}
+                disabled={!bossReady}
+                className="w-full rounded-md border-2 border-[#1A0F08] bg-gradient-to-b from-rose-500 to-red-700 py-1.5 text-xs font-black text-amber-50 disabled:opacity-50"
+              >
+                {bossReady ? "Enfrentar Chefão" : `Aguarde ${bossHours}h`}
+              </button>
+            </div>
+
+            <div className="text-center text-[10px] opacity-60">
+              Bônus atuais: ATK ×{guildBonus(save).atkMul.toFixed(2)} · Ouro ×{guildBonus(save).goldMul.toFixed(2)} · XP ×{guildBonus(save).xpMul.toFixed(2)}
+            </div>
+          </div>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
