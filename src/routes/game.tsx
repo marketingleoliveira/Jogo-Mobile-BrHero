@@ -761,8 +761,8 @@ function GamePage() {
 
           {/* VIP/Pass stack */}
           <div className="flex flex-col gap-1">
-            <QuickCartoonBtn icon={<Crown className="h-3 w-3" />} label="TOP" onClick={() => flashToast("VIP em breve")} />
-            <QuickCartoonBtn icon={<Ticket className="h-3 w-3" />} label="PASS" onClick={() => flashToast("Passe em breve")} />
+            <QuickCartoonBtn icon={<Crown className="h-3 w-3" />} label="VIP" onClick={() => flashToast("VIP em breve")} />
+            <QuickCartoonBtn icon={<Ticket className="h-3 w-3" />} label="PASSE" onClick={() => flashToast("Passe em breve")} />
           </div>
         </div>
       </header>
@@ -908,9 +908,9 @@ function GamePage() {
 
       {/* ===== Tabs ===== */}
       <div className="flex gap-2 px-3 mb-2">
-        <TabBtn active label="STAT" />
-        <TabBtn label="BLESSING" locked />
-        <TabBtn label="LIMITLESS" locked />
+        <TabBtn active label="ATRIBUTOS" />
+        <TabBtn label="BÊNÇÃOS" locked />
+        <TabBtn label="ILIMITADO" locked />
       </div>
 
       {/* ===== Next unlock strip ===== */}
