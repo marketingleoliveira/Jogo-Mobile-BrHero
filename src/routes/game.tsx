@@ -1315,10 +1315,20 @@ function GamePage() {
       const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
       const item = rollItem(slot, prev.stage + bonusStage);
       flashToast(`${tier === "rare" ? "🎁" : "📦"} ${item.rarity} ${SLOTS.find(s => s.key === slot)!.label}`);
+      // Chance de pet no baú raro
+      let pets = prev.pets;
+      let frags = prev.petFragments;
+      if (tier === "rare" && Math.random() < 0.35) {
+        const d = maybePetDrop(0.15);
+        if (d.pet) { pets = [...pets, d.pet]; flashToast(`🐾 Pet ${PET_DEFS[d.pet.kind].label} (${d.pet.rarity})!`); }
+        else if (d.fragKind && d.fragAmt) { frags = { ...frags, [d.fragKind]: frags[d.fragKind] + d.fragAmt }; flashToast(`🧩 +${d.fragAmt} frag. ${PET_DEFS[d.fragKind].label}`); }
+      }
       return {
         ...prev,
         inventory: [...prev.inventory, item].slice(-60),
         counters: { ...prev.counters, chests: prev.counters.chests + 1 },
+        pets,
+        petFragments: frags,
         freeChest: tier === "free"
           ? { ...prev.freeChest, lastFreeAt: now }
           : { ...prev.freeChest, lastRareAt: now },
