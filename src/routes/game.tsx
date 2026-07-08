@@ -829,7 +829,28 @@ function GamePage() {
         })}
       </section>
 
+      {/* ===== Menu row ===== */}
+      <section className="grid grid-cols-2 gap-2 border-b border-slate-800 bg-slate-900/60 px-3 py-2">
+        <MenuBtn
+          locked={save.level < 3}
+          unlockLv={3}
+          icon={<Shield className="h-4 w-4" />}
+          label="Equipamentos"
+          badge={save.inventory.length > 0 ? save.inventory.length : undefined}
+          onClick={() => setModal("equip")}
+        />
+        <MenuBtn
+          locked={save.level < 50}
+          unlockLv={50}
+          icon={<Users className="h-4 w-4" />}
+          label="Arena Beta"
+          badge={save.pvpWins > 0 ? save.pvpWins : undefined}
+          onClick={() => setModal("arena")}
+        />
+      </section>
+
       {/* ===== Next unlock strip ===== */}
+
       {nextUnlock && (
         <div className="flex items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/40 px-3 py-1.5 text-[11px] text-slate-300">
           <span className="flex items-center gap-1.5">
