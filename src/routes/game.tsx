@@ -2360,7 +2360,13 @@ function GamePage() {
         />
       )}
       {modal === "arena" && (
-        <ArenaModal save={save} onClose={() => setModal(null)} onFight={doPvp} />
+        <ArenaPvpModal
+          save={save}
+          onClose={() => setModal(null)}
+          onFight={fightArenaOpponent}
+          onBuyTicket={buyArenaTicket}
+          onClaimDaily={claimArenaDaily}
+        />
       )}
       {modal === "store" && (
         <StoreModal
