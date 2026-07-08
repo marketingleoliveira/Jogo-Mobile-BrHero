@@ -1062,16 +1062,30 @@ function GamePage() {
 
 
 // -------- Sub-components --------
-function Pill({ icon, value }: { icon: React.ReactNode; value: string }) {
+function CartoonPill({
+  icon,
+  value,
+  color,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  color: "amber" | "emerald";
+}) {
+  const ring = color === "amber" ? "border-amber-800" : "border-emerald-800";
   return (
-    <div className="flex min-w-0 items-center justify-center gap-1 rounded-full border border-slate-800 bg-slate-900 px-2 py-1">
+    <div className={`flex flex-1 items-center gap-1 rounded-full border-2 ${ring} bg-[#1A0F08]/80 px-2 py-0.5`}>
       {icon}
-      <span className="truncate font-semibold tabular-nums">{value}</span>
+      <span
+        className="truncate text-xs text-amber-100 tabular-nums"
+        style={{ fontFamily: "'Luckiest Guy', cursive" }}
+      >
+        {value}
+      </span>
     </div>
   );
 }
 
-function QuickBtn({
+function QuickCartoonBtn({
   icon,
   label,
   onClick,
@@ -1083,13 +1097,70 @@ function QuickBtn({
   return (
     <button
       onClick={onClick}
-      className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-800 bg-gradient-to-b from-slate-800 to-slate-900 px-2 py-1.5 text-[10px] font-semibold text-slate-200 active:scale-95"
+      className="flex items-center gap-1 rounded-full border-2 border-amber-900 bg-gradient-to-b from-amber-500 to-orange-600 px-2 py-0.5 text-[10px] font-bold text-amber-950 shadow active:translate-y-0.5"
     >
       {icon}
       {label}
     </button>
   );
 }
+
+function TabBtn({ label, active, locked }: { label: string; active?: boolean; locked?: boolean }) {
+  return (
+    <button
+      disabled={locked}
+      className={`flex-1 rounded-2xl border-b-4 py-2 text-xs tracking-wider shadow active:translate-y-0.5 active:border-b-0 ${
+        active
+          ? "border-red-950 bg-[#D32F2F] text-white"
+          : locked
+            ? "border-stone-950 bg-[#5D4037] text-amber-200/40"
+            : "border-stone-950 bg-[#795548] text-amber-200/70"
+      }`}
+      style={{ fontFamily: "'Luckiest Guy', cursive" }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function TabBarItem({
+  icon,
+  label,
+  onClick,
+  locked,
+  unlockLv,
+  badge,
+}: {
+  icon: string;
+  label: string;
+  onClick: () => void;
+  locked?: boolean;
+  unlockLv?: number;
+  badge?: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={locked}
+      className={`relative flex flex-1 flex-col items-center justify-end gap-0.5 pb-1 ${
+        locked ? "opacity-40" : ""
+      }`}
+    >
+      <div className="grid h-10 w-10 place-items-center rounded-xl border-2 border-[#1A0F08] bg-[#5D4037] text-xl shadow-inner">
+        {locked ? <Lock className="h-4 w-4 text-amber-900" /> : icon}
+      </div>
+      <span className="text-[9px] font-bold uppercase text-amber-200/80">
+        {locked ? `Lv${unlockLv}` : label}
+      </span>
+      {!locked && badge !== undefined && (
+        <span className="absolute right-1 top-0 grid h-4 min-w-4 place-items-center rounded-full border-2 border-[#3E2723] bg-rose-500 px-1 text-[9px] font-bold text-white">
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
 
 // -------- Derived stats --------
 function computeStats(s: SaveState) {
