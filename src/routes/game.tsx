@@ -1791,6 +1791,13 @@ function GamePage() {
           onClaim={claimMission}
         />
       )}
+      {modal === "dungeon" && (
+        <DungeonModal
+          save={save}
+          onClose={() => setModal(null)}
+          onEnter={enterDungeon}
+        />
+      )}
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
