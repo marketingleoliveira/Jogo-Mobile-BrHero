@@ -1062,6 +1062,7 @@ function defaultSave(): SaveState {
     arena: emptyArena(),
     event: emptyEvent(),
     skins: emptySkins(),
+    achievements: emptyAchievements(),
     version: SAVE_VERSION,
   };
 }
