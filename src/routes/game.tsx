@@ -1143,7 +1143,7 @@ function GamePage() {
       const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
       inv = [...inv, rollItem(slot, next.stage + bonusStage)].slice(-60);
     }
-    return { next: { ...next, inventory: inv }, msg: `${r.icon} ${r.label} aberto!` };
+    return { next: { ...next, inventory: inv, counters: { ...next.counters, chests: next.counters.chests + count } }, msg: `${r.icon} ${r.label} aberto!` };
   }, []);
 
   const claimDaily = useCallback(() => {
