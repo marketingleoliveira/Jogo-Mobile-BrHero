@@ -125,6 +125,8 @@ type SaveState = {
   petFragments: Record<PetKind, number>;
   // Torre Infinita (Fase 3 — Bloco 3)
   tower: TowerState;
+  // Bênçãos (Fase 3 — Bloco 4)
+  blessings: Record<BlessingKind, number>; // expiresAt (ms) — 0 = inativa
   version: number;
 };
 
@@ -139,8 +141,11 @@ type Pet = { id: string; kind: PetKind; rarity: PetRarity; level: number };
 // ===== Torre Infinita =====
 type TowerState = { bestFloor: number; runs: number; lastRunAt: number };
 
+// ===== Bênçãos =====
+type BlessingKind = "gold" | "xp" | "drop" | "atk" | "hp";
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 9;
+const SAVE_VERSION = 10;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
