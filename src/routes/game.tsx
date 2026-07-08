@@ -1068,6 +1068,219 @@ function computeStats(s: SaveState) {
   };
 }
 
+function MenuBtn({
+  locked,
+  unlockLv,
+  icon,
+  label,
+  badge,
+  onClick,
+}: {
+  locked: boolean;
+  unlockLv: number;
+  icon: React.ReactNode;
+  label: string;
+  badge?: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={locked}
+      className={`relative flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold active:scale-95 ${
+        locked
+          ? "border-slate-800 bg-slate-900 text-slate-600"
+          : "border-indigo-500/50 bg-gradient-to-b from-indigo-600 to-indigo-800 text-white shadow"
+      }`}
+    >
+      {locked ? <Lock className="h-4 w-4" /> : icon}
+      <span>{locked ? `${label} · Lv ${unlockLv}` : label}</span>
+      {!locked && badge !== undefined && (
+        <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function ModalShell({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 backdrop-blur-sm">
+      <div className="mx-auto flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border-t border-slate-700 bg-slate-950 shadow-2xl animate-[slideUp_0.25s_ease-out]">
+        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+          <h2 className="text-sm font-black text-slate-100">{title}</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg bg-slate-800 px-3 py-1 text-xs font-bold text-slate-300 hover:bg-slate-700"
+          >
+            Fechar
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
+      </div>
+      <style>{`@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
+    </div>
+  );
+}
+
+function EquipmentModal({
+  save,
+  onClose,
+  onEquip,
+  onUnequip,
+  onSell,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onEquip: (item: Item) => void;
+  onUnequip: (slot: SlotKey) => void;
+  onSell: (id: string) => void;
+}) {
+  const bonus = equipmentBonus(save.equipment);
+  return (
+    <ModalShell title="Equipamentos" onClose={onClose}>
+      {/* equipped slots */}
+      <div className="mb-4 grid grid-cols-3 gap-2">
+        {SLOTS.map((s) => {
+          const item = save.equipment[s.key];
+          const color = item ? RARITIES.find((r) => r.name === item.rarity)!.color : "border-slate-800 text-slate-500";
+          return (
+            <button
+              key={s.key}
+              onClick={() => item && onUnequip(s.key)}
+              className={`flex aspect-square flex-col items-center justify-center rounded-xl border-2 bg-slate-900/60 p-1 text-[10px] ${color}`}
+            >
+              <span className="text-2xl">{s.emoji}</span>
+              <span className="truncate font-bold">{s.label}</span>
+              {item && <span className="text-[9px] opacity-80">{item.rarity}</span>}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mb-3 flex items-center justify-around rounded-lg bg-slate-900 py-2 text-[11px] text-slate-300">
+        <span>ATK <span className="font-bold text-rose-300">+{fmt(bonus.atk)}</span></span>
+        <span>HP <span className="font-bold text-emerald-300">+{fmt(bonus.hp)}</span></span>
+        <span>DEF <span className="font-bold text-sky-300">+{fmt(bonus.def)}</span></span>
+      </div>
+
+      <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+        Inventário ({save.inventory.length})
+      </h3>
+      {save.inventory.length === 0 && (
+        <p className="rounded-lg border border-dashed border-slate-800 py-6 text-center text-xs text-slate-500">
+          Vença inimigos e chefes para ganhar equipamentos.
+        </p>
+      )}
+      <div className="space-y-2">
+        {save.inventory.map((item) => {
+          const slotInfo = SLOTS.find((s) => s.key === item.slot)!;
+          const color = RARITIES.find((r) => r.name === item.rarity)!.color;
+          return (
+            <div
+              key={item.id}
+              className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border ${color} bg-slate-900/60 px-2 py-2`}
+            >
+              <span className="text-2xl">{slotInfo.emoji}</span>
+              <div className="min-w-0 text-[11px]">
+                <div className="flex items-center gap-1 font-bold">
+                  <span className="truncate">{slotInfo.label}</span>
+                  <span className="opacity-70">·</span>
+                  <span className="truncate">{item.rarity}</span>
+                  <span className="text-amber-300">{"★".repeat(item.stars)}</span>
+                </div>
+                <div className="text-[10px] text-slate-400 tabular-nums">
+                  +{item.bonus.atk} ATK · +{item.bonus.hp} HP · +{item.bonus.def} DEF
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={() => onEquip(item)}
+                  className="rounded bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white active:scale-95"
+                >
+                  Equipar
+                </button>
+                <button
+                  onClick={() => onSell(item.id)}
+                  className="rounded bg-slate-800 px-2 py-1 text-[10px] font-bold text-slate-300 active:scale-95"
+                >
+                  Vender
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </ModalShell>
+  );
+}
+
+function ArenaModal({
+  save,
+  onClose,
+  onFight,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onFight: () => void;
+}) {
+  return (
+    <ModalShell title="Arena dos Heróis · Beta" onClose={onClose}>
+      <div className="mb-4 rounded-2xl bg-gradient-to-br from-indigo-700 to-purple-900 p-4 text-center text-white">
+        <Crown className="mx-auto mb-2 h-8 w-8 text-amber-300" />
+        <div className="text-lg font-black">Multiplayer Beta</div>
+        <div className="text-[11px] opacity-80">
+          PvP assíncrono contra outros heróis (simulado).
+        </div>
+      </div>
+
+      <div className="mb-3 grid grid-cols-3 gap-2 text-center text-[11px]">
+        <div className="rounded-lg bg-slate-900 py-2">
+          <div className="text-[10px] text-slate-500">Vitórias</div>
+          <div className="text-lg font-black text-amber-300">{save.pvpWins}</div>
+        </div>
+        <div className="rounded-lg bg-slate-900 py-2">
+          <div className="text-[10px] text-slate-500">Rank</div>
+          <div className="text-lg font-black text-sky-300">
+            {save.pvpWins < 5 ? "Bronze" : save.pvpWins < 20 ? "Prata" : save.pvpWins < 50 ? "Ouro" : "Diamante"}
+          </div>
+        </div>
+        <div className="rounded-lg bg-slate-900 py-2">
+          <div className="text-[10px] text-slate-500">Nível</div>
+          <div className="text-lg font-black text-emerald-300">{save.level}</div>
+        </div>
+      </div>
+
+      <button
+        onClick={onFight}
+        className="mb-3 w-full rounded-xl bg-gradient-to-b from-rose-500 to-red-700 py-3 text-sm font-black text-white shadow-lg active:scale-95"
+      >
+        ⚔️ Procurar Oponente
+      </button>
+
+      <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 text-[11px] text-slate-400">
+        <p className="mb-1 font-bold text-slate-300">Em breve:</p>
+        <ul className="list-disc space-y-0.5 pl-4">
+          <li>Ranking global online</li>
+          <li>Guildas e chat</li>
+          <li>Desafios semanais</li>
+          <li>Recompensas de temporada</li>
+        </ul>
+      </div>
+    </ModalShell>
+  );
+}
+
+
+
 
 function pickEnemyEmoji(stage: number) {
   const pool = ["👹", "👺", "🧟", "👻", "🦇", "🐍", "🕷️", "🐺", "🦂", "🐗"];
