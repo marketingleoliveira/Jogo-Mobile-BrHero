@@ -121,27 +121,27 @@ export interface CampaignInput {
 
 export const liveOpsActions = {
   create(input: CampaignInput, reason: string) {
+    guard("liveops", "create");
     const name = input.name.trim();
     if (!name) throw new Error("Nome vazio");
     const t = now();
     const created: LiveOpsCampaign = {
       id: `LO-${Date.now().toString(36)}`,
-      name,
-      type: input.type,
-      startsAt: input.startsAt,
-      endsAt: input.endsAt,
+      name, type: input.type,
+      startsAt: input.startsAt, endsAt: input.endsAt,
       multiplier: Math.max(1, input.multiplier),
-      message: input.message,
-      active: input.active,
+      message: input.message, active: input.active,
       priority: Math.min(5, Math.max(1, input.priority)),
       createdAt: t, updatedAt: t,
     };
     store.campaigns = [created, ...store.campaigns];
     pushLog({ action: "create", campaign: name, before: null, after: created, reason });
+    logAction({ module: "liveops", action: "create", target: name, before: null, after: created, reason });
     emit();
     return created;
   },
   update(id: string, input: CampaignInput, reason: string) {
+    guard("liveops", "edit");
     const idx = store.campaigns.findIndex((c) => c.id === id);
     if (idx < 0) return;
     const before = store.campaigns[idx];
@@ -149,38 +149,39 @@ export const liveOpsActions = {
       ...before,
       name: input.name.trim() || before.name,
       type: input.type,
-      startsAt: input.startsAt,
-      endsAt: input.endsAt,
+      startsAt: input.startsAt, endsAt: input.endsAt,
       multiplier: Math.max(1, input.multiplier),
-      message: input.message,
-      active: input.active,
+      message: input.message, active: input.active,
       priority: Math.min(5, Math.max(1, input.priority)),
       updatedAt: now(),
     };
     store.campaigns = store.campaigns.map((c, i) => (i === idx ? after : c));
     pushLog({ action: "update", campaign: after.name, before, after, reason });
+    logAction({ module: "liveops", action: "update", target: after.name, before, after, reason });
     emit();
   },
   toggle(id: string, reason: string) {
+    guard("liveops", "edit");
     const idx = store.campaigns.findIndex((c) => c.id === id);
     if (idx < 0) return;
     const before = store.campaigns[idx];
     const after: LiveOpsCampaign = { ...before, active: !before.active, updatedAt: now() };
     store.campaigns = store.campaigns.map((c, i) => (i === idx ? after : c));
-    pushLog({
-      action: "toggle", campaign: after.name,
-      before: { active: before.active }, after: { active: after.active }, reason,
-    });
+    pushLog({ action: "toggle", campaign: after.name, before: { active: before.active }, after: { active: after.active }, reason });
+    logAction({ module: "liveops", action: "toggle", target: after.name, before: { active: before.active }, after: { active: after.active }, reason });
     emit();
   },
   remove(id: string, reason: string) {
+    guard("liveops", "delete");
     const target = store.campaigns.find((c) => c.id === id);
     if (!target) return;
     store.campaigns = store.campaigns.filter((c) => c.id !== id);
     pushLog({ action: "delete", campaign: target.name, before: target, after: null, reason });
+    logAction({ module: "liveops", action: "delete", target: target.name, before: target, after: null, reason });
     emit();
   },
 };
+
 
 export type CampaignStatus = "active" | "scheduled" | "expired" | "inactive";
 
