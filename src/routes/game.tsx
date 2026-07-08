@@ -1314,8 +1314,8 @@ function loadSave(): SaveState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultSave();
     const parsed = JSON.parse(raw);
-    // Version bump wipes old saves during beta rebalance
-    if (parsed.version !== SAVE_VERSION) return defaultSave();
+    // Migração aditiva: qualquer save anterior (v1..v18) é preservado.
+    // Campos novos herdam defaults; a versão é reescrita ao salvar.
     const base = defaultSave();
     const merged: SaveState = {
       ...base,
