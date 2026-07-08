@@ -268,7 +268,11 @@ function attrValue(key: AttrKey, level: number) {
 }
 function attrCost(key: AttrKey, level: number) {
   const d = ATTR_DEFS[key];
-  return Math.floor(d.costBase * Math.pow(d.costMul, level));
+  // Soft-cap: costMul aplicado só até level 80; depois cresce a taxa reduzida
+  // para manter upgrades viáveis até late game (Lv 200-500).
+  const capped = Math.min(level, 80);
+  const overflow = Math.max(0, level - 80);
+  return Math.floor(d.costBase * Math.pow(d.costMul, capped) * Math.pow(1.055, overflow));
 }
 function fmt(n: number) {
   if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(2) + "B";
