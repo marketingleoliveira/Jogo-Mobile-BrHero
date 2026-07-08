@@ -1170,6 +1170,7 @@ function GamePage() {
               label={save.stage >= PRESTIGE_UNLOCK_STAGE ? "REBIRTH" : "🔒"}
               onClick={() => setModal("rebirth")}
             />
+            <QuickCartoonBtn icon={<Calendar className="h-3 w-3" />} label="DIÁRIO" onClick={() => setModal("daily")} />
             <QuickCartoonBtn icon={<Ticket className="h-3 w-3" />} label="PASSE" onClick={() => flashToast("Passe em breve")} />
           </div>
         </div>
