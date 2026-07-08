@@ -2727,78 +2727,18 @@ function GamePage() {
             </div>
           </div>
 
-          {/* Rebirth + Pass stack */}
+          {/* Menu compacto — abre grade em modal para não atrapalhar a arena */}
           <div className="flex flex-col gap-1">
             <QuickCartoonBtn
               icon={<Sparkles className="h-3 w-3" />}
               label={save.stage >= PRESTIGE_UNLOCK_STAGE ? "REBIRTH" : "🔒"}
               onClick={() => setModal("rebirth")}
             />
-            <QuickCartoonBtn icon={<Calendar className="h-3 w-3" />} label="DIÁRIO" onClick={() => setModal("daily")} />
-            <QuickCartoonBtn icon={<Target className="h-3 w-3" />} label="MISSÕES" onClick={() => setModal("missions")} />
-            <QuickCartoonBtn
-              icon={<Lock className="h-3 w-3" />}
-              label={save.level >= DUNGEON_UNLOCK_LEVEL ? "MASMORRA" : `🔒Lv${DUNGEON_UNLOCK_LEVEL}`}
-              onClick={() => setModal("dungeon")}
-            />
-            <QuickCartoonBtn
-              icon={<Lock className="h-3 w-3" />}
-              label={save.level >= PETS_UNLOCK_LEVEL ? "PETS" : `🔒Lv${PETS_UNLOCK_LEVEL}`}
-              onClick={() => setModal("pets")}
-            />
-            <QuickCartoonBtn
-              icon={<Lock className="h-3 w-3" />}
-              label={save.level >= TOWER_UNLOCK_LEVEL ? "TORRE" : `🔒Lv${TOWER_UNLOCK_LEVEL}`}
-              onClick={() => setModal("tower")}
-            />
-            <QuickCartoonBtn
-              icon={<Sparkles className="h-3 w-3" />}
-              label={save.level >= BLESSING_UNLOCK_LEVEL ? "BÊNÇÃOS" : `🔒Lv${BLESSING_UNLOCK_LEVEL}`}
-              onClick={() => setModal("blessings")}
-            />
-            <QuickCartoonBtn
-              icon={<Lock className="h-3 w-3" />}
-              label={save.level >= GUILD_UNLOCK_LEVEL ? "GUILDA" : `🔒Lv${GUILD_UNLOCK_LEVEL}`}
-              onClick={() => setModal("guild")}
-            />
-            <QuickCartoonBtn
-              icon={<Lock className="h-3 w-3" />}
-              label={save.level >= ARENA_UNLOCK_LEVEL ? "ARENA" : `🔒Lv${ARENA_UNLOCK_LEVEL}`}
-              onClick={() => setModal("arena")}
-            />
-            <QuickCartoonBtn
-              icon={<Sparkles className="h-3 w-3" />}
-              label={save.level >= EVENT_UNLOCK_LEVEL ? `${ACTIVE_EVENT.icon} EVENTO` : `🔒Lv${EVENT_UNLOCK_LEVEL}`}
-              onClick={() => setModal("event")}
-            />
-            <QuickCartoonBtn
-              icon={<Lock className="h-3 w-3" />}
-              label={save.level >= SKIN_UNLOCK_LEVEL ? `${equippedSkinDef(save).icon} SKINS` : `🔒Lv${SKIN_UNLOCK_LEVEL}`}
-              onClick={() => setModal("skins")}
-            />
-            <QuickCartoonBtn
-              icon={<Trophy className="h-3 w-3" />}
-              label="CONQUISTAS"
-              onClick={() => setModal("achievements")}
-            />
-            <QuickCartoonBtn
-              icon={<Sparkles className="h-3 w-3" />}
-              label={save.level >= RUNE_UNLOCK_LEVEL ? "RUNAS" : `🔒Lv${RUNE_UNLOCK_LEVEL}`}
-              onClick={() => setModal("runes")}
-            />
             <QuickCartoonBtn
               icon={<Package className="h-3 w-3" />}
-              label="COSMÉTICOS"
-              onClick={() => setModal("cosmetics")}
+              label="MENU"
+              onClick={() => setModal("menu")}
             />
-            <QuickCartoonBtn
-              icon={<Ticket className="h-3 w-3" />}
-              label="CÓDIGOS"
-              onClick={() => setModal("codes")}
-            />
-
-
-
           </div>
         </div>
       </header>
