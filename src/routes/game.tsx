@@ -556,6 +556,8 @@ function defaultSave(): SaveState {
     daily: { lastClaimDay: null, cycleDay: 0, streak: 0, bestStreak: 0, streakClaimed: [] },
     freeChest: { lastFreeAt: 0, lastRareAt: 0 },
     lastSeenAt: Date.now(),
+    counters: emptyCounters(),
+    missions: emptyMissions(),
     version: SAVE_VERSION,
   };
 }
