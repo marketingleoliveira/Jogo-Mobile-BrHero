@@ -317,17 +317,44 @@ function xpForLevel(level: number) {
   return Math.floor(30 * Math.pow(level, 1.55));
 }
 
-// Enemy for stage
+// Enemy for stage — smooth curve tuned for Lv 1-500+
+// Uses tiered growth: linear + soft exponential so late-game stays challenging
+// but not impossible; gold scales in lockstep so upgrade costs remain viable.
 function enemyForStage(stage: number) {
   const isBoss = stage % 10 === 0;
-  const mult = isBoss ? 4 : 1;
-  const hp = Math.floor((80 + stage * 45 + Math.pow(stage, 1.6) * 4) * mult);
-  const atk = Math.floor((6 + stage * 3 + Math.pow(stage, 1.35)) * mult);
-  const def = Math.floor(2 + stage * 0.7);
-  const gold = Math.floor((10 + stage * 6) * (isBoss ? 6 : 1));
-  const xp = Math.floor((14 + stage * 5) * (isBoss ? 5 : 1));
+  const mult = isBoss ? 3.5 : 1;
+  const expo = Math.pow(1.045, stage); // ~1.045^stage soft exponential
+  const hp = Math.floor((60 + stage * 25) * expo * mult);
+  const atk = Math.floor((5 + stage * 2) * Math.pow(1.035, stage) * mult);
+  const def = Math.floor(2 + stage * 0.6);
+  const gold = Math.floor((8 + stage * 5) * Math.pow(1.042, stage) * (isBoss ? 5 : 1));
+  const xp = Math.floor((14 + stage * 4) * (isBoss ? 5 : 1));
   const gems = isBoss ? Math.max(1, Math.floor(stage / 10)) : 0;
   return { hp, atk, def, gold, xp, gems, isBoss };
+}
+
+// ==== Prestige / Rebirth ====
+const GLOBAL_UP_DEFS: Record<GlobalUpKey, { label: string; icon: string; perLevel: number; costBase: number; costMul: number; max: number; suffix?: string }> = {
+  gold:       { label: "Ouro Global",    icon: "🪙", perLevel: 0.10, costBase: 1, costMul: 1.6, max: 50, suffix: "%" },
+  atk:        { label: "ATK Global",     icon: "⚔️", perLevel: 0.08, costBase: 2, costMul: 1.7, max: 50, suffix: "%" },
+  hp:         { label: "HP Global",      icon: "❤️", perLevel: 0.08, costBase: 2, costMul: 1.7, max: 50, suffix: "%" },
+  xp:         { label: "XP Global",      icon: "✨", perLevel: 0.10, costBase: 1, costMul: 1.6, max: 40, suffix: "%" },
+  startStage: { label: "Estágio Inicial",icon: "🚀", perLevel: 5,    costBase: 3, costMul: 2.0, max: 40, suffix: " estágios" },
+};
+
+function emptyGlobalUp(): Record<GlobalUpKey, number> {
+  return { gold: 0, atk: 0, hp: 0, xp: 0, startStage: 0 };
+}
+
+function globalUpCost(key: GlobalUpKey, level: number) {
+  const d = GLOBAL_UP_DEFS[key];
+  return Math.ceil(d.costBase * Math.pow(d.costMul, level));
+}
+
+// Essence earned by rebirth. Curve: sqrt-based so early prestiges reward, later scale.
+function essenceForRebirth(stage: number) {
+  if (stage < PRESTIGE_UNLOCK_STAGE) return 0;
+  return Math.floor(Math.pow((stage - PRESTIGE_UNLOCK_STAGE) / 20 + 1, 1.4));
 }
 
 function defaultSave(): SaveState {
@@ -341,7 +368,11 @@ function defaultSave(): SaveState {
     equipment: emptyEquipment(),
     inventory: [],
     pvpWins: 0,
-    version: 3,
+    essence: 0,
+    prestigeLevel: 0,
+    maxStage: 1,
+    globalUp: emptyGlobalUp(),
+    version: SAVE_VERSION,
   };
 }
 
@@ -351,20 +382,16 @@ function loadSave(): SaveState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultSave();
     const parsed = JSON.parse(raw);
+    // Version bump wipes old saves during beta rebalance
+    if (parsed.version !== SAVE_VERSION) return defaultSave();
     const base = defaultSave();
-    // Non-destructive migration: keep old progress, fill missing fields
     const merged: SaveState = {
       ...base,
       ...parsed,
-      attrs: {
-        ...base.attrs,
-        ...(parsed.attrs ?? {}),
-      } as Record<AttrKey, Attr>,
+      attrs: { ...base.attrs, ...(parsed.attrs ?? {}) } as Record<AttrKey, Attr>,
       equipment: { ...emptyEquipment(), ...(parsed.equipment ?? {}) },
       inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
-      pvpWins: typeof parsed.pvpWins === "number" ? parsed.pvpWins : 0,
-      gems: typeof parsed.gems === "number" ? parsed.gems : base.gems,
-      version: 3,
+      globalUp: { ...emptyGlobalUp(), ...(parsed.globalUp ?? {}) },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
