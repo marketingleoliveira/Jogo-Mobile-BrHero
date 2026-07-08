@@ -1188,6 +1188,9 @@ function loadSave(): SaveState {
           : ["classic"],
         equipped: (parsed.skins?.equipped as SkinId) in SKIN_DEFS ? parsed.skins.equipped : "classic",
       },
+      achievements: {
+        claimed: Array.isArray(parsed.achievements?.claimed) ? parsed.achievements.claimed : [],
+      },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
