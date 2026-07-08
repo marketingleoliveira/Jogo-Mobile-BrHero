@@ -141,8 +141,12 @@ type SaveState = {
   runes: RunesState;
   // Cosméticos avançados (Fase 3 — Bloco 11)
   cosmetics: CosmeticsState;
+  // Códigos / Redeem (Fase 3 — Bloco 12)
+  redeem: RedeemState;
   version: number;
 };
+
+type RedeemState = { used: string[] };
 
 type DungeonState = { keys: number; lastKeyAt: number; runs: number };
 type DungeonKind = "gold" | "gear" | "essence";
@@ -202,7 +206,7 @@ type AchievementId = string;
 type AchievementsState = { claimed: AchievementId[] };
 
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 17;
+const SAVE_VERSION = 18;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
@@ -826,6 +830,22 @@ function emptyCosmetics(): CosmeticsState {
   };
 }
 
+// ===== Códigos / Redeem (Fase 3 — Bloco 12) =====
+type RedeemReward = {
+  gold?: number;
+  gems?: number;
+  essence?: number;
+  epicChest?: boolean;
+  cosmetic?: CosmeticId;
+};
+type RedeemDef = { label: string; desc: string; reward: RedeemReward };
+
+const REDEEM_CODES: Record<string, RedeemDef> = {
+  BETA100:   { label: "Recompensa Beta",   desc: "+100 💎 cristais",              reward: { gems: 100 } },
+  BRHERO:    { label: "Herói do Brasil",   desc: "+50k 🪙 ouro + 🎁 baú épico",   reward: { gold: 50000, epicChest: true } },
+  FUNDADOR:  { label: "Fundador",          desc: "🎭 Aura Lendária desbloqueada", reward: { cosmetic: "aura_legendary" } },
+};
+
 
 
 
@@ -1283,6 +1303,7 @@ function defaultSave(): SaveState {
     achievements: emptyAchievements(),
     runes: emptyRunes(),
     cosmetics: emptyCosmetics(),
+    redeem: { used: [] },
     version: SAVE_VERSION,
   };
 }
@@ -1356,6 +1377,7 @@ function loadSave(): SaveState {
         }
         return { owned: Array.from(ownedSet), equipped: eq };
       })(),
+      redeem: { used: Array.isArray(parsed.redeem?.used) ? parsed.redeem.used.filter((c: unknown) => typeof c === "string") : [] },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
@@ -1418,7 +1440,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | "runes" | "cosmetics" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | "runes" | "cosmetics" | "codes" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -2531,6 +2553,46 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Códigos / Redeem (Fase 3 — Bloco 12) ====
+  const redeemCode = useCallback((raw: string): { ok: boolean; msg: string } => {
+    const code = raw.trim().toUpperCase();
+    if (!code) return { ok: false, msg: "Digite um código" };
+    const def = REDEEM_CODES[code];
+    if (!def) {
+      flashToast("❌ Código inválido");
+      return { ok: false, msg: "Código inválido" };
+    }
+    let result: { ok: boolean; msg: string } = { ok: false, msg: "" };
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.redeem.used.includes(code)) {
+        result = { ok: false, msg: "Código já resgatado" };
+        flashToast("⚠️ Código já usado");
+        return prev;
+      }
+      let next: SaveState = { ...prev, redeem: { used: [...prev.redeem.used, code] } };
+      const r = def.reward;
+      if (r.gold) next = { ...next, gold: next.gold + r.gold };
+      if (r.gems) next = { ...next, gems: next.gems + r.gems };
+      if (r.essence) next = { ...next, essence: next.essence + r.essence };
+      if (r.epicChest) {
+        // Baú épico: 1 equipamento de slot aleatório baseado no stage atual
+        const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+        const item = rollItem(slot, next.stage);
+        next = { ...next, inventory: [...next.inventory, item].slice(-60) };
+      }
+      if (r.cosmetic && COSMETIC_DEFS[r.cosmetic] && !next.cosmetics.owned.includes(r.cosmetic)) {
+        next = { ...next, cosmetics: { ...next.cosmetics, owned: [...next.cosmetics.owned, r.cosmetic] } };
+      }
+      flashToast(`🎁 ${def.label} resgatado!`);
+      result = { ok: true, msg: `${def.label}: ${def.desc}` };
+      return next;
+    });
+    return result;
+  }, [flashToast]);
+
+
+
 
 
 
@@ -2712,6 +2774,11 @@ function GamePage() {
               icon={<Package className="h-3 w-3" />}
               label="COSMÉTICOS"
               onClick={() => setModal("cosmetics")}
+            />
+            <QuickCartoonBtn
+              icon={<Ticket className="h-3 w-3" />}
+              label="CÓDIGOS"
+              onClick={() => setModal("codes")}
             />
 
 
@@ -3128,6 +3195,9 @@ function GamePage() {
       )}
       {modal === "cosmetics" && (
         <CosmeticsModal save={save} onClose={() => setModal(null)} onEquip={equipCosmetic} />
+      )}
+      {modal === "codes" && (
+        <CodesModal save={save} onClose={() => setModal(null)} onRedeem={redeemCode} />
       )}
 
 
@@ -5539,3 +5609,91 @@ function CosmeticsModal({
 
 
 
+
+// ============= Códigos / Redeem Modal (Fase 3 — Bloco 12) =============
+function CodesModal({
+  save,
+  onClose,
+  onRedeem,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onRedeem: (code: string) => { ok: boolean; msg: string };
+}) {
+  const [code, setCode] = useState("");
+  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  const used = save.redeem.used;
+
+  const submit = () => {
+    const res = onRedeem(code);
+    setFeedback(res);
+    if (res.ok) setCode("");
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-2xl border-4 border-[#1A0F08] bg-gradient-to-b from-amber-100 to-amber-200 p-4 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black text-[#1A0F08]">🎟️ Códigos Promocionais</h2>
+          <button onClick={onClose} className="rounded-lg bg-red-600 px-2 py-1 text-xs font-bold text-white">
+            Fechar
+          </button>
+        </div>
+
+        <p className="mb-2 text-xs text-[#3A2415]">
+          Insira códigos beta para resgatar recompensas. Cada código pode ser usado apenas uma vez por save.
+        </p>
+
+        <div className="mb-2 flex gap-2">
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 24))}
+            placeholder="DIGITE O CÓDIGO"
+            className="flex-1 rounded-lg border-2 border-[#1A0F08] bg-white px-3 py-2 text-sm font-bold uppercase tracking-wider text-[#1A0F08]"
+            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            maxLength={24}
+          />
+          <button
+            onClick={submit}
+            className="rounded-lg border-2 border-[#1A0F08] bg-emerald-500 px-3 py-2 text-sm font-black text-white active:scale-95"
+          >
+            RESGATAR
+          </button>
+        </div>
+
+        {feedback && (
+          <div
+            className={`mb-3 rounded-lg border-2 border-[#1A0F08] px-3 py-2 text-xs font-bold ${
+              feedback.ok ? "bg-emerald-200 text-emerald-900" : "bg-red-200 text-red-900"
+            }`}
+          >
+            {feedback.ok ? "✅ " : "⚠️ "} {feedback.msg}
+          </div>
+        )}
+
+        <div className="rounded-lg border-2 border-[#1A0F08] bg-amber-50 p-2">
+          <div className="mb-1 text-xs font-black text-[#1A0F08]">📜 Códigos beta disponíveis</div>
+          <ul className="space-y-1 text-[11px] text-[#3A2415]">
+            {Object.entries(REDEEM_CODES).map(([k, def]) => {
+              const isUsed = used.includes(k);
+              return (
+                <li key={k} className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-mono font-black">{k}</span>
+                    <span className="ml-1">— {def.desc}</span>
+                  </div>
+                  <span className={`shrink-0 rounded px-1 text-[10px] font-bold ${isUsed ? "bg-gray-400 text-white" : "bg-emerald-500 text-white"}`}>
+                    {isUsed ? "USADO" : "NOVO"}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
