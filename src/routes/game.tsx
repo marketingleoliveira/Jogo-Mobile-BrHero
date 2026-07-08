@@ -162,6 +162,76 @@ function emptyDungeon(): DungeonState {
   return { keys: DUNGEON_MAX_KEYS, lastKeyAt: Date.now(), runs: 0 };
 }
 
+// ===== Pets =====
+const PETS_UNLOCK_LEVEL = 15;
+const PET_MAX_LEVEL = 10;
+const PET_KINDS: PetKind[] = ["wolf", "fairy", "owl", "dragon"];
+const PET_RARITIES: PetRarity[] = ["Comum", "Raro", "Épico", "Lendário"];
+const PET_DEFS: Record<PetKind, { label: string; icon: string; desc: string; color: string }> = {
+  wolf:   { label: "Lobo",         icon: "🐺", desc: "+ATK",       color: "from-slate-500 to-slate-800" },
+  fairy:  { label: "Fada",         icon: "🧚", desc: "+HP/Regen",  color: "from-pink-400 to-fuchsia-600" },
+  owl:    { label: "Coruja",       icon: "🦉", desc: "+XP",        color: "from-amber-600 to-yellow-800" },
+  dragon: { label: "Dragão Bebê",  icon: "🐉", desc: "+Ouro/Drop", color: "from-emerald-500 to-teal-700" },
+};
+const PET_RARITY_MULT: Record<PetRarity, number> = { "Comum": 1, "Raro": 1.6, "Épico": 2.4, "Lendário": 3.5 };
+// Bônus base (%) por nível 1, escalados por raridade e nível linear
+const PET_BASE_PCT: Record<PetKind, { atkMul?: number; hpMul?: number; regenAdd?: number; xpMul?: number; goldMul?: number; dropAdd?: number }> = {
+  wolf:   { atkMul: 0.02 },
+  fairy:  { hpMul: 0.02, regenAdd: 0.5 },
+  owl:    { xpMul: 0.02 },
+  dragon: { goldMul: 0.02, dropAdd: 0.005 },
+};
+
+function petBonus(save: SaveState) {
+  const acc = { atkMul: 1, hpMul: 1, regenAdd: 0, xpMul: 1, goldMul: 1, dropAdd: 0 };
+  if (!save.equippedPetId) return acc;
+  const p = save.pets.find((x) => x.id === save.equippedPetId);
+  if (!p) return acc;
+  const base = PET_BASE_PCT[p.kind];
+  const mult = PET_RARITY_MULT[p.rarity] * p.level;
+  if (base.atkMul) acc.atkMul += base.atkMul * mult;
+  if (base.hpMul) acc.hpMul += base.hpMul * mult;
+  if (base.regenAdd) acc.regenAdd += base.regenAdd * mult;
+  if (base.xpMul) acc.xpMul += base.xpMul * mult;
+  if (base.goldMul) acc.goldMul += base.goldMul * mult;
+  if (base.dropAdd) acc.dropAdd += base.dropAdd * mult;
+  return acc;
+}
+
+// Custo de evolução do pet (ouro + fragmentos)
+function petUpgradeCost(p: Pet): { gold: number; fragments: number } {
+  const rarityMult = PET_RARITY_MULT[p.rarity];
+  return {
+    gold: Math.floor(500 * Math.pow(1.7, p.level) * rarityMult),
+    fragments: Math.floor(5 + p.level * 3 * rarityMult),
+  };
+}
+
+function craftPetCost(): number { return 50; } // fragmentos para forjar 1 pet Comum daquela espécie
+
+function emptyPetFragments(): Record<PetKind, number> {
+  return { wolf: 0, fairy: 0, owl: 0, dragon: 0 };
+}
+function rollPetRarity(bonus = 0): PetRarity {
+  const r = Math.random() - bonus;
+  if (r < 0.02) return "Lendário";
+  if (r < 0.12) return "Épico";
+  if (r < 0.35) return "Raro";
+  return "Comum";
+}
+function makePet(kind: PetKind, rarity: PetRarity): Pet {
+  return { id: `pet-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, kind, rarity, level: 1 };
+}
+// Retorna { pet? | fragments? } — pequena chance de pet inteiro, resto fragmentos
+function maybePetDrop(petChance: number, fragBonus = 0): { pet?: Pet; fragKind?: PetKind; fragAmt?: number } {
+  const kind = PET_KINDS[Math.floor(Math.random() * PET_KINDS.length)];
+  if (Math.random() < petChance) {
+    return { pet: makePet(kind, rollPetRarity(fragBonus)) };
+  }
+  return { fragKind: kind, fragAmt: 5 + Math.floor(Math.random() * 8) };
+}
+
+
 // ===== Retenção: tempo =====
 const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
 const RARE_CHEST_MS = 24 * 60 * 60 * 1000;  // 24h
