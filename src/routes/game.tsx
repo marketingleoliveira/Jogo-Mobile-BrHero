@@ -79,8 +79,8 @@ type SaveState = {
 };
 
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 4;
-const PRESTIGE_UNLOCK_STAGE = 100;
+const SAVE_VERSION = 5;
+const PRESTIGE_UNLOCK_STAGE = 75;
 
 const SLOTS: Array<{ key: SlotKey; label: string; emoji: string }> = [
   { key: "sword", label: "Espada", emoji: "⚔️" },
