@@ -135,6 +135,8 @@ type SaveState = {
   event: EventState;
   // Skins / Cosméticos (Fase 3 — Bloco 8)
   skins: SkinsState;
+  // Conquistas (Fase 3 — Bloco 9)
+  achievements: AchievementsState;
   version: number;
 };
 
@@ -191,8 +193,12 @@ type EventState = {
 type SkinId = "classic" | "green" | "gold" | "brasil" | "shadow";
 type SkinsState = { owned: SkinId[]; equipped: SkinId };
 
+// ===== Conquistas / Achievements (Fase 3 — Bloco 9) =====
+type AchievementId = string;
+type AchievementsState = { claimed: AchievementId[] };
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 14;
+const SAVE_VERSION = 15;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
@@ -608,6 +614,82 @@ function equippedSkinDef(save: SaveState): SkinDef {
   const id = save.skins?.equipped ?? "classic";
   return SKIN_DEFS[id] ?? SKIN_DEFS.classic;
 }
+
+// ===== Conquistas / Achievements (Fase 3 — Bloco 9) =====
+type AchievementCategory = "combate" | "progressao" | "colecao" | "social";
+type AchievementReward = { gold?: number; gems?: number; essence?: number; chest?: 0 | 1 | 2; petFragKind?: PetKind; petFrags?: number };
+type AchievementDef = {
+  id: AchievementId;
+  category: AchievementCategory;
+  icon: string;
+  label: string;
+  desc: string;
+  goal: number;
+  metric: (s: SaveState) => number;
+  reward: AchievementReward;
+};
+
+const ACHIEVEMENTS: AchievementDef[] = [
+  // Combate — inimigos
+  { id: "kill_100",   category: "combate",    icon: "⚔️", label: "Aprendiz das Batalhas",   desc: "Derrote 100 inimigos",       goal: 100,   metric: (s) => s.counters.enemies,          reward: { gold: 2000 } },
+  { id: "kill_1k",    category: "combate",    icon: "⚔️", label: "Veterano de Guerra",      desc: "Derrote 1.000 inimigos",     goal: 1000,  metric: (s) => s.counters.enemies,          reward: { gold: 20000, gems: 20 } },
+  { id: "kill_10k",   category: "combate",    icon: "⚔️", label: "Ceifador Implacável",     desc: "Derrote 10.000 inimigos",    goal: 10000, metric: (s) => s.counters.enemies,          reward: { gold: 250000, gems: 100, chest: 1 } },
+  // Combate — chefes
+  { id: "boss_10",    category: "combate",    icon: "🐲", label: "Caçador de Chefes I",     desc: "Derrote 10 chefes",          goal: 10,    metric: (s) => s.counters.bosses,           reward: { gold: 3000, gems: 10 } },
+  { id: "boss_50",    category: "combate",    icon: "🐲", label: "Caçador de Chefes II",    desc: "Derrote 50 chefes",          goal: 50,    metric: (s) => s.counters.bosses,           reward: { gems: 40, chest: 1 } },
+  { id: "boss_200",   category: "combate",    icon: "🐲", label: "Slayer Lendário",         desc: "Derrote 200 chefes",         goal: 200,   metric: (s) => s.counters.bosses,           reward: { gems: 150, essence: 20, chest: 2 } },
+  // Progressão — Rebirth
+  { id: "reb_1",      category: "progressao", icon: "🌟", label: "Renascido",               desc: "Faça 1 Rebirth",             goal: 1,     metric: (s) => s.prestigeLevel,             reward: { essence: 5, gems: 30 } },
+  { id: "reb_5",      category: "progressao", icon: "🌟", label: "Ciclo Eterno",            desc: "Faça 5 Rebirths",            goal: 5,     metric: (s) => s.prestigeLevel,             reward: { essence: 25, gems: 100 } },
+  { id: "reb_25",     category: "progressao", icon: "🌟", label: "Ascendido",               desc: "Faça 25 Rebirths",           goal: 25,    metric: (s) => s.prestigeLevel,             reward: { essence: 150, gems: 500, chest: 2 } },
+  // Progressão — estágios
+  { id: "stg_50",     category: "progressao", icon: "🗺️", label: "Explorador",              desc: "Alcance o estágio 50",       goal: 50,    metric: (s) => s.maxStage,                  reward: { gold: 5000, gems: 15 } },
+  { id: "stg_200",    category: "progressao", icon: "🗺️", label: "Desbravador",             desc: "Alcance o estágio 200",      goal: 200,   metric: (s) => s.maxStage,                  reward: { gold: 50000, gems: 60, chest: 1 } },
+  { id: "stg_1000",   category: "progressao", icon: "🗺️", label: "Andarilho Infinito",      desc: "Alcance o estágio 1000",     goal: 1000,  metric: (s) => s.maxStage,                  reward: { gems: 300, essence: 50, chest: 2 } },
+  // Progressão — Torre
+  { id: "twr_10",     category: "progressao", icon: "🗼", label: "Escalador",               desc: "Suba ao andar 10 da Torre",  goal: 10,    metric: (s) => s.tower.bestFloor,           reward: { gold: 4000, gems: 15 } },
+  { id: "twr_50",     category: "progressao", icon: "🗼", label: "Alpinista Bravio",        desc: "Suba ao andar 50 da Torre",  goal: 50,    metric: (s) => s.tower.bestFloor,           reward: { gems: 80, essence: 5 } },
+  { id: "twr_150",    category: "progressao", icon: "🗼", label: "Rei da Torre",            desc: "Suba ao andar 150 da Torre", goal: 150,   metric: (s) => s.tower.bestFloor,           reward: { gems: 250, essence: 30, chest: 2 } },
+  // Social — Arena
+  { id: "arn_5",      category: "social",     icon: "🏟️", label: "Estreante da Arena",      desc: "Vença 5 batalhas na Arena",  goal: 5,     metric: (s) => s.arena.wins,                reward: { gold: 3000, gems: 15 } },
+  { id: "arn_25",     category: "social",     icon: "🏟️", label: "Gladiador",               desc: "Vença 25 batalhas na Arena", goal: 25,    metric: (s) => s.arena.wins,                reward: { gems: 60, essence: 5 } },
+  { id: "arn_100",    category: "social",     icon: "🏟️", label: "Campeão da Arena",        desc: "Vença 100 batalhas na Arena", goal: 100,  metric: (s) => s.arena.wins,                reward: { gems: 200, essence: 30, chest: 2 } },
+  // Social — Guilda (proxy: guild.xp acumulado por doações)
+  { id: "gld_100",    category: "social",     icon: "🏰", label: "Membro Contribuinte",     desc: "Acumule 100 XP de Guilda",   goal: 100,   metric: (s) => s.guild.xp,                  reward: { gold: 2000, gems: 10 } },
+  { id: "gld_1000",   category: "social",     icon: "🏰", label: "Pilar da Guilda",         desc: "Acumule 1.000 XP de Guilda", goal: 1000,  metric: (s) => s.guild.xp,                  reward: { gems: 60, essence: 5 } },
+  { id: "gld_10000",  category: "social",     icon: "🏰", label: "Lenda da Guilda",         desc: "Acumule 10.000 XP de Guilda",goal: 10000, metric: (s) => s.guild.xp,                  reward: { gems: 250, essence: 30, chest: 2 } },
+  // Coleção — Pets
+  { id: "pet_1",      category: "colecao",    icon: "🐾", label: "Primeiro Companheiro",    desc: "Colete 1 pet",               goal: 1,     metric: (s) => s.pets.length,               reward: { gold: 2000, gems: 10 } },
+  { id: "pet_3",      category: "colecao",    icon: "🐾", label: "Amigo dos Animais",       desc: "Colete 3 pets",              goal: 3,     metric: (s) => s.pets.length,               reward: { gems: 40, petFragKind: "wolf", petFrags: 5 } },
+  { id: "pet_8",      category: "colecao",    icon: "🐾", label: "Mestre dos Pets",         desc: "Colete 8 pets",              goal: 8,     metric: (s) => s.pets.length,               reward: { gems: 150, essence: 10, chest: 2 } },
+  // Coleção — Skins
+  { id: "skn_2",      category: "colecao",    icon: "🎭", label: "Estilo Novo",             desc: "Desbloqueie 2 skins",        goal: 2,     metric: (s) => s.skins.owned.length,        reward: { gold: 2500, gems: 10 } },
+  { id: "skn_4",      category: "colecao",    icon: "🎭", label: "Fashionista",             desc: "Desbloqueie 4 skins",        goal: 4,     metric: (s) => s.skins.owned.length,        reward: { gems: 50, essence: 5 } },
+  { id: "skn_5",      category: "colecao",    icon: "🎭", label: "Colecionador Total",      desc: "Desbloqueie todas as skins", goal: 5,     metric: (s) => s.skins.owned.length,        reward: { gems: 200, essence: 20, chest: 2 } },
+];
+
+const ACHIEVEMENT_CATEGORIES: { key: AchievementCategory; label: string; icon: string }[] = [
+  { key: "combate",    label: "Combate",    icon: "⚔️" },
+  { key: "progressao", label: "Progressão", icon: "🌟" },
+  { key: "colecao",    label: "Coleção",    icon: "🎭" },
+  { key: "social",     label: "Social",     icon: "🏰" },
+];
+
+function emptyAchievements(): AchievementsState {
+  return { claimed: [] };
+}
+
+function achievementRewardLabel(r: AchievementReward): string {
+  const parts: string[] = [];
+  if (r.gold) parts.push(`${fmt(r.gold)}🪙`);
+  if (r.gems) parts.push(`${r.gems}💎`);
+  if (r.essence) parts.push(`${r.essence}✨`);
+  if (r.chest) parts.push(r.chest === 2 ? "🎁 Baú Raro" : "🎁 Baú");
+  if (r.petFrags && r.petFragKind) parts.push(`${r.petFrags}🧩 ${r.petFragKind}`);
+  return parts.join(" · ");
+}
+
+
 
 
 
@@ -1056,6 +1138,7 @@ function defaultSave(): SaveState {
     arena: emptyArena(),
     event: emptyEvent(),
     skins: emptySkins(),
+    achievements: emptyAchievements(),
     version: SAVE_VERSION,
   };
 }
@@ -1104,6 +1187,9 @@ function loadSave(): SaveState {
           ? (parsed.skins.owned.filter((x: string) => (x as SkinId) in SKIN_DEFS) as SkinId[])
           : ["classic"],
         equipped: (parsed.skins?.equipped as SkinId) in SKIN_DEFS ? parsed.skins.equipped : "classic",
+      },
+      achievements: {
+        claimed: Array.isArray(parsed.achievements?.claimed) ? parsed.achievements.claimed : [],
       },
     };
     for (const k of ATTR_ORDER) {
@@ -1167,7 +1253,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -2165,6 +2251,38 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Conquistas / Achievements (Fase 3 — Bloco 9) ====
+  const claimAchievement = useCallback((id: AchievementId) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const def = ACHIEVEMENTS.find((a) => a.id === id);
+      if (!def) return prev;
+      if (prev.achievements.claimed.includes(id)) return prev;
+      if (def.metric(prev) < def.goal) { flashToast("🔒 Progresso insuficiente"); return prev; }
+      const r = def.reward;
+      let next: SaveState = {
+        ...prev,
+        gold: prev.gold + (r.gold ?? 0),
+        gems: prev.gems + (r.gems ?? 0),
+        essence: prev.essence + (r.essence ?? 0),
+        achievements: { ...prev.achievements, claimed: [...prev.achievements.claimed, id] },
+      };
+      if (r.chest) {
+        // Recompensa de baú convertida em ouro/cristais bônus (sistema simplificado)
+        const bonusGold = r.chest === 2 ? 25000 : 8000;
+        const bonusGems = r.chest === 2 ? 30 : 10;
+        next = { ...next, gold: next.gold + bonusGold, gems: next.gems + bonusGems };
+      }
+      if (r.petFrags && r.petFragKind) {
+        next = { ...next, petFragments: { ...next.petFragments, [r.petFragKind]: next.petFragments[r.petFragKind] + r.petFrags } };
+      }
+      flashToast(`🏆 ${def.label} — ${achievementRewardLabel(r)}`);
+      return next;
+    });
+  }, [flashToast]);
+
+
+
 
 
 
@@ -2327,6 +2445,12 @@ function GamePage() {
               label={save.level >= SKIN_UNLOCK_LEVEL ? `${equippedSkinDef(save).icon} SKINS` : `🔒Lv${SKIN_UNLOCK_LEVEL}`}
               onClick={() => setModal("skins")}
             />
+            <QuickCartoonBtn
+              icon={<Trophy className="h-3 w-3" />}
+              label="CONQUISTAS"
+              onClick={() => setModal("achievements")}
+            />
+
           </div>
         </div>
       </header>
@@ -2731,6 +2855,10 @@ function GamePage() {
       {modal === "skins" && (
         <SkinsModal save={save} onClose={() => setModal(null)} onEquip={equipSkin} />
       )}
+      {modal === "achievements" && (
+        <AchievementsModal save={save} onClose={() => setModal(null)} onClaim={claimAchievement} />
+      )}
+
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
@@ -4860,3 +4988,95 @@ function SkinsModal({
     </div>
   );
 }
+
+// -------- Achievements Modal (Fase 3 — Bloco 9) --------
+function AchievementsModal({
+  save,
+  onClose,
+  onClaim,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onClaim: (id: AchievementId) => void;
+}) {
+  const [cat, setCat] = useState<AchievementCategory>("combate");
+  const claimedSet = new Set(save.achievements.claimed);
+  const list = ACHIEVEMENTS.filter((a) => a.category === cat);
+  const totalDone = save.achievements.claimed.length;
+  const totalAll = ACHIEVEMENTS.length;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🏆 Conquistas</h2>
+          <div className="text-[10px] opacity-70">{totalDone}/{totalAll} coletadas</div>
+        </div>
+
+        <div className="mb-3 grid grid-cols-4 gap-1">
+          {ACHIEVEMENT_CATEGORIES.map((c) => (
+            <button
+              key={c.key}
+              onClick={() => setCat(c.key)}
+              className={`rounded-lg border-2 border-[#1A0F08] py-1.5 text-[10px] font-black ${
+                cat === c.key ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+              }`}
+            >
+              {c.icon} {c.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+          {list.map((a) => {
+            const cur = Math.min(a.metric(save), a.goal);
+            const pct = Math.min(100, Math.floor((cur / a.goal) * 100));
+            const done = cur >= a.goal;
+            const claimed = claimedSet.has(a.id);
+            return (
+              <div key={a.id} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <div className="text-2xl leading-none">{a.icon}</div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-black">{a.label}</div>
+                      <div className="text-[10px] opacity-80">{a.desc}</div>
+                      <div className="text-[10px] mt-0.5 text-amber-300">🎁 {achievementRewardLabel(a.reward)}</div>
+                    </div>
+                  </div>
+                  <button
+                    disabled={!done || claimed}
+                    onClick={() => onClaim(a.id)}
+                    className={`shrink-0 rounded-md border-2 border-[#1A0F08] px-2 py-1 text-[10px] font-black ${
+                      claimed
+                        ? "bg-[#4A2F1A] text-amber-100/50"
+                        : done
+                        ? "bg-gradient-to-b from-emerald-500 to-emerald-700 text-white"
+                        : "bg-black/40 text-amber-100/50"
+                    }`}
+                  >
+                    {claimed ? "✓ Coletada" : done ? "Coletar" : "🔒"}
+                  </button>
+                </div>
+                <div className="mt-1.5 h-1.5 w-full rounded-full bg-black/40 overflow-hidden">
+                  <div
+                    className={`h-full ${done ? "bg-emerald-400" : "bg-amber-400"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <div className="mt-0.5 text-right text-[9px] opacity-70">{fmt(cur)} / {fmt(a.goal)}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
