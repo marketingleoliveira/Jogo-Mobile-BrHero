@@ -618,6 +618,7 @@ function loadSave(): SaveState {
         daily: Array.isArray(parsed.missions?.daily) ? parsed.missions.daily : [],
         weekly: Array.isArray(parsed.missions?.weekly) ? parsed.missions.weekly : [],
       },
+      dungeon: { ...emptyDungeon(), ...(parsed.dungeon ?? {}) },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
