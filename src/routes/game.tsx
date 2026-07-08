@@ -2132,12 +2132,30 @@ function GamePage() {
           break;
         }
         case "essence": next = { ...next, essence: next.essence + 1 }; break;
+        case "skin_brasil": {
+          if (next.skins.owned.includes("brasil")) { flashToast("🦸 Já possui essa skin"); return prev; }
+          next = { ...next, skins: { ...next.skins, owned: [...next.skins.owned, "brasil"] } };
+          break;
+        }
       }
       flashToast(`${item.icon} ${item.label}`);
       ev = { ...ev, medals: ev.medals - item.cost };
       return { ...next, event: ev };
     });
   }, [flashToast]);
+
+  // ==== Skins / Cosméticos (Fase 3 — Bloco 8) ====
+  const equipSkin = useCallback((id: SkinId) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (!prev.skins.owned.includes(id)) { flashToast("Skin não desbloqueada"); return prev; }
+      flashToast(`${SKIN_DEFS[id].icon} ${SKIN_DEFS[id].label} equipada`);
+      return { ...prev, skins: { ...prev.skins, equipped: id } };
+    });
+  }, [flashToast]);
+
+
+
 
 
 
