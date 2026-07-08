@@ -187,8 +187,12 @@ type EventState = {
   missions: EventMissionProgress[];
 };
 
+// ===== Skins / Cosméticos =====
+type SkinId = "classic" | "green" | "gold" | "brasil" | "shadow";
+type SkinsState = { owned: SkinId[]; equipped: SkinId };
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 13;
+const SAVE_VERSION = 14;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
