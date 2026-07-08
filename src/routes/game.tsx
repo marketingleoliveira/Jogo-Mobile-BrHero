@@ -1601,6 +1601,32 @@ function GamePage() {
     return { floor, best, newRecord, rewards: { gold, gems, essence, chests, frag: rw.frag } };
   }, [flashToast]);
 
+  // ==== Bênçãos: ativar (paga com ouro OU cristais e adiciona ao expiresAt) ====
+  const activateBlessing = useCallback((kind: BlessingKind, durationIdx: number, pay: "gold" | "gems") => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.level < BLESSING_UNLOCK_LEVEL) { flashToast(`🔒 Libera no Lv ${BLESSING_UNLOCK_LEVEL}`); return prev; }
+      const def = BLESSING_DEFS[kind];
+      const dur = BLESSING_DURATIONS[durationIdx];
+      if (!dur) return prev;
+      const goldCost = Math.floor(def.baseGold * dur.goldMul);
+      const gemCost = Math.floor(def.baseGems * dur.gemMul);
+      if (pay === "gold" && prev.gold < goldCost) { flashToast("💰 Ouro insuficiente"); return prev; }
+      if (pay === "gems" && prev.gems < gemCost) { flashToast("💎 Cristais insuficientes"); return prev; }
+      const now = Date.now();
+      const cur = prev.blessings[kind] ?? 0;
+      const from = cur > now ? cur : now;
+      const next = from + dur.ms;
+      flashToast(`${def.icon} ${def.label} +${dur.label}`);
+      return {
+        ...prev,
+        gold: pay === "gold" ? prev.gold - goldCost : prev.gold,
+        gems: pay === "gems" ? prev.gems - gemCost : prev.gems,
+        blessings: { ...prev.blessings, [kind]: next },
+      };
+    });
+  }, [flashToast]);
+
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
   const biome = useMemo(() => biomeFor(save?.stage ?? 1), [save?.stage]);
