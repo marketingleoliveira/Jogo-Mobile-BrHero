@@ -236,6 +236,51 @@ function maybePetDrop(petChance: number, fragBonus = 0): { pet?: Pet; fragKind?:
   return { fragKind: kind, fragAmt: 5 + Math.floor(Math.random() * 8) };
 }
 
+// ===== Torre Infinita =====
+const TOWER_UNLOCK_LEVEL = 20;
+const TOWER_BOSS_EVERY = 10;
+const TOWER_MAX_FLOORS_PER_RUN = 500; // trava de segurança
+
+function emptyTower(): TowerState {
+  return { bestFloor: 0, runs: 0, lastRunAt: 0 };
+}
+// Poder do herói (número comparável) — usa stats já com bônus de pet/prestígio
+function heroPower(stats: ReturnType<typeof computeStats>): number {
+  const critFactor = 1 + (stats.critChance / 100) * Math.max(0, stats.critDmg / 100 - 1);
+  const dps = stats.atk * (stats.atkSpeed || 1) * critFactor * (1 + stats.penetration / 100);
+  const tank = stats.hp * (1 + stats.defense / 200) + stats.regen * 20;
+  return dps * 3 + tank;
+}
+function towerRequirement(floor: number, baseStage: number): number {
+  // Ancorado no stage atual do jogador para andares iniciais serem factíveis
+  const base = 60 * Math.pow(1.18, baseStage);
+  return base * Math.pow(1.13, floor);
+}
+// Simula uma tentativa: retorna andares alcançados (0..N) e se derrotou boss
+function simulateTowerRun(save: SaveState): number {
+  const stats = computeStats(save);
+  const power = heroPower(stats);
+  let floor = 0;
+  for (let f = 1; f <= TOWER_MAX_FLOORS_PER_RUN; f++) {
+    const isBoss = f % TOWER_BOSS_EVERY === 0;
+    const req = towerRequirement(f, save.stage) * (isBoss ? 1.6 : 1);
+    if (power < req) break;
+    floor = f;
+  }
+  return floor;
+}
+function towerRewards(floor: number, stage: number, save: SaveState): { gold: number; gems: number; essence: number; chests: number; frag?: { kind: PetKind; amt: number } } {
+  const gold = Math.floor(floor * 60 * Math.pow(1.06, stage));
+  const gems = Math.floor(floor / 5);
+  const essence = Math.floor(floor / 20);
+  const chests = Math.floor(floor / 10);
+  const frag = floor >= 15 && Math.random() < 0.5
+    ? { kind: PET_KINDS[Math.floor(Math.random() * PET_KINDS.length)], amt: Math.max(3, Math.floor(floor / 5)) }
+    : undefined;
+  void save;
+  return { gold, gems, essence, chests, frag };
+}
+
 
 // ===== Retenção: tempo =====
 const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
