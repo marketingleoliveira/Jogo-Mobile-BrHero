@@ -344,10 +344,12 @@ const GLOBAL_UP_DEFS: Record<GlobalUpKey, { label: string; icon: string; perLeve
   hp:         { label: "HP Global",      icon: "❤️", perLevel: 0.08, costBase: 2, costMul: 1.7, max: 50, suffix: "%" },
   xp:         { label: "XP Global",      icon: "✨", perLevel: 0.10, costBase: 1, costMul: 1.6, max: 40, suffix: "%" },
   startStage: { label: "Estágio Inicial",icon: "🚀", perLevel: 5,    costBase: 3, costMul: 2.0, max: 40, suffix: " estágios" },
+  drop:       { label: "Drop Global",    icon: "📦", perLevel: 0.05, costBase: 2, costMul: 1.7, max: 30, suffix: "%" },
+  crit:       { label: "Crítico Global", icon: "💥", perLevel: 0.03, costBase: 2, costMul: 1.7, max: 30, suffix: "%" },
 };
 
 function emptyGlobalUp(): Record<GlobalUpKey, number> {
-  return { gold: 0, atk: 0, hp: 0, xp: 0, startStage: 0 };
+  return { gold: 0, atk: 0, hp: 0, xp: 0, startStage: 0, drop: 0, crit: 0 };
 }
 
 function globalUpCost(key: GlobalUpKey, level: number) {
