@@ -701,6 +701,9 @@ function loadSave(): SaveState {
         weekly: Array.isArray(parsed.missions?.weekly) ? parsed.missions.weekly : [],
       },
       dungeon: { ...emptyDungeon(), ...(parsed.dungeon ?? {}) },
+      pets: Array.isArray(parsed.pets) ? parsed.pets : [],
+      equippedPetId: typeof parsed.equippedPetId === "string" ? parsed.equippedPetId : null,
+      petFragments: { ...emptyPetFragments(), ...(parsed.petFragments ?? {}) },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
