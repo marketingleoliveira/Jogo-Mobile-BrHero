@@ -123,6 +123,8 @@ type SaveState = {
   pets: Pet[];
   equippedPetId: string | null;
   petFragments: Record<PetKind, number>;
+  // Torre Infinita (Fase 3 — Bloco 3)
+  tower: TowerState;
   version: number;
 };
 
@@ -134,8 +136,11 @@ type PetKind = "wolf" | "fairy" | "owl" | "dragon";
 type PetRarity = "Comum" | "Raro" | "Épico" | "Lendário";
 type Pet = { id: string; kind: PetKind; rarity: PetRarity; level: number };
 
+// ===== Torre Infinita =====
+type TowerState = { bestFloor: number; runs: number; lastRunAt: number };
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 8;
+const SAVE_VERSION = 9;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
