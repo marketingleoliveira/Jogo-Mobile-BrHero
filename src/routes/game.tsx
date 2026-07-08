@@ -539,6 +539,7 @@ const EVENT_SHOP: EventShopItem[] = [
   { id: "chest",   label: "Baú Épico",       icon: "📦", cost: 40, limitPerEvent: 5, desc: "Equipamento raro+" },
   { id: "frag",    label: "10 Fragmentos Pet", icon: "🐾", cost: 30, limitPerEvent: 10, desc: "Fragmento aleatório" },
   { id: "essence", label: "1 Essência",      icon: "✨", cost: 60, limitPerEvent: 3, desc: "Rebirth mais rápido" },
+  { id: "rune_frag", label: "5 Fragmentos de Runa", icon: "🔮", cost: 40, limitPerEvent: 10, desc: "Evolua suas runas" },
   { id: "skin_brasil", label: "Skin: Guardião do Brasil", icon: "🦸", cost: 120, limitPerEvent: 1, desc: "Cosmético do evento" },
 ];
 
