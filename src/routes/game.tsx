@@ -770,6 +770,61 @@ function runeCurrentValue(kind: RuneKind, lv: number): number {
   return RUNE_DEFS[kind].perLevel * Math.min(RUNE_MAX_LEVEL, Math.max(0, lv));
 }
 
+// ===== Cosméticos avançados (Fase 3 — Bloco 11) =====
+// Puramente visuais/status — NUNCA afetam ATK/HP/XP/Ouro/Drop/Crit
+type CosmeticCategory = "weapon" | "aura" | "frame" | "title";
+type CosmeticRarity = "Comum" | "Raro" | "Épico" | "Lendário";
+type CosmeticId = string;
+
+type CosmeticDef = {
+  id: CosmeticId;
+  category: CosmeticCategory;
+  label: string;
+  icon: string;
+  rarity: CosmeticRarity;
+  color: string;
+  desc: string;
+  source: string;
+};
+
+type CosmeticsState = {
+  owned: CosmeticId[];
+  equipped: Partial<Record<CosmeticCategory, CosmeticId | null>>;
+};
+
+const COSMETIC_DEFS: Record<CosmeticId, CosmeticDef> = {
+  // Armas visuais
+  none_weapon:  { id: "none_weapon",  category: "weapon", label: "Sem arma visual", icon: "❌", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "Nenhum efeito visual",           source: "Padrão" },
+  sword_green:  { id: "sword_green",  category: "weapon", label: "Espada Verde",    icon: "🗡️", rarity: "Raro",     color: "from-emerald-500 to-green-700",   desc: "Uma lâmina esmeralda",           source: "Baú Raro" },
+  axe_gold:     { id: "axe_gold",     category: "weapon", label: "Machado Dourado", icon: "🪓", rarity: "Épico",    color: "from-amber-400 to-yellow-700",    desc: "Forjado em ouro puro",           source: "Conquistas" },
+  // Auras
+  none_aura:    { id: "none_aura",    category: "aura",   label: "Sem aura",        icon: "❌", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "Nenhuma aura",                   source: "Padrão" },
+  aura_blue:    { id: "aura_blue",    category: "aura",   label: "Aura Azul",       icon: "💠", rarity: "Raro",     color: "from-sky-400 to-blue-700",        desc: "Um brilho tranquilo",            source: "Evento" },
+  aura_legend:  { id: "aura_legend",  category: "aura",   label: "Aura Lendária",   icon: "✨", rarity: "Lendário", color: "from-fuchsia-500 to-purple-800",  desc: "Poucos a ostentaram",            source: "Baú Raro" },
+  // Molduras
+  none_frame:   { id: "none_frame",   category: "frame",  label: "Sem moldura",     icon: "▫️", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "Sem moldura de avatar",          source: "Padrão" },
+  frame_brasil: { id: "frame_brasil", category: "frame",  label: "Moldura Brasil",  icon: "🇧🇷", rarity: "Épico",    color: "from-green-500 to-yellow-500",    desc: "Cores da bandeira tupiniquim",   source: "Evento" },
+  // Títulos
+  title_none:    { id: "title_none",    category: "title", label: "Sem título",           icon: "—", rarity: "Comum",    color: "from-slate-500 to-slate-700",   desc: "Nenhum título exibido",     source: "Padrão" },
+  title_founder: { id: "title_founder", category: "title", label: "Fundador Beta",        icon: "🌟", rarity: "Lendário", color: "from-amber-400 to-orange-700", desc: "Esteve aqui no início",     source: "Bônus inicial" },
+};
+
+const COSMETIC_CATEGORIES: { key: CosmeticCategory; label: string; icon: string }[] = [
+  { key: "weapon", label: "Armas",     icon: "🗡️" },
+  { key: "aura",   label: "Auras",     icon: "✨" },
+  { key: "frame",  label: "Molduras",  icon: "🖼️" },
+  { key: "title",  label: "Títulos",   icon: "🏷️" },
+];
+
+function emptyCosmetics(): CosmeticsState {
+  return {
+    owned: ["none_weapon", "none_aura", "none_frame", "title_none", "title_founder"],
+    equipped: { weapon: "none_weapon", aura: "none_aura", frame: "none_frame", title: "title_founder" },
+  };
+}
+
+
+
 
 
 
