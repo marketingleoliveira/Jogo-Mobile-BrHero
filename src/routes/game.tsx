@@ -624,7 +624,7 @@ function equippedSkinDef(save: SaveState): SkinDef {
 
 // ===== Conquistas / Achievements (Fase 3 — Bloco 9) =====
 type AchievementCategory = "combate" | "progressao" | "colecao" | "social";
-type AchievementReward = { gold?: number; gems?: number; essence?: number; chest?: 0 | 1 | 2; petFragKind?: PetKind; petFrags?: number; runeFrags?: number };
+type AchievementReward = { gold?: number; gems?: number; essence?: number; chest?: 0 | 1 | 2; petFragKind?: PetKind; petFrags?: number; runeFrags?: number; cosmetic?: CosmeticId };
 type AchievementDef = {
   id: AchievementId;
   category: AchievementCategory;
