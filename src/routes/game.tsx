@@ -1763,6 +1763,8 @@ function GamePage() {
         </div>
       </header>
 
+      <ActiveBlessingsBar save={save} onOpen={() => setModal("blessings")} />
+
       {/* ===== Battle arena ===== */}
       <section
         className={`relative h-56 overflow-hidden bg-gradient-to-b ${biome.bg} border-b-4 border-[#1A0F08]`}
