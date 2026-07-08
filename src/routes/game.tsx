@@ -127,6 +127,8 @@ type SaveState = {
   tower: TowerState;
   // Bênçãos (Fase 3 — Bloco 4)
   blessings: Record<BlessingKind, number>; // expiresAt (ms) — 0 = inativa
+  // Guilda (Fase 3 — Bloco 5)
+  guild: GuildState;
   version: number;
 };
 
@@ -144,8 +146,22 @@ type TowerState = { bestFloor: number; runs: number; lastRunAt: number };
 // ===== Bênçãos =====
 type BlessingKind = "gold" | "xp" | "drop" | "atk" | "hp";
 
+// ===== Guilda =====
+type GuildId = "leao" | "corvo" | "dragao";
+type GuildState = {
+  id: GuildId | null;
+  joinedAt: number;
+  xp: number;
+  donationsToday: number;
+  lastDonateDay: string | null;
+  bossLastAt: number;
+  bossKills: number;
+  contribWeek: number;
+  weekKey: string;
+};
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 10;
+const SAVE_VERSION = 11;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
@@ -316,6 +332,42 @@ function blessingBonus(save: SaveState) {
     atkMul:  blessingActive(save, "atk",  now) ? 1 + BLESSING_DEFS.atk.effectPct  / 100 : 1,
     hpMul:   blessingActive(save, "hp",   now) ? 1 + BLESSING_DEFS.hp.effectPct   / 100 : 1,
     regenMul:blessingActive(save, "hp",   now) ? 1 + BLESSING_DEFS.hp.effectPct   / 100 : 1,
+  };
+}
+
+// ===== Guilda =====
+const GUILD_UNLOCK_LEVEL = 25;
+const GUILD_MAX_LEVEL = 20;
+const GUILD_DAILY_DONATIONS = 5;
+const GUILD_BOSS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // semanal
+const GUILD_DEFS: Record<GuildId, { name: string; icon: string; bias: "atk" | "gold" | "xp"; desc: string; color: string }> = {
+  leao:   { name: "Leões da Aurora",  icon: "🦁", bias: "atk",  desc: "Bônus extra de ATK.",  color: "from-amber-500 to-orange-700" },
+  corvo:  { name: "Corvos da Névoa",  icon: "🐦‍⬛", bias: "xp",   desc: "Bônus extra de XP.",   color: "from-slate-500 to-slate-800" },
+  dragao: { name: "Dragões de Rubi",  icon: "🐉", bias: "gold", desc: "Bônus extra de ouro.", color: "from-rose-500 to-red-800" },
+};
+function emptyGuild(): GuildState {
+  return { id: null, joinedAt: 0, xp: 0, donationsToday: 0, lastDonateDay: null, bossLastAt: 0, bossKills: 0, contribWeek: 0, weekKey: "" };
+}
+function guildLevel(xp: number): number {
+  return Math.min(GUILD_MAX_LEVEL, Math.floor(Math.sqrt(Math.max(0, xp) / 500)));
+}
+function guildXpForLevel(lvl: number): number {
+  return lvl * lvl * 500;
+}
+function guildDonationCost(playerLevel: number, donationsToday: number): number {
+  return Math.floor(500 * (playerLevel + 1) * (1 + donationsToday * 0.5));
+}
+function guildBonus(save: SaveState) {
+  const g = save.guild;
+  if (!g?.id) return { atkMul: 1, goldMul: 1, xpMul: 1 };
+  const lvl = guildLevel(g.xp);
+  const base = lvl * 0.005; // 0.5% por nível
+  const bias = 0.05 * (lvl / GUILD_MAX_LEVEL); // até +5% no bias
+  const def = GUILD_DEFS[g.id];
+  return {
+    atkMul:  1 + base + (def.bias === "atk"  ? bias : 0),
+    goldMul: 1 + base + (def.bias === "gold" ? bias : 0),
+    xpMul:   1 + base + (def.bias === "xp"   ? bias : 0),
   };
 }
 
@@ -760,6 +812,7 @@ function defaultSave(): SaveState {
     petFragments: emptyPetFragments(),
     tower: emptyTower(),
     blessings: emptyBlessings(),
+    guild: emptyGuild(),
     version: SAVE_VERSION,
   };
 }
@@ -796,6 +849,7 @@ function loadSave(): SaveState {
       petFragments: { ...emptyPetFragments(), ...(parsed.petFragments ?? {}) },
       tower: { ...emptyTower(), ...(parsed.tower ?? {}) },
       blessings: { ...emptyBlessings(), ...(parsed.blessings ?? {}) },
+      guild: { ...emptyGuild(), ...(parsed.guild ?? {}) },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
@@ -858,7 +912,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -1093,8 +1147,9 @@ function GamePage() {
     // Global prestige bonuses + pet + bênçãos
     const pb = petBonus(cur);
     const bb = blessingBonus(cur);
-    const goldMul = (1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * pb.goldMul * bb.goldMul;
-    const xpMul = (1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * pb.xpMul * bb.xpMul;
+    const gb = guildBonus(cur);
+    const goldMul = (1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * pb.goldMul * bb.goldMul * gb.goldMul;
+    const xpMul = (1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * pb.xpMul * bb.xpMul * gb.xpMul;
     const gainedGold = Math.floor(enemy.gold * goldMul);
     const gainedXp = Math.floor(enemy.xp * xpMul);
     let level = cur.level;
@@ -1627,6 +1682,72 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Guilda (Fase 3 — Bloco 5) ====
+  const joinGuild = useCallback((id: GuildId) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.level < GUILD_UNLOCK_LEVEL) { flashToast(`🔒 Libera no Lv ${GUILD_UNLOCK_LEVEL}`); return prev; }
+      if (prev.guild.id) { flashToast("Você já pertence a uma guilda"); return prev; }
+      flashToast(`${GUILD_DEFS[id].icon} Bem-vindo aos ${GUILD_DEFS[id].name}!`);
+      return { ...prev, guild: { ...prev.guild, id, joinedAt: Date.now() } };
+    });
+  }, [flashToast]);
+
+  const donateGuild = useCallback(() => {
+    setSave((prev) => {
+      if (!prev || !prev.guild.id) return prev;
+      const today = todayKey();
+      const wk = weekKey();
+      const donationsToday = prev.guild.lastDonateDay === today ? prev.guild.donationsToday : 0;
+      const contribWeek = prev.guild.weekKey === wk ? prev.guild.contribWeek : 0;
+      if (donationsToday >= GUILD_DAILY_DONATIONS) { flashToast("Doações diárias esgotadas"); return prev; }
+      const cost = guildDonationCost(prev.level, donationsToday);
+      if (prev.gold < cost) { flashToast("💰 Ouro insuficiente"); return prev; }
+      const xpGain = 120 + prev.level * 8;
+      flashToast(`🎁 +${xpGain} XP Guilda`);
+      return {
+        ...prev,
+        gold: prev.gold - cost,
+        guild: {
+          ...prev.guild,
+          xp: prev.guild.xp + xpGain,
+          donationsToday: donationsToday + 1,
+          lastDonateDay: today,
+          contribWeek: contribWeek + xpGain,
+          weekKey: wk,
+        },
+      };
+    });
+  }, [flashToast]);
+
+  const fightGuildBoss = useCallback(() => {
+    setSave((prev) => {
+      if (!prev || !prev.guild.id) return prev;
+      const now = Date.now();
+      if (now - prev.guild.bossLastAt < GUILD_BOSS_COOLDOWN_MS) { flashToast("⏳ Chefão em recarga"); return prev; }
+      const power = heroPower(computeStats(prev));
+      const threshold = 500 + guildLevel(prev.guild.xp) * 40;
+      const win = power >= threshold || Math.random() < Math.min(0.9, power / threshold);
+      if (!win) {
+        flashToast("💀 Chefão te derrotou — treine mais!");
+        return { ...prev, guild: { ...prev.guild, bossLastAt: now } };
+      }
+      const gold = 5000 + prev.level * 300;
+      const gems = 50;
+      const essence = 1;
+      flashToast(`🏆 Vitória! +${fmt(gold)}🪙 +${gems}💎 +${essence}✨`);
+      return {
+        ...prev,
+        gold: prev.gold + gold,
+        gems: prev.gems + gems,
+        essence: prev.essence + essence,
+        guild: { ...prev.guild, bossLastAt: now, bossKills: prev.guild.bossKills + 1 },
+      };
+    });
+  }, [flashToast]);
+
+
+
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
   const biome = useMemo(() => biomeFor(save?.stage ?? 1), [save?.stage]);
@@ -1758,6 +1879,11 @@ function GamePage() {
               icon={<Sparkles className="h-3 w-3" />}
               label={save.level >= BLESSING_UNLOCK_LEVEL ? "BÊNÇÃOS" : `🔒Lv${BLESSING_UNLOCK_LEVEL}`}
               onClick={() => setModal("blessings")}
+            />
+            <QuickCartoonBtn
+              icon={<Lock className="h-3 w-3" />}
+              label={save.level >= GUILD_UNLOCK_LEVEL ? "GUILDA" : `🔒Lv${GUILD_UNLOCK_LEVEL}`}
+              onClick={() => setModal("guild")}
             />
           </div>
         </div>
@@ -2137,6 +2263,15 @@ function GamePage() {
           onActivate={activateBlessing}
         />
       )}
+      {modal === "guild" && (
+        <GuildModal
+          save={save}
+          onClose={() => setModal(null)}
+          onJoin={joinGuild}
+          onDonate={donateGuild}
+          onFightBoss={fightGuildBoss}
+        />
+      )}
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
@@ -2346,7 +2481,8 @@ function computeStats(s: SaveState) {
   const eq = equipmentBonus(s.equipment);
   const pb = petBonus(s);
   const bb = blessingBonus(s);
-  const atkBonus = (1 + (s.globalUp?.atk ?? 0) * GLOBAL_UP_DEFS.atk.perLevel) * pb.atkMul * bb.atkMul;
+  const gb = guildBonus(s);
+  const atkBonus = (1 + (s.globalUp?.atk ?? 0) * GLOBAL_UP_DEFS.atk.perLevel) * pb.atkMul * bb.atkMul * gb.atkMul;
   const hpBonus = (1 + (s.globalUp?.hp ?? 0) * GLOBAL_UP_DEFS.hp.perLevel) * pb.hpMul * bb.hpMul;
   return {
     atk: Math.floor((attrValue("atk", s.attrs.atk.level) + eq.atk) * atkBonus),
@@ -3765,6 +3901,158 @@ function BlessingsModal({
               Ativar novamente empilha o tempo restante.
             </div>
           </>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
+// -------- Guild Modal (Fase 3 — Bloco 5) --------
+function GuildModal({
+  save,
+  onClose,
+  onJoin,
+  onDonate,
+  onFightBoss,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onJoin: (id: GuildId) => void;
+  onDonate: () => void;
+  onFightBoss: () => void;
+}) {
+  const locked = save.level < GUILD_UNLOCK_LEVEL;
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const g = save.guild;
+  const today = todayKey();
+  const donationsToday = g.lastDonateDay === today ? g.donationsToday : 0;
+  const donationsLeft = GUILD_DAILY_DONATIONS - donationsToday;
+  const cost = guildDonationCost(save.level, donationsToday);
+  const lvl = guildLevel(g.xp);
+  const nextXp = guildXpForLevel(lvl + 1);
+  const prevXp = guildXpForLevel(lvl);
+  const pct = lvl >= GUILD_MAX_LEVEL ? 100 : Math.min(100, ((g.xp - prevXp) / (nextXp - prevXp)) * 100);
+  const now = Date.now();
+  const bossReadyIn = Math.max(0, GUILD_BOSS_COOLDOWN_MS - (now - g.bossLastAt));
+  const bossReady = bossReadyIn === 0;
+  const bossHours = Math.ceil(bossReadyIn / (60 * 60 * 1000));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🏰 Guilda</h2>
+          <div className="text-[10px] opacity-70">Buffs passivos + chefão semanal</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {GUILD_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && !g.id && (
+          <div className="space-y-2">
+            <div className="text-center text-xs opacity-80 mb-2">Escolha sua guilda (permanente por enquanto):</div>
+            {(Object.keys(GUILD_DEFS) as GuildId[]).map((id) => {
+              const def = GUILD_DEFS[id];
+              return (
+                <button
+                  key={id}
+                  onClick={() => onJoin(id)}
+                  className={`w-full rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-3 text-left active:scale-95`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="text-3xl">{def.icon}</div>
+                    <div>
+                      <div className="text-sm font-black text-amber-50 drop-shadow">{def.name}</div>
+                      <div className="text-[11px] text-amber-50/90">{def.desc}</div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {!locked && g.id && (
+          <div className="space-y-3">
+            {(() => {
+              const def = GUILD_DEFS[g.id!];
+              return (
+                <div className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-3`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="text-3xl">{def.icon}</div>
+                      <div>
+                        <div className="text-sm font-black text-amber-50 drop-shadow">{def.name}</div>
+                        <div className="text-[10px] text-amber-50/90">Nível {lvl}/{GUILD_MAX_LEVEL} · Bias +{def.bias.toUpperCase()}</div>
+                      </div>
+                    </div>
+                    <div className="text-right text-[10px] text-amber-50">
+                      <div>🏆 {g.bossKills}</div>
+                    </div>
+                  </div>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full border border-[#1A0F08] bg-black/40">
+                    <div className="h-full bg-amber-300" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="mt-1 text-center text-[10px] text-amber-50/90">
+                    {lvl >= GUILD_MAX_LEVEL ? "MAX" : `${fmt(g.xp - prevXp)} / ${fmt(nextXp - prevXp)} XP`}
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-3">
+              <div className="mb-1 flex items-center justify-between">
+                <div className="text-xs font-black">🎁 Doar Ouro</div>
+                <div className="text-[10px] opacity-70">Restam {donationsLeft}/{GUILD_DAILY_DONATIONS} hoje</div>
+              </div>
+              <div className="text-[10px] opacity-80 mb-2">Aumenta o nível da guilda e a contribuição semanal.</div>
+              <button
+                onClick={onDonate}
+                disabled={donationsLeft <= 0 || save.gold < cost}
+                className="w-full rounded-md border-2 border-[#1A0F08] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-1.5 text-xs font-black text-amber-950 disabled:opacity-50"
+              >
+                Doar 🪙 {fmt(cost)}
+              </button>
+              <div className="mt-1 text-center text-[10px] opacity-70">
+                Contrib. semanal: {fmt(g.weekKey === weekKey() ? g.contribWeek : 0)}
+              </div>
+            </div>
+
+            <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-3">
+              <div className="mb-1 flex items-center justify-between">
+                <div className="text-xs font-black">🐲 Chefão Semanal</div>
+                <div className="text-[10px] opacity-70">
+                  {bossReady ? "Pronto!" : `⏳ ${bossHours}h`}
+                </div>
+              </div>
+              <div className="text-[10px] opacity-80 mb-2">Recompensas: ouro alto, cristais e essência.</div>
+              <button
+                onClick={onFightBoss}
+                disabled={!bossReady}
+                className="w-full rounded-md border-2 border-[#1A0F08] bg-gradient-to-b from-rose-500 to-red-700 py-1.5 text-xs font-black text-amber-50 disabled:opacity-50"
+              >
+                {bossReady ? "Enfrentar Chefão" : `Aguarde ${bossHours}h`}
+              </button>
+            </div>
+
+            <div className="text-center text-[10px] opacity-60">
+              Bônus atuais: ATK ×{guildBonus(save).atkMul.toFixed(2)} · Ouro ×{guildBonus(save).goldMul.toFixed(2)} · XP ×{guildBonus(save).xpMul.toFixed(2)}
+            </div>
+          </div>
         )}
 
         <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
