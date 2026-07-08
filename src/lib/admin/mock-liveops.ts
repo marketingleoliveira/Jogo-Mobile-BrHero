@@ -1,5 +1,8 @@
 // Mock store for Admin CMS - LiveOps module.
 // Ainda não conectado a Supabase. Persiste em localStorage.
+import { guard } from "./rbac";
+import { logAction } from "./audit-central";
+
 
 export type CampaignType =
   | "double_xp"
