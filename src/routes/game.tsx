@@ -4233,3 +4233,126 @@ function GuildModal({
     </div>
   );
 }
+
+// -------- Arena PvP Async Modal (Fase 3 — Bloco 6) --------
+function ArenaPvpModal({
+  save,
+  onClose,
+  onFight,
+  onBuyTicket,
+  onClaimDaily,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onFight: (opp: ArenaOpponent) => { win: boolean };
+  onBuyTicket: () => void;
+  onClaimDaily: () => void;
+}) {
+  const locked = save.level < ARENA_UNLOCK_LEVEL;
+  const [opponents, setOpponents] = useState<ArenaOpponent[]>(() => (locked ? [] : generateArenaOpponents(save)));
+  const [lastResult, setLastResult] = useState<{ opp: ArenaOpponent; win: boolean } | null>(null);
+  const tier = arenaTier(save.arena.points);
+  const nextTier = ARENA_TIERS.find((t) => t.min > save.arena.points);
+  const ticketsLeft = arenaTicketsLeft(save.arena);
+  const canClaimDaily = save.arena.lastDailyClaim !== todayKey();
+
+  const doFight = (opp: ArenaOpponent) => {
+    const r = onFight(opp);
+    setLastResult({ opp, win: r.win });
+    // regenerate list to avoid same opponent repeat
+    setTimeout(() => setOpponents(generateArenaOpponents({ ...save, arena: { ...save.arena, wins: save.arena.wins + (r.win ? 1 : 0), losses: save.arena.losses + (r.win ? 0 : 1) } })), 300);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>⚔️ Arena PvP</h2>
+          <div className="text-[10px] opacity-70">Assíncrona · beta</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {ARENA_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && (
+          <>
+            <div className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${tier.color} p-3 mb-3`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="text-3xl">{tier.icon}</div>
+                  <div>
+                    <div className="text-sm font-black text-amber-50 drop-shadow">{tier.name}</div>
+                    <div className="text-[10px] text-amber-50/90">{save.arena.points} pts · {save.arena.wins}V / {save.arena.losses}D</div>
+                  </div>
+                </div>
+                <div className="text-right text-[10px] text-amber-50">
+                  🎟️ {ticketsLeft}
+                  <button onClick={onBuyTicket} className="mt-1 block rounded border border-[#1A0F08] bg-black/40 px-1.5 py-0.5 font-black">+1 💎{ARENA_EXTRA_TICKET_COST_GEMS}</button>
+                </div>
+              </div>
+              {nextTier && (
+                <div className="mt-2 text-center text-[10px] text-amber-50/90">
+                  Próximo: {nextTier.icon} {nextTier.name} em {nextTier.min - save.arena.points} pts
+                </div>
+              )}
+            </div>
+
+            {canClaimDaily && (
+              <button
+                onClick={onClaimDaily}
+                className="mb-3 w-full rounded-lg border-2 border-[#1A0F08] bg-gradient-to-b from-emerald-500 to-emerald-700 py-1.5 text-xs font-black text-amber-50"
+              >
+                🎁 Coletar Recompensa Diária ({fmt(ARENA_DAILY_REWARD_GOLD)}🪙 + {ARENA_DAILY_REWARD_GEMS}💎)
+              </button>
+            )}
+
+            {lastResult && (
+              <div className={`mb-3 rounded-lg border-2 border-[#1A0F08] p-2 text-center text-xs font-black ${lastResult.win ? "bg-emerald-800" : "bg-rose-900"}`}>
+                {lastResult.win ? "🏆" : "💀"} {lastResult.win ? "Vitória" : "Derrota"} vs {lastResult.opp.name}
+              </div>
+            )}
+
+            <div className="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
+              {opponents.map((o, i) => (
+                <div key={i} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-amber-100">
+                        <span>#{o.rank}</span>
+                        <span className="truncate">{o.name}</span>
+                        <span className="text-[10px] opacity-70">Lv{o.level}</span>
+                      </div>
+                      <div className="text-[10px] opacity-80">
+                        {o.guild} · {o.pet} · ⚡{fmt(o.power)}
+                      </div>
+                      <div className="text-[10px] text-amber-300/90">
+                        Prêmio: 🪙{fmt(o.rewardGold)} · 💎{o.rewardGems}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => doFight(o)}
+                      disabled={ticketsLeft <= 0}
+                      className="rounded-md border-2 border-[#1A0F08] bg-gradient-to-b from-rose-500 to-red-700 px-3 py-1.5 text-[11px] font-black text-amber-50 disabled:opacity-40"
+                    >
+                      Lutar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
