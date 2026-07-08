@@ -361,6 +361,15 @@ function essenceForRebirth(stage: number) {
   return Math.floor(Math.pow((stage - PRESTIGE_UNLOCK_STAGE) / 20 + 1, 1.4));
 }
 
+// ==== Crystal packs (MOCK: sem cobrança real; Stripe/Play depois) ====
+type CrystalPack = { id: string; gems: number; bonus: number; priceBRL: number; tag?: string };
+const CRYSTAL_PACKS: CrystalPack[] = [
+  { id: "starter",  gems: 80,   bonus: 0,   priceBRL: 4.90 },
+  { id: "popular",  gems: 250,  bonus: 50,  priceBRL: 14.90, tag: "popular" },
+  { id: "big",      gems: 600,  bonus: 200, priceBRL: 29.90, tag: "melhor valor" },
+  { id: "whale",    gems: 1500, bonus: 800, priceBRL: 69.90, tag: "mega bônus" },
+];
+
 function defaultSave(): SaveState {
   return {
     level: 1,
