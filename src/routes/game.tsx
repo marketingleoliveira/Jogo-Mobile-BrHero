@@ -58,7 +58,7 @@ type Item = {
   bonus: { atk: number; hp: number; def: number };
 };
 
-type GlobalUpKey = "gold" | "atk" | "hp" | "xp" | "startStage";
+type GlobalUpKey = "gold" | "atk" | "hp" | "xp" | "startStage" | "drop" | "crit";
 
 type SaveState = {
   level: number;
@@ -79,8 +79,8 @@ type SaveState = {
 };
 
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 4;
-const PRESTIGE_UNLOCK_STAGE = 100;
+const SAVE_VERSION = 5;
+const PRESTIGE_UNLOCK_STAGE = 75;
 
 const SLOTS: Array<{ key: SlotKey; label: string; emoji: string }> = [
   { key: "sword", label: "Espada", emoji: "⚔️" },
@@ -344,10 +344,12 @@ const GLOBAL_UP_DEFS: Record<GlobalUpKey, { label: string; icon: string; perLeve
   hp:         { label: "HP Global",      icon: "❤️", perLevel: 0.08, costBase: 2, costMul: 1.7, max: 50, suffix: "%" },
   xp:         { label: "XP Global",      icon: "✨", perLevel: 0.10, costBase: 1, costMul: 1.6, max: 40, suffix: "%" },
   startStage: { label: "Estágio Inicial",icon: "🚀", perLevel: 5,    costBase: 3, costMul: 2.0, max: 40, suffix: " estágios" },
+  drop:       { label: "Drop Global",    icon: "📦", perLevel: 0.05, costBase: 2, costMul: 1.7, max: 30, suffix: "%" },
+  crit:       { label: "Crítico Global", icon: "💥", perLevel: 0.03, costBase: 2, costMul: 1.7, max: 30, suffix: "%" },
 };
 
 function emptyGlobalUp(): Record<GlobalUpKey, number> {
-  return { gold: 0, atk: 0, hp: 0, xp: 0, startStage: 0 };
+  return { gold: 0, atk: 0, hp: 0, xp: 0, startStage: 0, drop: 0, crit: 0 };
 }
 
 function globalUpCost(key: GlobalUpKey, level: number) {
@@ -644,7 +646,8 @@ function GamePage() {
       level += 1;
     }
     const canDrop = level >= 3 || cur.level >= 3;
-    const drop = canDrop && (enemy.isBoss || Math.random() < 0.12)
+    const dropBonus = (cur.globalUp?.drop ?? 0) * GLOBAL_UP_DEFS.drop.perLevel;
+    const drop = canDrop && (enemy.isBoss || Math.random() < 0.12 + dropBonus)
       ? rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, cur.stage)
       : null;
     if (drop) flashToast(`📦 ${drop.rarity} ${SLOTS.find(s => s.key === drop.slot)!.label}`);
@@ -1515,7 +1518,7 @@ function computeStats(s: SaveState) {
     hp: Math.floor((attrValue("hp", s.attrs.hp.level) + eq.hp) * hpBonus),
     regen: attrValue("regen", s.attrs.regen.level),
     critDmg: attrValue("critDmg", s.attrs.critDmg.level),
-    critChance: attrValue("critChance", s.attrs.critChance.level),
+    critChance: attrValue("critChance", s.attrs.critChance.level) + (s.globalUp?.crit ?? 0) * GLOBAL_UP_DEFS.crit.perLevel * 100,
     atkSpeed: attrValue("atkSpeed", s.attrs.atkSpeed.level),
     lifesteal: attrValue("lifesteal", s.attrs.lifesteal.level),
     penetration: attrValue("penetration", s.attrs.penetration.level),
