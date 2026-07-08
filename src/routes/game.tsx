@@ -2242,6 +2242,11 @@ function GamePage() {
               label={save.level >= ARENA_UNLOCK_LEVEL ? "ARENA" : `🔒Lv${ARENA_UNLOCK_LEVEL}`}
               onClick={() => setModal("arena")}
             />
+            <QuickCartoonBtn
+              icon={<Sparkles className="h-3 w-3" />}
+              label={save.level >= EVENT_UNLOCK_LEVEL ? `${ACTIVE_EVENT.icon} EVENTO` : `🔒Lv${EVENT_UNLOCK_LEVEL}`}
+              onClick={() => setModal("event")}
+            />
           </div>
         </div>
       </header>
