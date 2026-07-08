@@ -243,7 +243,16 @@ function Landing() {
           setAccount(null);
         }} />}
 
-        <p className="mt-8 text-center text-[10px] text-amber-200/60">
+        <div className="mt-8 flex items-center justify-center gap-3 text-[11px] text-amber-200/70">
+          <Link to="/privacidade" className="underline hover:text-amber-100">
+            Privacidade
+          </Link>
+          <span>·</span>
+          <Link to="/termos" className="underline hover:text-amber-100">
+            Termos
+          </Link>
+        </div>
+        <p className="mt-2 text-center text-[10px] text-amber-200/60">
           © BRHero · Beta MVP · Feito com ❤️ no Brasil
         </p>
       </div>
