@@ -1015,6 +1015,7 @@ function defaultSave(): SaveState {
     blessings: emptyBlessings(),
     guild: emptyGuild(),
     arena: emptyArena(),
+    event: emptyEvent(),
     version: SAVE_VERSION,
   };
 }
