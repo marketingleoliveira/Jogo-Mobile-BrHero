@@ -2325,6 +2325,7 @@ function GamePage() {
           break;
         }
         case "essence": next = { ...next, essence: next.essence + 1 }; break;
+        case "rune_frag": next = { ...next, runes: { ...next.runes, fragments: next.runes.fragments + 5 } }; break;
         case "skin_brasil": {
           if (next.skins.owned.includes("brasil")) { flashToast("🦸 Já possui essa skin"); return prev; }
           next = { ...next, skins: { ...next.skins, owned: [...next.skins.owned, "brasil"] } };
