@@ -342,16 +342,25 @@ function loadSave(): SaveState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultSave();
     const parsed = JSON.parse(raw);
-    if (parsed?.version !== 3) return defaultSave();
     const base = defaultSave();
+    // Non-destructive migration: keep old progress, fill missing fields
+    const merged: SaveState = {
+      ...base,
+      ...parsed,
+      attrs: {
+        ...base.attrs,
+        ...(parsed.attrs ?? {}),
+      } as Record<AttrKey, Attr>,
+      equipment: { ...emptyEquipment(), ...(parsed.equipment ?? {}) },
+      inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
+      pvpWins: typeof parsed.pvpWins === "number" ? parsed.pvpWins : 0,
+      gems: typeof parsed.gems === "number" ? parsed.gems : base.gems,
+      version: 3,
+    };
     for (const k of ATTR_ORDER) {
-      if (!parsed.attrs?.[k]) parsed.attrs[k] = { level: 0 };
+      if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
     }
-    if (!parsed.equipment) parsed.equipment = emptyEquipment();
-    if (!Array.isArray(parsed.inventory)) parsed.inventory = [];
-    if (typeof parsed.pvpWins !== "number") parsed.pvpWins = 0;
-    return { ...base, ...parsed, attrs: parsed.attrs };
-
+    return merged;
   } catch {
     return defaultSave();
   }
@@ -409,7 +418,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | null>(null);
   const prevLevelRef = useRef(1);
 
 
@@ -695,6 +704,55 @@ function GamePage() {
     });
   };
 
+  // ==== Store: pay-to-fast (never pay-to-win) ====
+  const buyStoreItem = useCallback((id: string) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const pack = STORE_ITEMS.find((p) => p.id === id);
+      if (!pack) return prev;
+      if (prev.gems < pack.cost) {
+        flashToast("💎 Cristais insuficientes");
+        return prev;
+      }
+      let next: SaveState = { ...prev, gems: prev.gems - pack.cost };
+      switch (pack.kind) {
+        case "gold": {
+          // convert gems → gold based on current stage (scales so it stays useful)
+          const gold = pack.amount * (10 + next.stage * 3);
+          next = { ...next, gold: next.gold + gold };
+          flashToast(`+${fmt(gold)} 🪙`);
+          break;
+        }
+        case "chest": {
+          // random equipment for a random slot at current stage
+          const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+          const item = rollItem(slot, next.stage);
+          next = { ...next, inventory: [...next.inventory, item].slice(-60) };
+          flashToast(`📦 ${item.rarity} ${SLOTS.find((s) => s.key === slot)!.label}`);
+          break;
+        }
+        case "heal": {
+          const stats = computeStats(next);
+          heroHpRef.current = stats.hp;
+          setHeroHp(stats.hp);
+          flashToast("❤️ HP totalmente restaurado");
+          break;
+        }
+        case "fastforward": {
+          // simulate N stages of gold rewards without changing stage (pay-to-fast catch-up)
+          let totalGold = 0;
+          for (let i = 0; i < pack.amount; i++) {
+            const e = enemyForStage(next.stage + i);
+            totalGold += e.gold;
+          }
+          next = { ...next, gold: next.gold + totalGold };
+          flashToast(`⏩ Recompensas equivalentes a ${pack.amount} batalhas: +${fmt(totalGold)} 🪙`);
+          break;
+        }
+      }
+      return next;
+    });
+  }, [flashToast]);
 
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
@@ -1092,9 +1150,7 @@ function GamePage() {
         <TabBarItem
           icon="🛒"
           label="Loja"
-          locked={save.level < 50}
-          unlockLv={50}
-          onClick={() => setModal("arena")}
+          onClick={() => setModal("store")}
         />
       </nav>
 
@@ -1110,6 +1166,13 @@ function GamePage() {
       )}
       {modal === "arena" && (
         <ArenaModal save={save} onClose={() => setModal(null)} onFight={doPvp} />
+      )}
+      {modal === "store" && (
+        <StoreModal
+          save={save}
+          onClose={() => setModal(null)}
+          onBuy={buyStoreItem}
+        />
       )}
 
       {/* Toast */}
@@ -1542,3 +1605,179 @@ function pickEnemySprite(stage: number) {
   const pool = [goblinSprite, slimeSprite, skeletonSprite];
   return pool[stage % pool.length];
 }
+
+// ==================== STORE (Pay-to-fast) ====================
+// Regra de design: nada aqui empurra o jogador direto pra frente em stats
+// permanentes. Só acelera o que ele já pode conseguir jogando. NUNCA vender:
+// atributos permanentes, XP direto, avanço automático de estágio.
+type StoreItem = {
+  id: string;
+  icon: string;
+  title: string;
+  desc: string;
+  cost: number;
+  amount: number;
+  kind: "gold" | "chest" | "heal" | "fastforward";
+  tag?: "popular" | "melhor" | "grátis";
+};
+
+const STORE_ITEMS: StoreItem[] = [
+  {
+    id: "gold-small",
+    icon: "🪙",
+    title: "Saco de Ouro",
+    desc: "Bônus de ouro escalonado pelo estágio atual.",
+    cost: 5,
+    amount: 50,
+    kind: "gold",
+  },
+  {
+    id: "gold-big",
+    icon: "💰",
+    title: "Baú de Ouro",
+    desc: "5x mais ouro. Ótimo pra desbloquear atributos.",
+    cost: 20,
+    amount: 250,
+    kind: "gold",
+    tag: "popular",
+  },
+  {
+    id: "heal",
+    icon: "❤️‍🩹",
+    title: "Poção Instantânea",
+    desc: "Restaura 100% do HP na hora.",
+    cost: 3,
+    amount: 1,
+    kind: "heal",
+  },
+  {
+    id: "chest-common",
+    icon: "📦",
+    title: "Baú Comum",
+    desc: "1 equipamento aleatório do estágio atual.",
+    cost: 15,
+    amount: 1,
+    kind: "chest",
+  },
+  {
+    id: "chest-epic",
+    icon: "🎁",
+    title: "Baú Épico",
+    desc: "1 equipamento aleatório do estágio +2.",
+    cost: 45,
+    amount: 1,
+    kind: "chest",
+    tag: "melhor",
+  },
+  {
+    id: "ff-10",
+    icon: "⏩",
+    title: "Recompensas Idle x10",
+    desc: "Ganhe ouro equivalente a 10 batalhas futuras (sem pular estágio).",
+    cost: 25,
+    amount: 10,
+    kind: "fastforward",
+  },
+  {
+    id: "ff-50",
+    icon: "⏭️",
+    title: "Recompensas Idle x50",
+    desc: "Ganhe ouro equivalente a 50 batalhas futuras.",
+    cost: 100,
+    amount: 50,
+    kind: "fastforward",
+  },
+];
+
+function StoreModal({
+  save,
+  onClose,
+  onBuy,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onBuy: (id: string) => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end bg-black/70 backdrop-blur-sm sm:items-center sm:justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full overflow-y-auto rounded-t-3xl border-4 border-[#f5c542] bg-gradient-to-b from-[#0a1c3a] to-[#152b5c] p-5 text-[#e8ecf1] shadow-2xl sm:max-w-md sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2
+            className="text-2xl text-[#f5c542]"
+            style={{ fontFamily: "'Lilita One', cursive" }}
+          >
+            🛒 Loja
+          </h2>
+          <button
+            onClick={onClose}
+            className="rounded-full border border-[#f5c542]/40 px-3 py-1 text-xs text-[#f5c542]"
+          >
+            Fechar
+          </button>
+        </div>
+
+        <div className="mb-3 flex items-center justify-between rounded-xl border-2 border-[#f5c542]/40 bg-[#0a1c3a]/70 px-3 py-2 text-sm">
+          <span>💎 Cristais: <b className="text-[#f5c542]">{fmt(save.gems)}</b></span>
+          <span>🪙 Ouro: <b className="text-[#f5c542]">{fmt(save.gold)}</b></span>
+        </div>
+
+        <p className="mb-3 rounded-lg border border-emerald-400/40 bg-emerald-500/10 p-2 text-[11px] text-emerald-200">
+          ⚖️ <b>100% Pay-to-Fast:</b> a loja só vende ouro, baús e acelerações
+          — nunca atributos, XP direto ou avanço automático de estágio. Todo
+          jogador free pode chegar aos mesmos stats.
+        </p>
+
+        <div className="space-y-2">
+          {STORE_ITEMS.map((item) => {
+            const cantAfford = save.gems < item.cost;
+            return (
+              <div
+                key={item.id}
+                className="flex items-center gap-3 rounded-xl border-2 border-[#f5c542]/30 bg-[#152b5c]/60 p-3"
+              >
+                <div className="text-3xl">{item.icon}</div>
+                <div className="flex-1">
+                  <div
+                    className="flex items-center gap-2 text-sm text-[#f5c542]"
+                    style={{ fontFamily: "'Lilita One', cursive" }}
+                  >
+                    {item.title}
+                    {item.tag && (
+                      <span className="rounded-full bg-[#f5c542] px-2 py-[1px] text-[9px] uppercase text-[#0a1c3a]">
+                        {item.tag}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-[#e8ecf1]/70">{item.desc}</div>
+                </div>
+                <button
+                  onClick={() => onBuy(item.id)}
+                  disabled={cantAfford}
+                  className={`rounded-lg border-2 px-3 py-2 text-xs ${
+                    cantAfford
+                      ? "border-slate-600 bg-slate-800 text-slate-500"
+                      : "border-[#f5c542] bg-gradient-to-b from-[#f5c542] to-[#d4a02a] text-[#0a1c3a]"
+                  }`}
+                  style={{ fontFamily: "'Lilita One', cursive" }}
+                >
+                  💎 {item.cost}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="mt-4 text-center text-[10px] text-[#e8ecf1]/50">
+          Ganhe 💎 derrotando chefões (a cada 10 estágios) e vencendo no PvP.
+        </p>
+      </div>
+    </div>
+  );
+}
+
