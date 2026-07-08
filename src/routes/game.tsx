@@ -909,6 +909,11 @@ function GamePage() {
       stage: nextStage,
       maxStage: Math.max(cur.maxStage ?? 1, nextStage),
       inventory: drop ? [...cur.inventory, drop].slice(-60) : cur.inventory,
+      counters: {
+        ...cur.counters,
+        enemies: cur.counters.enemies + 1,
+        bosses: cur.counters.bosses + (enemy.isBoss ? 1 : 0),
+      },
     };
     setSave(next);
     saveRef.current = next;
