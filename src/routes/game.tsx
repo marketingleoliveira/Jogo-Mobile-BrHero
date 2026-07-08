@@ -24,6 +24,12 @@ import {
   Package,
   Users,
 } from "lucide-react";
+import heroSprite from "@/assets/sprite-hero.png";
+import goblinSprite from "@/assets/sprite-goblin.png";
+import slimeSprite from "@/assets/sprite-slime.png";
+import skeletonSprite from "@/assets/sprite-skeleton.png";
+import bossDragonSprite from "@/assets/sprite-boss-dragon.png";
+import woodTexture from "@/assets/wood-texture.jpg";
 
 // -------- Types --------
 type AttrKey =
@@ -802,7 +808,12 @@ function GamePage() {
               style={{ width: `${(heroHp / stats.hp) * 100}%` }}
             />
           </div>
-          <div className="text-5xl drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)]">🧝‍♂️</div>
+          <img
+            src={heroSprite}
+            alt="Herói"
+            className={`h-20 w-20 object-contain drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] ${levelFlash ? "animate-[heroBounce_0.9s_ease-out]" : ""}`}
+            draggable={false}
+          />
           <div className="mt-0.5 text-[9px] tabular-nums text-white/90 font-bold">
             {fmt(heroHp)}/{fmt(stats.hp)}
           </div>
@@ -820,13 +831,12 @@ function GamePage() {
               style={{ width: `${(enemyHp / enemy.hp) * 100}%` }}
             />
           </div>
-          <div
-            className={`drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] ${
-              enemy.isBoss ? "text-6xl" : "text-5xl"
-            }`}
-          >
-            {enemy.isBoss ? "🐲" : pickEnemyEmoji(save.stage)}
-          </div>
+          <img
+            src={enemy.isBoss ? bossDragonSprite : pickEnemySprite(save.stage)}
+            alt={enemy.isBoss ? "Chefe" : "Inimigo"}
+            className={`object-contain drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] ${enemy.isBoss ? "h-24 w-24" : "h-20 w-20"} ${enemyHit ? "animate-[shake_0.15s]" : ""}`}
+            draggable={false}
+          />
           <div className="mt-0.5 text-[9px] tabular-nums text-white/90 font-bold">
             {fmt(enemyHp)}/{fmt(enemy.hp)}
           </div>
@@ -852,7 +862,12 @@ function GamePage() {
             {d.crit ? `✦${d.value}` : d.value}
           </span>
         ))}
-        <style>{`@keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-40px);opacity:0}}`}</style>
+        <style>{`
+          @keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-40px);opacity:0}}
+          @keyframes heroBounce{0%,100%{transform:translateY(0) scale(1)}20%{transform:translateY(-18px) scale(1.15)}45%{transform:translateY(0) scale(0.92)}65%{transform:translateY(-8px) scale(1.05)}85%{transform:translateY(0) scale(0.98)}}
+          @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+          @keyframes levelPop{0%{transform:scale(0.5) rotate(-8deg);opacity:0}60%{transform:scale(1.15) rotate(4deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+        `}</style>
       </section>
 
       {/* ===== Skill bar (wood frames) ===== */}
@@ -927,7 +942,12 @@ function GamePage() {
           return (
             <div
               key={key}
-              className="flex items-center gap-3 rounded-3xl border-t-4 border-b-4 border-t-[#795548] border-b-[#1A0F08] bg-[#5D4037] p-2 shadow-lg"
+              className="flex items-center gap-3 rounded-3xl border-4 border-[#3E2010] bg-[#5D4037] p-2 shadow-lg"
+              style={{
+                borderImage: `url(${woodTexture}) 40 round`,
+                backgroundImage: `linear-gradient(rgba(93,64,55,0.72), rgba(62,39,35,0.88)), url(${woodTexture})`,
+                backgroundSize: "cover",
+              }}
             >
               {/* Icon block */}
               <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border-4 border-[#1A0F08] bg-[#3E2723]">
@@ -1392,7 +1412,7 @@ function ArenaModal({
 
 
 
-function pickEnemyEmoji(stage: number) {
-  const pool = ["👹", "👺", "🧟", "👻", "🦇", "🐍", "🕷️", "🐺", "🦂", "🐗"];
+function pickEnemySprite(stage: number) {
+  const pool = [goblinSprite, slimeSprite, skeletonSprite];
   return pool[stage % pool.length];
 }
