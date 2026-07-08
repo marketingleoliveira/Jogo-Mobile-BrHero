@@ -1784,6 +1784,9 @@ function GamePage() {
       if (d.pet) { pets = [...pets, d.pet]; flashToast(`🐾 Pet ${PET_DEFS[d.pet.kind].label} (${d.pet.rarity})!`); }
       else if (d.fragKind && d.fragAmt) { frags = { ...frags, [d.fragKind]: frags[d.fragKind] + d.fragAmt }; }
     }
+    let ev = ensureEventStarted(prev);
+    ev = addMedals(ev, 20);
+    ev = bumpEventMission(ev, "dungeon", 1);
     setSave({
       ...prev,
       gold: prev.gold + gold,
@@ -1794,6 +1797,7 @@ function GamePage() {
       dungeon: nextDungeon,
       pets,
       petFragments: frags,
+      event: ev,
     });
     return { ok: true, rewards: { gold, gems, essence, items } };
   }, [flashToast]);
