@@ -290,16 +290,17 @@ function PlayOptions({ account, onLogout }: { account: Account; onLogout: () => 
         JOGAR NO NAVEGADOR
       </Link>
 
-      <a
-        href="https://play.google.com/store/search?q=brhero&c=apps"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#e8ecf1] bg-gradient-to-b from-[#1e3a7a] to-[#152b5c] py-4 text-lg text-[#e8ecf1] shadow-[0_6px_0_#050e1f] active:translate-y-1 active:shadow-[0_2px_0_#050e1f]"
+      <div
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#e8ecf1]/50 bg-[#0a1c3a]/60 py-4 text-sm text-[#e8ecf1]/70"
         style={FONT_TITLE}
+        aria-disabled="true"
       >
         <Download className="h-5 w-5" />
-        BAIXAR NO GOOGLE PLAY
-      </a>
+        APK ANDROID — EM BREVE (BETA)
+      </div>
+      <p className="text-center text-[10px] text-[#e8ecf1]/50">
+        Estamos empacotando o BRHero como APK oficial. Enquanto isso, jogue direto no navegador.
+      </p>
 
       <button
         onClick={onLogout}
