@@ -133,6 +133,8 @@ type SaveState = {
   arena: ArenaState;
   // Eventos Sazonais (Fase 3 — Bloco 7)
   event: EventState;
+  // Skins / Cosméticos (Fase 3 — Bloco 8)
+  skins: SkinsState;
   version: number;
 };
 
