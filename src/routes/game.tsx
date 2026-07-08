@@ -2382,6 +2382,47 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Runas / Encantamentos (Fase 3 — Bloco 10) ====
+  const upgradeRune = useCallback((kind: RuneKind) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.level < RUNE_UNLOCK_LEVEL) { flashToast(`🔒 Libera no Lv ${RUNE_UNLOCK_LEVEL}`); return prev; }
+      const lv = prev.runes.levels[kind] ?? 0;
+      if (lv >= RUNE_MAX_LEVEL) { flashToast("🌟 Nível máximo"); return prev; }
+      const cost = runeUpgradeCost(lv);
+      if (prev.gold < cost.gold) { flashToast("💰 Ouro insuficiente"); return prev; }
+      if (prev.runes.fragments < cost.fragments) { flashToast("🔮 Fragmentos insuficientes"); return prev; }
+      flashToast(`🔮 ${RUNE_DEFS[kind].label} Lv${lv + 1}`);
+      return {
+        ...prev,
+        gold: prev.gold - cost.gold,
+        runes: {
+          ...prev.runes,
+          fragments: prev.runes.fragments - cost.fragments,
+          levels: { ...prev.runes.levels, [kind]: lv + 1 },
+        },
+      };
+    });
+  }, [flashToast]);
+
+  const toggleRune = useCallback((kind: RuneKind) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.level < RUNE_UNLOCK_LEVEL) return prev;
+      const lv = prev.runes.levels[kind] ?? 0;
+      if (lv <= 0) { flashToast("🔒 Runa ainda em Lv0"); return prev; }
+      const eq = prev.runes.equipped;
+      if (eq.includes(kind)) {
+        return { ...prev, runes: { ...prev.runes, equipped: eq.filter((k) => k !== kind) } };
+      }
+      if (eq.length >= RUNE_MAX_EQUIPPED) { flashToast(`Máx ${RUNE_MAX_EQUIPPED} runas equipadas`); return prev; }
+      return { ...prev, runes: { ...prev.runes, equipped: [...eq, kind] } };
+    });
+  }, [flashToast]);
+
+
+
+
 
 
 
