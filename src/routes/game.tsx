@@ -1502,6 +1502,20 @@ function GamePage() {
           onBuy={buyCrystalPack}
         />
       )}
+      {modal === "daily" && (
+        <DailyModal
+          save={save}
+          onClose={() => setModal(null)}
+          onClaimDaily={claimDaily}
+          onClaimStreak={claimStreak}
+          onClaimChest={claimFreeChest}
+        />
+      )}
+      {offlineReport && (
+        <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
+      )}
+
+
 
 
 
