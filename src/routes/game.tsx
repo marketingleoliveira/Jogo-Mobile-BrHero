@@ -1881,13 +1881,28 @@ function GamePage() {
       const fresh = defaultSave();
       const next: SaveState = {
         ...fresh,
-        // Preservado entre prestígios
+        // Preservado entre prestígios (moedas premium/meta)
         gems: prev.gems,
         essence: prev.essence + gained,
         prestigeLevel: prev.prestigeLevel + 1,
         maxStage: prev.maxStage,
         globalUp: prev.globalUp,
         stage: startStage,
+        // Coleções permanentes — nunca resetam no Rebirth
+        pets: prev.pets,
+        equippedPetId: prev.equippedPetId,
+        petFragments: prev.petFragments,
+        tower: { ...fresh.tower, bestFloor: prev.tower.bestFloor },
+        guild: { ...prev.guild, donationsToday: 0, bossLastAt: 0 },
+        arena: { ...prev.arena, ticketsToday: 0, extraTickets: prev.arena.extraTickets, lastTicketDay: null },
+        skins: prev.skins,
+        achievements: prev.achievements,
+        runes: prev.runes,
+        cosmetics: prev.cosmetics,
+        redeem: prev.redeem,
+        counters: prev.counters,
+        daily: prev.daily,
+        event: prev.event,
       };
       flashToast(`🌟 Renasceu! +${gained} Essência (Prestígio ${next.prestigeLevel})`);
       // reset combat
