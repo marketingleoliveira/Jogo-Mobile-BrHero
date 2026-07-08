@@ -172,15 +172,8 @@ function AdminHeader() {
         <Button variant="outline" size="icon" className="h-9 w-9 border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white">
           <Bell className="h-4 w-4" />
         </Button>
-        <div className="hidden items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-2 py-1 md:flex">
-          <div className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-[10px] font-black text-slate-950">
-            GM
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-[11px] font-bold text-slate-100">Game Master</span>
-            <span className="text-[9px] uppercase tracking-widest text-amber-400">root</span>
-          </div>
-        </div>
+        <AdminProfileSelector />
+
       </div>
     </header>
   );
