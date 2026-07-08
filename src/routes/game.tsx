@@ -139,6 +139,8 @@ type SaveState = {
   achievements: AchievementsState;
   // Runas / Encantamentos (Fase 3 — Bloco 10)
   runes: RunesState;
+  // Cosméticos avançados (Fase 3 — Bloco 11)
+  cosmetics: CosmeticsState;
   version: number;
 };
 
