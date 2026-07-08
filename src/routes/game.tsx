@@ -473,7 +473,105 @@ function arenaTicketsLeft(a: ArenaState): number {
 
 
 
+// ===== Eventos Sazonais =====
+const EVENT_UNLOCK_LEVEL = 10;
+const EVENT_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
+type EventDef = {
+  key: EventKey;
+  name: string;
+  icon: string;
+  desc: string;
+  medalIcon: string;
+  medalName: string;
+};
+type EventMissionDef = {
+  id: string;
+  label: string;
+  target: number;
+  medalReward: number;
+  hint: string; // como progride
+};
+type EventShopItem = {
+  id: string;
+  label: string;
+  icon: string;
+  cost: number;
+  limitPerEvent: number; // 0 = ilimitado
+  desc: string;
+};
+
+// Evento ativo — trocar aqui no futuro para rodar outro tema.
+const ACTIVE_EVENT: EventDef = {
+  key: "festival_heroes",
+  name: "Festival dos Heróis",
+  icon: "🎉",
+  desc: "Ganhe Medalhas em qualquer atividade e troque por prêmios!",
+  medalIcon: "🏅",
+  medalName: "Medalhas",
+};
+
+const EVENT_MISSIONS: EventMissionDef[] = [
+  { id: "kill",   label: "Derrotar 200 inimigos",     target: 200, medalReward: 40, hint: "Batalhas normais" },
+  { id: "boss",   label: "Derrotar 5 chefes",         target: 5,   medalReward: 30, hint: "Chefes de bioma" },
+  { id: "arena",  label: "Vencer 3 lutas na Arena",   target: 3,   medalReward: 30, hint: "Vitórias em PvP" },
+  { id: "dungeon",label: "Concluir 2 masmorras",      target: 2,   medalReward: 25, hint: "Qualquer masmorra" },
+  { id: "tower",  label: "Subir 5 andares na Torre",  target: 5,   medalReward: 25, hint: "Novos andares" },
+];
+
+const EVENT_SHOP: EventShopItem[] = [
+  { id: "gold_s",  label: "5.000 Ouro",      icon: "🪙", cost: 10, limitPerEvent: 0, desc: "Injeção rápida de ouro" },
+  { id: "gems_s",  label: "20 Cristais",     icon: "💎", cost: 25, limitPerEvent: 0, desc: "Cristais premium" },
+  { id: "chest",   label: "Baú Épico",       icon: "📦", cost: 40, limitPerEvent: 5, desc: "Equipamento raro+" },
+  { id: "frag",    label: "10 Fragmentos Pet", icon: "🐾", cost: 30, limitPerEvent: 10, desc: "Fragmento aleatório" },
+  { id: "essence", label: "1 Essência",      icon: "✨", cost: 60, limitPerEvent: 3, desc: "Rebirth mais rápido" },
+];
+
+function emptyEvent(): EventState {
+  return { key: null, startedAt: 0, medals: 0, missions: [] };
+}
+
+function ensureEventStarted(save: SaveState): EventState {
+  if (save.level < EVENT_UNLOCK_LEVEL) return save.event;
+  const now = Date.now();
+  const cur = save.event;
+  const expired = cur.key && now - cur.startedAt > EVENT_DURATION_MS;
+  if (!cur.key || expired) {
+    return {
+      key: ACTIVE_EVENT.key,
+      startedAt: now,
+      medals: expired ? cur.medals : cur.medals, // preserva medalhas atuais
+      missions: EVENT_MISSIONS.map((m) => ({ id: m.id, progress: 0, claimed: false })),
+    };
+  }
+  // garante que todas missões existem (caso EVENT_MISSIONS mude)
+  const missions = EVENT_MISSIONS.map((m) => cur.missions.find((x) => x.id === m.id) ?? { id: m.id, progress: 0, claimed: false });
+  return { ...cur, missions };
+}
+
+function eventTimeLeft(ev: EventState): number {
+  if (!ev.key || !ev.startedAt) return 0;
+  return Math.max(0, EVENT_DURATION_MS - (Date.now() - ev.startedAt));
+}
+
+function eventActive(ev: EventState): boolean {
+  return !!ev.key && eventTimeLeft(ev) > 0;
+}
+
+function bumpEventMission(ev: EventState, id: string, delta: number): EventState {
+  if (!eventActive(ev)) return ev;
+  const def = EVENT_MISSIONS.find((m) => m.id === id);
+  if (!def) return ev;
+  const missions = ev.missions.map((m) =>
+    m.id === id ? { ...m, progress: Math.min(def.target, m.progress + delta) } : m,
+  );
+  return { ...ev, missions };
+}
+
+function addMedals(ev: EventState, amount: number): EventState {
+  if (!eventActive(ev) || amount <= 0) return ev;
+  return { ...ev, medals: ev.medals + amount };
+}
 
 // ===== Retenção: tempo =====
 const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
