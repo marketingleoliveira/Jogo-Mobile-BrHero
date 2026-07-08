@@ -70,6 +70,31 @@ type DailyState = {
 
 type FreeChestState = { lastFreeAt: number; lastRareAt: number };
 
+// ===== Missões (Bloco 2 — Fase 2) =====
+type MissionKind = "enemies" | "bosses" | "upgrades" | "chests" | "playMinutes";
+type MissionReward = { gold: number; gems: number; essence: number; chest: 0 | 1 | 2 };
+type Mission = {
+  id: string;
+  kind: MissionKind;
+  goal: number;
+  snapshot: number;   // valor do contador no momento da criação
+  reward: MissionReward;
+  claimed: boolean;
+};
+type MissionsState = {
+  daily: Mission[];
+  weekly: Mission[];
+  dailyKey: string;
+  weeklyKey: string;
+};
+type Counters = {
+  enemies: number;
+  bosses: number;
+  upgrades: number;
+  chests: number;
+  playMs: number;
+};
+
 type SaveState = {
   level: number;
   xp: number;
