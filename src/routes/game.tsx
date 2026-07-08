@@ -1990,6 +1990,9 @@ function GamePage() {
       const gems = sim.win ? opp.rewardGems : 1;
       const essence = sim.win && opp.power >= heroPower(computeStats(prev)) ? 1 : 0;
       flashToast(sim.win ? `🏆 Vitória vs ${opp.name} +${pointsGain}pts` : `😞 Derrota vs ${opp.name} ${pointsGain}pts`);
+      let ev = ensureEventStarted(prev);
+      ev = addMedals(ev, sim.win ? 8 : 2);
+      if (sim.win) ev = bumpEventMission(ev, "arena", 1);
       return {
         ...prev,
         gold: prev.gold + gold,
@@ -2005,6 +2008,7 @@ function GamePage() {
           lastTicketDay: today,
           extraTickets: useExtra ? prev.arena.extraTickets - 1 : prev.arena.extraTickets,
         },
+        event: ev,
       };
     });
     return result;
