@@ -60,6 +60,16 @@ type Item = {
 
 type GlobalUpKey = "gold" | "atk" | "hp" | "xp" | "startStage" | "drop" | "crit";
 
+type DailyState = {
+  lastClaimDay: string | null; // "YYYY-MM-DD"
+  cycleDay: number;            // 0..6 (próximo dia a reivindicar)
+  streak: number;              // dias seguidos
+  bestStreak: number;
+  streakClaimed: number[];     // marcos já reivindicados
+};
+
+type FreeChestState = { lastFreeAt: number; lastRareAt: number };
+
 type SaveState = {
   level: number;
   xp: number;
@@ -75,12 +85,59 @@ type SaveState = {
   prestigeLevel: number;
   maxStage: number;
   globalUp: Record<GlobalUpKey, number>;
+  // Retenção (Fase 2)
+  daily: DailyState;
+  freeChest: FreeChestState;
+  lastSeenAt: number;
   version: number;
 };
 
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 5;
+const SAVE_VERSION = 6;
 const PRESTIGE_UNLOCK_STAGE = 75;
+
+// ===== Retenção: tempo =====
+const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
+const RARE_CHEST_MS = 24 * 60 * 60 * 1000;  // 24h
+const OFFLINE_MAX_MS = 8 * 60 * 60 * 1000;  // 8h
+const STREAK_MILESTONES = [7, 14, 30, 60, 100] as const;
+
+function todayKey(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function daysBetween(a: string, b: string) {
+  const [ay, am, ad] = a.split("-").map(Number);
+  const [by, bm, bd] = b.split("-").map(Number);
+  const da = Date.UTC(ay, am - 1, ad);
+  const db = Date.UTC(by, bm - 1, bd);
+  return Math.round((db - da) / 86400000);
+}
+
+// Recompensas do ciclo diário (7 dias). Escalam com stage/prestige.
+type DailyReward =
+  | { kind: "gold"; label: string; icon: string; amount: (s: SaveState) => number }
+  | { kind: "gems"; label: string; icon: string; amount: (s: SaveState) => number }
+  | { kind: "chest"; label: string; icon: string; tier: "common" | "epic" | "legendary" }
+  | { kind: "essence"; label: string; icon: string; amount: (s: SaveState) => number };
+
+const DAILY_CYCLE: DailyReward[] = [
+  { kind: "gold",    label: "Ouro",           icon: "🪙", amount: (s) => 200 + s.stage * 30 },
+  { kind: "gems",    label: "Cristais",       icon: "💎", amount: () => 15 },
+  { kind: "chest",   label: "Baú Comum",      icon: "📦", tier: "common" },
+  { kind: "gold",    label: "Ouro em Dobro",  icon: "🪙", amount: (s) => 500 + s.stage * 60 },
+  { kind: "chest",   label: "Baú Épico",      icon: "🎁", tier: "epic" },
+  { kind: "gems",    label: "Cristais+",      icon: "💎", amount: () => 40 },
+  { kind: "chest",   label: "Baú Lendário",   icon: "👑", tier: "legendary" },
+];
+
+function streakRewardFor(day: number) {
+  // Escalonamento: gold + gems + (essência a partir de 30)
+  return {
+    gold: 500 * day,
+    gems: 20 + day * 2,
+    essence: day >= 30 ? Math.floor(day / 10) : 0,
+  };
+}
 
 const SLOTS: Array<{ key: SlotKey; label: string; emoji: string }> = [
   { key: "sword", label: "Espada", emoji: "⚔️" },
