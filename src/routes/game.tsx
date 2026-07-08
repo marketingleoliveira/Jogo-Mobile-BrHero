@@ -1201,6 +1201,7 @@ function GamePage() {
       return {
         ...prev,
         inventory: [...prev.inventory, item].slice(-60),
+        counters: { ...prev.counters, chests: prev.counters.chests + 1 },
         freeChest: tier === "free"
           ? { ...prev.freeChest, lastFreeAt: now }
           : { ...prev.freeChest, lastRareAt: now },
