@@ -3126,6 +3126,9 @@ function GamePage() {
       {modal === "runes" && (
         <RunesModal save={save} onClose={() => setModal(null)} onUpgrade={upgradeRune} onToggle={toggleRune} />
       )}
+      {modal === "cosmetics" && (
+        <CosmeticsModal save={save} onClose={() => setModal(null)} onEquip={equipCosmetic} />
+      )}
 
 
 
