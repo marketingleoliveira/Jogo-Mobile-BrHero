@@ -1272,6 +1272,13 @@ function loadSave(): SaveState {
       achievements: {
         claimed: Array.isArray(parsed.achievements?.claimed) ? parsed.achievements.claimed : [],
       },
+      runes: {
+        fragments: typeof parsed.runes?.fragments === "number" ? parsed.runes.fragments : 0,
+        levels: { ...emptyRunes().levels, ...(parsed.runes?.levels ?? {}) },
+        equipped: Array.isArray(parsed.runes?.equipped)
+          ? (parsed.runes.equipped.filter((k: string) => (RUNE_ORDER as string[]).includes(k)) as RuneKind[]).slice(0, RUNE_MAX_EQUIPPED)
+          : [],
+      },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
