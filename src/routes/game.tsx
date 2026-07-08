@@ -129,6 +129,8 @@ type SaveState = {
   blessings: Record<BlessingKind, number>; // expiresAt (ms) — 0 = inativa
   // Guilda (Fase 3 — Bloco 5)
   guild: GuildState;
+  // Arena PvP Assíncrona (Fase 3 — Bloco 6)
+  arena: ArenaState;
   version: number;
 };
 
@@ -160,8 +162,19 @@ type GuildState = {
   weekKey: string;
 };
 
+// ===== Arena PvP Assíncrona =====
+type ArenaState = {
+  points: number;
+  wins: number;
+  losses: number;
+  ticketsToday: number;
+  lastTicketDay: string | null;
+  extraTickets: number; // comprados com cristais
+  lastDailyClaim: string | null;
+};
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 11;
+const SAVE_VERSION = 12;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
@@ -370,6 +383,84 @@ function guildBonus(save: SaveState) {
     xpMul:   1 + base + (def.bias === "xp"   ? bias : 0),
   };
 }
+
+// ===== Arena PvP Assíncrona =====
+const ARENA_UNLOCK_LEVEL = 30;
+const ARENA_DAILY_TICKETS = 5;
+const ARENA_EXTRA_TICKET_COST_GEMS = 20;
+const ARENA_DAILY_REWARD_GOLD = 3000;
+const ARENA_DAILY_REWARD_GEMS = 10;
+
+type ArenaTier = { key: string; name: string; icon: string; min: number; color: string };
+const ARENA_TIERS: ArenaTier[] = [
+  { key: "bronze",   name: "Bronze",   icon: "🥉", min: 0,    color: "from-amber-700 to-amber-900" },
+  { key: "prata",    name: "Prata",    icon: "🥈", min: 500,  color: "from-slate-400 to-slate-600" },
+  { key: "ouro",     name: "Ouro",     icon: "🥇", min: 1500, color: "from-yellow-400 to-amber-600" },
+  { key: "diamante", name: "Diamante", icon: "💎", min: 3000, color: "from-cyan-400 to-blue-700" },
+  { key: "lenda",    name: "Lenda",    icon: "👑", min: 5000, color: "from-fuchsia-500 to-purple-800" },
+];
+function arenaTier(points: number): ArenaTier {
+  let t = ARENA_TIERS[0]!;
+  for (const x of ARENA_TIERS) if (points >= x.min) t = x;
+  return t;
+}
+
+type ArenaOpponent = {
+  name: string; level: number; power: number; guild: string; pet: string; rank: number; rewardGold: number; rewardGems: number; seed: number;
+};
+
+const ARENA_NAMES = ["Kael", "Vora", "Ryze", "Nyx", "Thara", "Bel", "Cirus", "Draka", "Elyn", "Fenn", "Garro", "Hilda", "Ivar", "Juno", "Krix", "Luma", "Mord", "Nex", "Ora", "Pyra"];
+const ARENA_GUILDS = ["Leões", "Corvos", "Dragões", "Independente"];
+const ARENA_PETS = ["🐺 Lobo", "🧚 Fada", "🦉 Coruja", "🐲 Dragão"];
+
+function rngFromSeed(seed: number) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 0xffffffff;
+  };
+}
+
+function generateArenaOpponents(save: SaveState): ArenaOpponent[] {
+  const heroP = heroPower(computeStats(save));
+  const dayNum = Number(todayKey().replace(/-/g, ""));
+  const seed = dayNum + (save.arena?.wins ?? 0) * 31 + (save.arena?.losses ?? 0) * 17;
+  const rng = rngFromSeed(seed);
+  const opps: ArenaOpponent[] = [];
+  for (let i = 0; i < 5; i++) {
+    const factor = 0.7 + rng() * 0.7; // 0.7x .. 1.4x hero power
+    const power = Math.max(50, Math.floor(heroP * factor));
+    const level = Math.max(1, Math.floor(save.level * (0.8 + rng() * 0.5)));
+    const name = ARENA_NAMES[Math.floor(rng() * ARENA_NAMES.length)]!;
+    const guild = ARENA_GUILDS[Math.floor(rng() * ARENA_GUILDS.length)]!;
+    const pet = ARENA_PETS[Math.floor(rng() * ARENA_PETS.length)]!;
+    const rank = 100 + Math.floor(rng() * 9000);
+    const rewardGold = Math.floor(400 * level * factor);
+    const rewardGems = 3 + Math.floor(rng() * 5);
+    opps.push({ name, level, power, guild, pet, rank, rewardGold, rewardGems, seed: seed + i * 101 });
+  }
+  return opps;
+}
+
+function simulateArenaFight(save: SaveState, opp: ArenaOpponent): { win: boolean; heroPower: number } {
+  const p = heroPower(computeStats(save));
+  const winChance = Math.max(0.1, Math.min(0.92, p / (p + opp.power)));
+  const rng = rngFromSeed(opp.seed + Date.now());
+  return { win: rng() < winChance, heroPower: p };
+}
+
+function emptyArena(): ArenaState {
+  return { points: 0, wins: 0, losses: 0, ticketsToday: 0, lastTicketDay: null, extraTickets: 0, lastDailyClaim: null };
+}
+
+function arenaTicketsLeft(a: ArenaState): number {
+  const today = todayKey();
+  const used = a.lastTicketDay === today ? a.ticketsToday : 0;
+  return Math.max(0, ARENA_DAILY_TICKETS - used) + a.extraTickets;
+}
+
+
+
 
 
 // ===== Retenção: tempo =====
@@ -813,6 +904,7 @@ function defaultSave(): SaveState {
     tower: emptyTower(),
     blessings: emptyBlessings(),
     guild: emptyGuild(),
+    arena: emptyArena(),
     version: SAVE_VERSION,
   };
 }
@@ -850,6 +942,7 @@ function loadSave(): SaveState {
       tower: { ...emptyTower(), ...(parsed.tower ?? {}) },
       blessings: { ...emptyBlessings(), ...(parsed.blessings ?? {}) },
       guild: { ...emptyGuild(), ...(parsed.guild ?? {}) },
+      arena: { ...emptyArena(), ...(parsed.arena ?? {}) },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
@@ -1746,6 +1839,75 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Arena PvP Assíncrona (Fase 3 — Bloco 6) ====
+  const fightArenaOpponent = useCallback((opp: ArenaOpponent): { win: boolean } => {
+    let result: { win: boolean } = { win: false };
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.level < ARENA_UNLOCK_LEVEL) { flashToast(`🔒 Libera no Lv ${ARENA_UNLOCK_LEVEL}`); return prev; }
+      const today = todayKey();
+      const usedToday = prev.arena.lastTicketDay === today ? prev.arena.ticketsToday : 0;
+      const freeLeft = Math.max(0, ARENA_DAILY_TICKETS - usedToday);
+      if (freeLeft <= 0 && prev.arena.extraTickets <= 0) { flashToast("Sem ingressos de arena"); return prev; }
+      const sim = simulateArenaFight(prev, opp);
+      result = { win: sim.win };
+      const useExtra = freeLeft <= 0;
+      const pointsGain = sim.win ? 25 : -8;
+      const nextPoints = Math.max(0, prev.arena.points + pointsGain);
+      const gold = sim.win ? opp.rewardGold : Math.floor(opp.rewardGold * 0.2);
+      const gems = sim.win ? opp.rewardGems : 1;
+      const essence = sim.win && opp.power >= heroPower(computeStats(prev)) ? 1 : 0;
+      flashToast(sim.win ? `🏆 Vitória vs ${opp.name} +${pointsGain}pts` : `😞 Derrota vs ${opp.name} ${pointsGain}pts`);
+      return {
+        ...prev,
+        gold: prev.gold + gold,
+        gems: prev.gems + gems,
+        essence: prev.essence + essence,
+        pvpWins: prev.pvpWins + (sim.win ? 1 : 0),
+        arena: {
+          ...prev.arena,
+          points: nextPoints,
+          wins: prev.arena.wins + (sim.win ? 1 : 0),
+          losses: prev.arena.losses + (sim.win ? 0 : 1),
+          ticketsToday: useExtra ? usedToday : usedToday + 1,
+          lastTicketDay: today,
+          extraTickets: useExtra ? prev.arena.extraTickets - 1 : prev.arena.extraTickets,
+        },
+      };
+    });
+    return result;
+  }, [flashToast]);
+
+  const buyArenaTicket = useCallback(() => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.gems < ARENA_EXTRA_TICKET_COST_GEMS) { flashToast("💎 Cristais insuficientes"); return prev; }
+      flashToast(`+1 ingresso de arena`);
+      return {
+        ...prev,
+        gems: prev.gems - ARENA_EXTRA_TICKET_COST_GEMS,
+        arena: { ...prev.arena, extraTickets: prev.arena.extraTickets + 1 },
+      };
+    });
+  }, [flashToast]);
+
+  const claimArenaDaily = useCallback(() => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const today = todayKey();
+      if (prev.arena.lastDailyClaim === today) { flashToast("Já coletado hoje"); return prev; }
+      flashToast(`🎁 +${fmt(ARENA_DAILY_REWARD_GOLD)}🪙 +${ARENA_DAILY_REWARD_GEMS}💎`);
+      return {
+        ...prev,
+        gold: prev.gold + ARENA_DAILY_REWARD_GOLD,
+        gems: prev.gems + ARENA_DAILY_REWARD_GEMS,
+        arena: { ...prev.arena, lastDailyClaim: today },
+      };
+    });
+  }, [flashToast]);
+
+
+
 
 
 
@@ -1884,6 +2046,11 @@ function GamePage() {
               icon={<Lock className="h-3 w-3" />}
               label={save.level >= GUILD_UNLOCK_LEVEL ? "GUILDA" : `🔒Lv${GUILD_UNLOCK_LEVEL}`}
               onClick={() => setModal("guild")}
+            />
+            <QuickCartoonBtn
+              icon={<Lock className="h-3 w-3" />}
+              label={save.level >= ARENA_UNLOCK_LEVEL ? "ARENA" : `🔒Lv${ARENA_UNLOCK_LEVEL}`}
+              onClick={() => setModal("arena")}
             />
           </div>
         </div>
@@ -2193,7 +2360,13 @@ function GamePage() {
         />
       )}
       {modal === "arena" && (
-        <ArenaModal save={save} onClose={() => setModal(null)} onFight={doPvp} />
+        <ArenaPvpModal
+          save={save}
+          onClose={() => setModal(null)}
+          onFight={fightArenaOpponent}
+          onBuyTicket={buyArenaTicket}
+          onClaimDaily={claimArenaDaily}
+        />
       )}
       {modal === "store" && (
         <StoreModal
@@ -4053,6 +4226,129 @@ function GuildModal({
               Bônus atuais: ATK ×{guildBonus(save).atkMul.toFixed(2)} · Ouro ×{guildBonus(save).goldMul.toFixed(2)} · XP ×{guildBonus(save).xpMul.toFixed(2)}
             </div>
           </div>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
+// -------- Arena PvP Async Modal (Fase 3 — Bloco 6) --------
+function ArenaPvpModal({
+  save,
+  onClose,
+  onFight,
+  onBuyTicket,
+  onClaimDaily,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onFight: (opp: ArenaOpponent) => { win: boolean };
+  onBuyTicket: () => void;
+  onClaimDaily: () => void;
+}) {
+  const locked = save.level < ARENA_UNLOCK_LEVEL;
+  const [opponents, setOpponents] = useState<ArenaOpponent[]>(() => (locked ? [] : generateArenaOpponents(save)));
+  const [lastResult, setLastResult] = useState<{ opp: ArenaOpponent; win: boolean } | null>(null);
+  const tier = arenaTier(save.arena.points);
+  const nextTier = ARENA_TIERS.find((t) => t.min > save.arena.points);
+  const ticketsLeft = arenaTicketsLeft(save.arena);
+  const canClaimDaily = save.arena.lastDailyClaim !== todayKey();
+
+  const doFight = (opp: ArenaOpponent) => {
+    const r = onFight(opp);
+    setLastResult({ opp, win: r.win });
+    // regenerate list to avoid same opponent repeat
+    setTimeout(() => setOpponents(generateArenaOpponents({ ...save, arena: { ...save.arena, wins: save.arena.wins + (r.win ? 1 : 0), losses: save.arena.losses + (r.win ? 0 : 1) } })), 300);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>⚔️ Arena PvP</h2>
+          <div className="text-[10px] opacity-70">Assíncrona · beta</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {ARENA_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && (
+          <>
+            <div className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${tier.color} p-3 mb-3`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="text-3xl">{tier.icon}</div>
+                  <div>
+                    <div className="text-sm font-black text-amber-50 drop-shadow">{tier.name}</div>
+                    <div className="text-[10px] text-amber-50/90">{save.arena.points} pts · {save.arena.wins}V / {save.arena.losses}D</div>
+                  </div>
+                </div>
+                <div className="text-right text-[10px] text-amber-50">
+                  🎟️ {ticketsLeft}
+                  <button onClick={onBuyTicket} className="mt-1 block rounded border border-[#1A0F08] bg-black/40 px-1.5 py-0.5 font-black">+1 💎{ARENA_EXTRA_TICKET_COST_GEMS}</button>
+                </div>
+              </div>
+              {nextTier && (
+                <div className="mt-2 text-center text-[10px] text-amber-50/90">
+                  Próximo: {nextTier.icon} {nextTier.name} em {nextTier.min - save.arena.points} pts
+                </div>
+              )}
+            </div>
+
+            {canClaimDaily && (
+              <button
+                onClick={onClaimDaily}
+                className="mb-3 w-full rounded-lg border-2 border-[#1A0F08] bg-gradient-to-b from-emerald-500 to-emerald-700 py-1.5 text-xs font-black text-amber-50"
+              >
+                🎁 Coletar Recompensa Diária ({fmt(ARENA_DAILY_REWARD_GOLD)}🪙 + {ARENA_DAILY_REWARD_GEMS}💎)
+              </button>
+            )}
+
+            {lastResult && (
+              <div className={`mb-3 rounded-lg border-2 border-[#1A0F08] p-2 text-center text-xs font-black ${lastResult.win ? "bg-emerald-800" : "bg-rose-900"}`}>
+                {lastResult.win ? "🏆" : "💀"} {lastResult.win ? "Vitória" : "Derrota"} vs {lastResult.opp.name}
+              </div>
+            )}
+
+            <div className="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
+              {opponents.map((o, i) => (
+                <div key={i} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-amber-100">
+                        <span>#{o.rank}</span>
+                        <span className="truncate">{o.name}</span>
+                        <span className="text-[10px] opacity-70">Lv{o.level}</span>
+                      </div>
+                      <div className="text-[10px] opacity-80">
+                        {o.guild} · {o.pet} · ⚡{fmt(o.power)}
+                      </div>
+                      <div className="text-[10px] text-amber-300/90">
+                        Prêmio: 🪙{fmt(o.rewardGold)} · 💎{o.rewardGems}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => doFight(o)}
+                      disabled={ticketsLeft <= 0}
+                      className="rounded-md border-2 border-[#1A0F08] bg-gradient-to-b from-rose-500 to-red-700 px-3 py-1.5 text-[11px] font-black text-amber-50 disabled:opacity-40"
+                    >
+                      Lutar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
