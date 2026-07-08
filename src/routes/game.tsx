@@ -117,12 +117,41 @@ type SaveState = {
   // Missões (Fase 2 — Bloco 2)
   counters: Counters;
   missions: MissionsState;
+  // Masmorra (Fase 3 — Bloco 1)
+  dungeon: DungeonState;
   version: number;
 };
 
+type DungeonState = { keys: number; lastKeyAt: number; runs: number };
+type DungeonKind = "gold" | "gear" | "essence";
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 6;
+const SAVE_VERSION = 7;
 const PRESTIGE_UNLOCK_STAGE = 75;
+const DUNGEON_UNLOCK_LEVEL = 10;
+const DUNGEON_MAX_KEYS = 3;
+const DUNGEON_KEY_MS = 30 * 60 * 1000; // 1 chave / 30min
+
+const DUNGEON_DEFS: Record<DungeonKind, { label: string; icon: string; desc: string; color: string }> = {
+  gold:    { label: "Masmorra de Ouro",        icon: "🪙", desc: "Ouro em massa + baú comum.",        color: "from-amber-500 to-yellow-600" },
+  gear:    { label: "Masmorra de Equipamento", icon: "⚔️", desc: "2 equipamentos com bônus de stage.", color: "from-sky-500 to-indigo-600" },
+  essence: { label: "Masmorra de Essência",    icon: "✨", desc: "Essência garantida + baú épico.",    color: "from-fuchsia-500 to-purple-700" },
+};
+
+function dungeonKeysNow(d: DungeonState): { keys: number; lastKeyAt: number; nextInMs: number } {
+  const now = Date.now();
+  const elapsed = now - d.lastKeyAt;
+  if (d.keys >= DUNGEON_MAX_KEYS) return { keys: DUNGEON_MAX_KEYS, lastKeyAt: now, nextInMs: 0 };
+  const gained = Math.floor(elapsed / DUNGEON_KEY_MS);
+  const keys = Math.min(DUNGEON_MAX_KEYS, d.keys + gained);
+  const lastKeyAt = gained > 0 ? d.lastKeyAt + gained * DUNGEON_KEY_MS : d.lastKeyAt;
+  const nextInMs = keys >= DUNGEON_MAX_KEYS ? 0 : DUNGEON_KEY_MS - (now - lastKeyAt);
+  return { keys, lastKeyAt, nextInMs };
+}
+
+function emptyDungeon(): DungeonState {
+  return { keys: DUNGEON_MAX_KEYS, lastKeyAt: Date.now(), runs: 0 };
+}
 
 // ===== Retenção: tempo =====
 const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
