@@ -408,6 +408,7 @@ function GamePage() {
   const [enemyDying, setEnemyDying] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
+  const [bgCache, setBgCache] = useState<Record<string, string>>({});
   const [modal, setModal] = useState<"equip" | "arena" | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -703,6 +704,43 @@ function GamePage() {
     [save?.level],
   );
 
+  // Load cached AI backgrounds from localStorage once
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("hero-rise-bg-cache-v1");
+      if (raw) setBgCache(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  // Fetch AI-generated background per biome (dynamic, cached)
+  useEffect(() => {
+    if (!save) return;
+    if (bgCache[biome.name]) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/generate-bg", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ biome: biome.name, stage: save.stage }),
+        });
+        if (!res.ok) return;
+        const { dataUrl } = (await res.json()) as { dataUrl: string };
+        if (cancelled || !dataUrl) return;
+        setBgCache((prev) => {
+          const next = { ...prev, [biome.name]: dataUrl };
+          try {
+            localStorage.setItem("hero-rise-bg-cache-v1", JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [biome.name, save?.stage, bgCache]);
+
   if (!save || !stats || !enemyRef.current) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#1A0F08] text-amber-300 font-cartoon">
@@ -761,8 +799,8 @@ function GamePage() {
 
           {/* VIP/Pass stack */}
           <div className="flex flex-col gap-1">
-            <QuickCartoonBtn icon={<Crown className="h-3 w-3" />} label="TOP" onClick={() => flashToast("VIP em breve")} />
-            <QuickCartoonBtn icon={<Ticket className="h-3 w-3" />} label="PASS" onClick={() => flashToast("Passe em breve")} />
+            <QuickCartoonBtn icon={<Crown className="h-3 w-3" />} label="VIP" onClick={() => flashToast("VIP em breve")} />
+            <QuickCartoonBtn icon={<Ticket className="h-3 w-3" />} label="PASSE" onClick={() => flashToast("Passe em breve")} />
           </div>
         </div>
       </header>
@@ -770,6 +808,15 @@ function GamePage() {
       {/* ===== Battle arena ===== */}
       <section
         className={`relative h-56 overflow-hidden bg-gradient-to-b ${biome.bg} border-b-4 border-[#1A0F08]`}
+        style={
+          bgCache[biome.name]
+            ? {
+                backgroundImage: `url(${bgCache[biome.name]})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+            : undefined
+        }
         aria-label="Campo de batalha"
       >
         {/* stage banner */}
@@ -908,9 +955,9 @@ function GamePage() {
 
       {/* ===== Tabs ===== */}
       <div className="flex gap-2 px-3 mb-2">
-        <TabBtn active label="STAT" />
-        <TabBtn label="BLESSING" locked />
-        <TabBtn label="LIMITLESS" locked />
+        <TabBtn active label="ATRIBUTOS" />
+        <TabBtn label="BÊNÇÃOS" locked />
+        <TabBtn label="ILIMITADO" locked />
       </div>
 
       {/* ===== Next unlock strip ===== */}
@@ -1019,7 +1066,7 @@ function GamePage() {
         />
         <TabBarItem
           icon="✨"
-          label="Skill"
+          label="Skills"
           onClick={() => flashToast("Skills — auto")}
         />
         {/* Center Battle */}
@@ -1032,19 +1079,19 @@ function GamePage() {
             className="text-xs tracking-widest text-amber-950"
             style={{ fontFamily: "'Luckiest Guy', cursive" }}
           >
-            BATTLE
+            BATALHA
           </span>
         </button>
         <TabBarItem
           icon="🏰"
-          label="Dungeon"
+          label="Masmorra"
           locked={save.level < 10}
           unlockLv={10}
-          onClick={() => flashToast("Dungeon em breve")}
+          onClick={() => flashToast("Masmorra em breve")}
         />
         <TabBarItem
           icon="🛒"
-          label="Store"
+          label="Loja"
           locked={save.level < 50}
           unlockLv={50}
           onClick={() => setModal("arena")}
