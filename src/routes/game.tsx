@@ -734,14 +734,6 @@ function GamePage() {
     window.addEventListener("beforeunload", onHide);
     window.addEventListener("visibilitychange", onHide);
     return () => { clearInterval(iv); window.removeEventListener("beforeunload", onHide); window.removeEventListener("visibilitychange", onHide); };
-    const onHide = () => {
-      const cur = saveRef.current;
-      if (!cur) return;
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...cur, lastSeenAt: Date.now() })); } catch {}
-    };
-    window.addEventListener("beforeunload", onHide);
-    window.addEventListener("visibilitychange", onHide);
-    return () => { clearInterval(iv); window.removeEventListener("beforeunload", onHide); window.removeEventListener("visibilitychange", onHide); };
   }, []);
 
   // Persist (debounced-ish via effect on save)
