@@ -5450,4 +5450,92 @@ function RunesModal({
   );
 }
 
+// -------- Cosmetics Modal (Fase 3 — Bloco 11) --------
+function CosmeticsModal({
+  save,
+  onClose,
+  onEquip,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onEquip: (category: CosmeticCategory, id: CosmeticId) => void;
+}) {
+  const [cat, setCat] = useState<CosmeticCategory>("weapon");
+  const list = Object.values(COSMETIC_DEFS).filter((c) => c.category === cat);
+  const equippedId = save.cosmetics.equipped[cat] ?? null;
+  const totalOwned = save.cosmetics.owned.length;
+  const totalAll = Object.keys(COSMETIC_DEFS).length;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🎭 Cosméticos</h2>
+          <div className="text-[10px] opacity-70">{totalOwned}/{totalAll} · sem bônus de poder</div>
+        </div>
+
+        <div className="mb-3 grid grid-cols-4 gap-1">
+          {COSMETIC_CATEGORIES.map((c) => (
+            <button
+              key={c.key}
+              onClick={() => setCat(c.key)}
+              className={`rounded-lg border-2 border-[#1A0F08] py-1.5 text-[10px] font-black ${
+                cat === c.key ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+              }`}
+            >
+              {c.icon} {c.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+          {list.map((c) => {
+            const owned = save.cosmetics.owned.includes(c.id);
+            const equipped = equippedId === c.id;
+            return (
+              <div key={c.id} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${c.color} p-2 ${!owned ? "opacity-60" : ""}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="text-2xl">{c.icon}</div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-black text-amber-50 drop-shadow">
+                        {c.label} <span className="text-[9px] opacity-80">· {c.rarity}</span>
+                      </div>
+                      <div className="text-[10px] text-amber-50/90">{c.desc}</div>
+                      {!owned && <div className="text-[10px] mt-0.5 text-amber-200">🔒 Fonte: {c.source}</div>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onEquip(c.category, c.id)}
+                    disabled={!owned}
+                    className={`shrink-0 rounded-md border-2 border-[#1A0F08] px-2 py-1 text-[10px] font-black ${
+                      equipped
+                        ? "bg-gradient-to-b from-emerald-500 to-emerald-700 text-white"
+                        : owned
+                        ? "bg-black/40 text-amber-100"
+                        : "bg-black/40 text-amber-100/50"
+                    }`}
+                  >
+                    {equipped ? "✓ Equipado" : owned ? "Equipar" : "🔒"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2 text-[10px] opacity-80">
+            💡 Cosméticos são <b>puramente visuais</b> e não afetam atributos. Fontes: <b>Baús Raros</b>, <b>Conquistas</b> e <b>Loja do Evento</b>.
+          </div>
+        </div>
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
+
 
