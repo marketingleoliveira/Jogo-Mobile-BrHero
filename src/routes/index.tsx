@@ -49,13 +49,13 @@ function decodeJwt(token: string): any {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "BRHero - RPG IDLE BRASILEIRO" },
+      { title: "BRHero — O 1º RPG IDLE Brasileiro" },
       {
         name: "description",
         content:
           "BRHero - RPG mobile idle brasileiro. Batalhas automáticas, evolução constante e chefões épicos. Entre com Google e jogue no navegador ou baixe no Google Play.",
       },
-      { property: "og:title", content: "BRHero - RPG IDLE BRASILEIRO" },
+      { property: "og:title", content: "BRHero — O 1º RPG IDLE Brasileiro" },
       {
         property: "og:description",
         content: "BRHero - RPG mobile idle brasileiro. Batalhas automáticas, evolução constante e chefões épicos. Entre com Google e jogue no navegador ou baixe no Google Play.",
