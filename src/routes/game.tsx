@@ -2400,7 +2400,8 @@ function computeStats(s: SaveState) {
   const eq = equipmentBonus(s.equipment);
   const pb = petBonus(s);
   const bb = blessingBonus(s);
-  const atkBonus = (1 + (s.globalUp?.atk ?? 0) * GLOBAL_UP_DEFS.atk.perLevel) * pb.atkMul * bb.atkMul;
+  const gb = guildBonus(s);
+  const atkBonus = (1 + (s.globalUp?.atk ?? 0) * GLOBAL_UP_DEFS.atk.perLevel) * pb.atkMul * bb.atkMul * gb.atkMul;
   const hpBonus = (1 + (s.globalUp?.hp ?? 0) * GLOBAL_UP_DEFS.hp.perLevel) * pb.hpMul * bb.hpMul;
   return {
     atk: Math.floor((attrValue("atk", s.attrs.atk.level) + eq.atk) * atkBonus),
