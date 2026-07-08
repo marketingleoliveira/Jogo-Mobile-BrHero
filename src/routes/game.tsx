@@ -1281,6 +1281,52 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Masmorra: entrar (consome 1 chave, entrega recompensas) ====
+  const enterDungeon = useCallback((kind: DungeonKind): { ok: boolean; rewards?: { gold: number; gems: number; essence: number; items: Item[] } } => {
+    const prev = saveRef.current;
+    if (!prev) return { ok: false };
+    if (prev.level < DUNGEON_UNLOCK_LEVEL) { flashToast(`🔒 Libera no Lv ${DUNGEON_UNLOCK_LEVEL}`); return { ok: false }; }
+    const norm = dungeonKeysNow(prev.dungeon);
+    if (norm.keys <= 0) { flashToast("🗝️ Sem chaves"); return { ok: false }; }
+
+    // scaling — inimigos "mais fortes" traduzidos em recompensa maior
+    const stage = prev.stage;
+    const stagePlus = stage + 5;
+    let gold = 0, gems = 0, essence = 0;
+    const items: Item[] = [];
+
+    if (kind === "gold") {
+      gold = Math.floor(200 * Math.pow(1.12, stage) + stage * 40);
+      if (Math.random() < 0.5) items.push(rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, stagePlus));
+      if (Math.random() < 0.05) essence = 1;
+    } else if (kind === "gear") {
+      gold = Math.floor(80 * Math.pow(1.1, stage) + stage * 15);
+      for (let i = 0; i < 2; i++) items.push(rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, stagePlus + 2));
+      if (Math.random() < 0.1) essence = 1;
+    } else {
+      gold = Math.floor(60 * Math.pow(1.08, stage) + stage * 10);
+      essence = 1 + Math.floor(stage / 40);
+      items.push(rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, stagePlus + 3));
+      if (Math.random() < 0.3) gems = 2;
+    }
+
+    const newInv = [...prev.inventory, ...items].slice(-60);
+    const nextDungeon: DungeonState = {
+      keys: norm.keys - 1,
+      lastKeyAt: norm.keys >= DUNGEON_MAX_KEYS ? Date.now() : norm.lastKeyAt,
+      runs: prev.dungeon.runs + 1,
+    };
+    setSave({
+      ...prev,
+      gold: prev.gold + gold,
+      gems: prev.gems + gems,
+      essence: prev.essence + essence,
+      inventory: newInv,
+      counters: { ...prev.counters, chests: prev.counters.chests + items.length },
+      dungeon: nextDungeon,
+    });
+    return { ok: true, rewards: { gold, gems, essence, items } };
+  }, [flashToast]);
 
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
