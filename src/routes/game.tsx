@@ -2128,6 +2128,13 @@ function GamePage() {
           onRun={runTower}
         />
       )}
+      {modal === "blessings" && (
+        <BlessingsModal
+          save={save}
+          onClose={() => setModal(null)}
+          onActivate={activateBlessing}
+        />
+      )}
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
