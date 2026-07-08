@@ -2657,3 +2657,96 @@ function OfflineModal({
     </div>
   );
 }
+
+// -------- Missions Modal --------
+function MissionsModal({
+  save,
+  onClose,
+  onClaim,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onClaim: (scope: "daily" | "weekly", id: string) => void;
+}) {
+  const [tab, setTab] = useState<"daily" | "weekly">("daily");
+  const list = save.missions[tab];
+  const nextResetLabel = tab === "daily" ? "Reseta em 24h" : "Reseta na segunda-feira";
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🎯 Missões</h2>
+          <div className="text-[10px] opacity-70">{nextResetLabel}</div>
+        </div>
+
+        <div className="mb-3 flex gap-2">
+          {(["daily", "weekly"] as const).map((k) => (
+            <button
+              key={k}
+              onClick={() => setTab(k)}
+              className={`flex-1 rounded-lg border-2 border-[#1A0F08] py-1.5 text-xs font-black ${
+                tab === k ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+              }`}
+            >
+              {k === "daily" ? "📅 Diárias" : "📆 Semanais"}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2 max-h-[52vh] overflow-y-auto pr-1">
+          {list.length === 0 && (
+            <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs opacity-70">
+              Gerando missões...
+            </div>
+          )}
+          {list.map((m) => {
+            const progress = Math.min(m.goal, counterOf(save.counters, m.kind) - m.snapshot);
+            const pct = Math.min(100, (progress / m.goal) * 100);
+            const done = progress >= m.goal;
+            return (
+              <div key={m.id} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="text-xl">{MISSION_ICONS[m.kind]}</div>
+                    <div>
+                      <div className="text-xs font-black">{MISSION_LABELS[m.kind](m.goal)}</div>
+                      <div className="text-[10px] opacity-70">
+                        {m.reward.gold > 0 && `🪙${fmt(m.reward.gold)} `}
+                        {m.reward.gems > 0 && `💎${m.reward.gems} `}
+                        {m.reward.essence > 0 && `✨${m.reward.essence} `}
+                        {m.reward.chest > 0 && `📦x${m.reward.chest}`}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onClaim(tab, m.id)}
+                    disabled={!done || m.claimed}
+                    className={`shrink-0 rounded-md border-2 border-[#1A0F08] px-3 py-1 text-[10px] font-black ${
+                      m.claimed ? "bg-emerald-900 opacity-50"
+                        : done ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950 animate-pulse"
+                        : "bg-[#3E2723] opacity-60"
+                    }`}
+                  >
+                    {m.claimed ? "✓" : done ? "COLETAR" : `${progress}/${m.goal}`}
+                  </button>
+                </div>
+                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full border border-[#1A0F08] bg-[#1A0F08]">
+                  <div
+                    className={`h-full transition-all ${done ? "bg-emerald-400" : "bg-gradient-to-r from-amber-400 to-orange-400"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
