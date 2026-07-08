@@ -2537,6 +2537,46 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Códigos / Redeem (Fase 3 — Bloco 12) ====
+  const redeemCode = useCallback((raw: string): { ok: boolean; msg: string } => {
+    const code = raw.trim().toUpperCase();
+    if (!code) return { ok: false, msg: "Digite um código" };
+    const def = REDEEM_CODES[code];
+    if (!def) {
+      flashToast("❌ Código inválido");
+      return { ok: false, msg: "Código inválido" };
+    }
+    let result: { ok: boolean; msg: string } = { ok: false, msg: "" };
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.redeem.used.includes(code)) {
+        result = { ok: false, msg: "Código já resgatado" };
+        flashToast("⚠️ Código já usado");
+        return prev;
+      }
+      let next: SaveState = { ...prev, redeem: { used: [...prev.redeem.used, code] } };
+      const r = def.reward;
+      if (r.gold) next = { ...next, gold: next.gold + r.gold };
+      if (r.gems) next = { ...next, gems: next.gems + r.gems };
+      if (r.essence) next = { ...next, essence: next.essence + r.essence };
+      if (r.epicChest) {
+        // Baú épico: 1 equipamento de slot aleatório baseado no stage atual
+        const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+        const item = rollItem(slot, next.stage);
+        next = { ...next, inventory: [...next.inventory, item].slice(-60) };
+      }
+      if (r.cosmetic && COSMETIC_DEFS[r.cosmetic] && !next.cosmetics.owned.includes(r.cosmetic)) {
+        next = { ...next, cosmetics: { ...next.cosmetics, owned: [...next.cosmetics.owned, r.cosmetic] } };
+      }
+      flashToast(`🎁 ${def.label} resgatado!`);
+      result = { ok: true, msg: `${def.label}: ${def.desc}` };
+      return next;
+    });
+    return result;
+  }, [flashToast]);
+
+
+
 
 
 
