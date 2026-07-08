@@ -1129,6 +1129,8 @@ function GamePage() {
   // Init
   useEffect(() => {
     const s = loadSave();
+    // Inicia/rotaciona evento se elegível
+    s.event = ensureEventStarted(s);
     // ==== Recompensas Offline ====
     const now = Date.now();
     const elapsed = Math.max(0, Math.min(OFFLINE_MAX_MS, now - (s.lastSeenAt ?? now)));
