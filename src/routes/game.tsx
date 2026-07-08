@@ -1362,7 +1362,7 @@ function GamePage() {
               onClick={() => setModal("rebirth")}
             />
             <QuickCartoonBtn icon={<Calendar className="h-3 w-3" />} label="DIÁRIO" onClick={() => setModal("daily")} />
-            <QuickCartoonBtn icon={<Ticket className="h-3 w-3" />} label="PASSE" onClick={() => flashToast("Passe em breve")} />
+            <QuickCartoonBtn icon={<Target className="h-3 w-3" />} label="MISSÕES" onClick={() => setModal("missions")} />
           </div>
         </div>
       </header>
