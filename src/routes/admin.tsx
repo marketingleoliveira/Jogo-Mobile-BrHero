@@ -46,7 +46,13 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
-const NAV = [
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+};
+const NAV: NavItem[] = [
   { to: "/admin",              label: "Dashboard",     icon: LayoutDashboard, exact: true },
   { to: "/admin/players",      label: "Jogadores",     icon: Users },
   { to: "/admin/economy",      label: "Economia",      icon: Coins },
@@ -57,7 +63,7 @@ const NAV = [
   { to: "/admin/balancing",    label: "Balanceamento", icon: Sliders },
   { to: "/admin/liveops",      label: "LiveOps",       icon: Radio },
   { to: "/admin/logs",         label: "Logs",          icon: ScrollText },
-] as const;
+];
 
 function AdminLayout() {
   return (
