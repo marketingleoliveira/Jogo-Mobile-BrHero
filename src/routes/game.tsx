@@ -21,7 +21,7 @@ import {
   simulateBattle,
   applyBattleResult,
   rollEquipment,
-  unlocksFor,
+  upgradeCost,
   ENERGY_REGEN_MS,
   type GameState,
   type BattleResult,
@@ -199,7 +199,6 @@ function GamePage() {
   const upgradeStat = (stat: "atk" | "def" | "hp" | "speed" | "crit") => {
     setState((prev) => {
       if (!prev) return prev;
-      const { upgradeCost } = require("@/lib/game/engine") as typeof import("@/lib/game/engine");
       const cost = upgradeCost(stat, prev.hero);
       if (prev.coins < cost) return prev;
       const hero = { ...prev.hero };
