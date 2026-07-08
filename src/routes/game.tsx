@@ -2412,6 +2412,16 @@ function GamePage() {
         }
         case "essence": next = { ...next, essence: next.essence + 1 }; break;
         case "rune_frag": next = { ...next, runes: { ...next.runes, fragments: next.runes.fragments + 5 } }; break;
+        case "cosm_aura_blue": {
+          if (next.cosmetics.owned.includes("aura_blue")) { flashToast("💠 Já possui"); return prev; }
+          next = { ...next, cosmetics: { ...next.cosmetics, owned: [...next.cosmetics.owned, "aura_blue"] } };
+          break;
+        }
+        case "cosm_frame_brasil": {
+          if (next.cosmetics.owned.includes("frame_brasil")) { flashToast("🇧🇷 Já possui"); return prev; }
+          next = { ...next, cosmetics: { ...next.cosmetics, owned: [...next.cosmetics.owned, "frame_brasil"] } };
+          break;
+        }
         case "skin_brasil": {
           if (next.skins.owned.includes("brasil")) { flashToast("🦸 Já possui essa skin"); return prev; }
           next = { ...next, skins: { ...next.skins, owned: [...next.skins.owned, "brasil"] } };
