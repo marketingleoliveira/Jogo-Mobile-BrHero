@@ -286,6 +286,39 @@ function towerRewards(floor: number, stage: number, save: SaveState): { gold: nu
   return { gold, gems, essence, chests, frag };
 }
 
+// ===== Bênçãos =====
+const BLESSING_UNLOCK_LEVEL = 20;
+const BLESSING_DURATIONS = [
+  { hours: 2, label: "2h", ms: 2 * 60 * 60 * 1000, goldMul: 1, gemMul: 1 },
+  { hours: 4, label: "4h", ms: 4 * 60 * 60 * 1000, goldMul: 1.8, gemMul: 1.8 },
+  { hours: 8, label: "8h", ms: 8 * 60 * 60 * 1000, goldMul: 3, gemMul: 3 },
+] as const;
+const BLESSING_DEFS: Record<BlessingKind, { label: string; icon: string; desc: string; color: string; effectPct: number; baseGold: number; baseGems: number }> = {
+  gold: { label: "Bênção do Ouro",       icon: "🪙", desc: "+50% ouro por batalha",      color: "from-amber-500 to-yellow-700",  effectPct: 50, baseGold: 5000, baseGems: 20 },
+  xp:   { label: "Bênção da Experiência", icon: "📖", desc: "+50% XP por batalha",       color: "from-sky-500 to-blue-700",      effectPct: 50, baseGold: 5000, baseGems: 20 },
+  drop: { label: "Bênção da Forja",       icon: "🔨", desc: "+5% chance de drop",        color: "from-orange-500 to-red-700",    effectPct: 5,  baseGold: 8000, baseGems: 30 },
+  atk:  { label: "Bênção do Guerreiro",   icon: "⚔️", desc: "+30% ATK temporário",       color: "from-rose-500 to-pink-700",     effectPct: 30, baseGold: 8000, baseGems: 30 },
+  hp:   { label: "Bênção da Vida",        icon: "❤️", desc: "+30% HP e regen temp.",     color: "from-emerald-500 to-green-700", effectPct: 30, baseGold: 8000, baseGems: 30 },
+};
+
+function emptyBlessings(): Record<BlessingKind, number> {
+  return { gold: 0, xp: 0, drop: 0, atk: 0, hp: 0 };
+}
+function blessingActive(save: SaveState, kind: BlessingKind, now = Date.now()): boolean {
+  return (save.blessings?.[kind] ?? 0) > now;
+}
+function blessingBonus(save: SaveState) {
+  const now = Date.now();
+  return {
+    goldMul: blessingActive(save, "gold", now) ? 1 + BLESSING_DEFS.gold.effectPct / 100 : 1,
+    xpMul:   blessingActive(save, "xp",   now) ? 1 + BLESSING_DEFS.xp.effectPct   / 100 : 1,
+    dropAdd: blessingActive(save, "drop", now) ? BLESSING_DEFS.drop.effectPct / 100 : 0,
+    atkMul:  blessingActive(save, "atk",  now) ? 1 + BLESSING_DEFS.atk.effectPct  / 100 : 1,
+    hpMul:   blessingActive(save, "hp",   now) ? 1 + BLESSING_DEFS.hp.effectPct   / 100 : 1,
+    regenMul:blessingActive(save, "hp",   now) ? 1 + BLESSING_DEFS.hp.effectPct   / 100 : 1,
+  };
+}
+
 
 // ===== Retenção: tempo =====
 const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
