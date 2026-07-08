@@ -2592,6 +2592,12 @@ function GamePage() {
               label="CONQUISTAS"
               onClick={() => setModal("achievements")}
             />
+            <QuickCartoonBtn
+              icon={<Sparkles className="h-3 w-3" />}
+              label={save.level >= RUNE_UNLOCK_LEVEL ? "RUNAS" : `🔒Lv${RUNE_UNLOCK_LEVEL}`}
+              onClick={() => setModal("runes")}
+            />
+
 
           </div>
         </div>
