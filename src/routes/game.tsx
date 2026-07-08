@@ -1917,3 +1917,168 @@ function StoreModal({
   );
 }
 
+
+// -------- Rebirth Modal (Prestígio) --------
+function RebirthModal({
+  save,
+  onClose,
+  onRebirth,
+  onBuyUp,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onRebirth: () => void;
+  onBuyUp: (key: GlobalUpKey) => void;
+}) {
+  const canRebirth = save.stage >= PRESTIGE_UNLOCK_STAGE;
+  const gain = essenceForRebirth(save.stage);
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/70 backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose}>
+      <div
+        className="max-h-[88vh] w-full overflow-y-auto rounded-t-3xl border-4 border-[#f5c542] bg-gradient-to-b from-[#1a0d3a] to-[#2b1560] p-5 text-[#e8ecf1] shadow-2xl sm:max-w-md sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-2xl text-[#f5c542]" style={{ fontFamily: "'Lilita One', cursive" }}>
+            🌟 Rebirth
+          </h2>
+          <button onClick={onClose} className="rounded-full border border-[#f5c542]/40 px-3 py-1 text-xs text-[#f5c542]">
+            Fechar
+          </button>
+        </div>
+
+        <div className="mb-3 grid grid-cols-3 gap-2 rounded-xl border-2 border-[#f5c542]/40 bg-black/30 px-3 py-2 text-center text-xs">
+          <div><div className="text-[10px] opacity-70">Prestígio</div><b className="text-[#f5c542]">{save.prestigeLevel}</b></div>
+          <div><div className="text-[10px] opacity-70">Essência ✨</div><b className="text-[#f5c542]">{fmt(save.essence)}</b></div>
+          <div><div className="text-[10px] opacity-70">Recorde</div><b className="text-[#f5c542]">Etp {save.maxStage}</b></div>
+        </div>
+
+        <div className="mb-3 rounded-lg border border-[#f5c542]/30 bg-[#f5c542]/10 p-3 text-xs">
+          <b>Como funciona:</b> ao atingir o estágio {PRESTIGE_UNLOCK_STAGE}+, você pode renascer.
+          Perde progresso de nível, atributos, ouro e equipamentos, mas ganha <b>Essência ✨</b>
+          para comprar bônus permanentes que aceleram cada nova jornada.
+          <div className="mt-2 opacity-80">Cristais 💎 e melhorias globais são mantidos.</div>
+        </div>
+
+        <button
+          onClick={() => { if (canRebirth) { onRebirth(); onClose(); } }}
+          disabled={!canRebirth}
+          className={`mb-4 w-full rounded-xl border-4 py-3 text-sm ${
+            canRebirth
+              ? "border-[#f5c542] bg-gradient-to-b from-[#f5c542] to-[#d4a02a] text-[#1a0d3a] shadow-[0_4px_0_#8a6a1a] active:translate-y-[2px] active:shadow-[0_2px_0_#8a6a1a]"
+              : "border-slate-600 bg-slate-800 text-slate-500"
+          }`}
+          style={{ fontFamily: "'Lilita One', cursive" }}
+        >
+          {canRebirth
+            ? `🌟 Renascer agora — +${gain} ✨`
+            : `🔒 Alcance o estágio ${PRESTIGE_UNLOCK_STAGE} (${save.stage}/${PRESTIGE_UNLOCK_STAGE})`}
+        </button>
+
+        <h3 className="mb-2 text-sm text-[#f5c542]" style={{ fontFamily: "'Lilita One', cursive" }}>
+          Melhorias Permanentes
+        </h3>
+        <div className="space-y-2">
+          {(Object.keys(GLOBAL_UP_DEFS) as GlobalUpKey[]).map((key) => {
+            const def = GLOBAL_UP_DEFS[key];
+            const lvl = save.globalUp[key] ?? 0;
+            const cost = globalUpCost(key, lvl);
+            const cur = lvl * def.perLevel;
+            const maxed = lvl >= def.max;
+            const cant = save.essence < cost;
+            return (
+              <div key={key} className="flex items-center gap-3 rounded-xl border-2 border-[#f5c542]/30 bg-black/30 p-2">
+                <div className="text-2xl">{def.icon}</div>
+                <div className="flex-1">
+                  <div className="text-xs text-[#f5c542]" style={{ fontFamily: "'Lilita One', cursive" }}>
+                    {def.label} <span className="text-[10px] opacity-70">Lv {lvl}/{def.max}</span>
+                  </div>
+                  <div className="text-[10px] opacity-80">
+                    Atual: +{def.suffix === "%" ? Math.round(cur * 100) : cur}{def.suffix ?? ""}
+                  </div>
+                </div>
+                <button
+                  onClick={() => onBuyUp(key)}
+                  disabled={maxed || cant}
+                  className={`rounded-lg border-2 px-2 py-1 text-[11px] ${
+                    maxed || cant
+                      ? "border-slate-600 bg-slate-800 text-slate-500"
+                      : "border-[#f5c542] bg-gradient-to-b from-[#f5c542] to-[#d4a02a] text-[#1a0d3a]"
+                  }`}
+                  style={{ fontFamily: "'Lilita One', cursive" }}
+                >
+                  {maxed ? "MAX" : `✨ ${cost}`}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// -------- Crystals Modal (pacotes mock) --------
+function CrystalsModal({
+  save,
+  onClose,
+  onBuy,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onBuy: (id: string) => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/70 backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose}>
+      <div
+        className="max-h-[85vh] w-full overflow-y-auto rounded-t-3xl border-4 border-emerald-400 bg-gradient-to-b from-[#0a1c3a] to-[#0d2b4a] p-5 text-[#e8ecf1] shadow-2xl sm:max-w-md sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-2xl text-emerald-300" style={{ fontFamily: "'Lilita One', cursive" }}>
+            💎 Cristais
+          </h2>
+          <button onClick={onClose} className="rounded-full border border-emerald-400/40 px-3 py-1 text-xs text-emerald-300">
+            Fechar
+          </button>
+        </div>
+
+        <div className="mb-3 rounded-xl border-2 border-emerald-400/40 bg-black/30 px-3 py-2 text-sm">
+          💎 Saldo: <b className="text-emerald-300">{fmt(save.gems)}</b>
+        </div>
+
+        <p className="mb-3 rounded-lg border border-amber-400/40 bg-amber-500/10 p-2 text-[11px] text-amber-200">
+          ⚠️ <b>Beta:</b> os pacotes abaixo são <b>gratuitos</b> por enquanto (mock).
+          Preços em R$ são apenas de referência para a monetização final via Google Play / Stripe.
+        </p>
+
+        <div className="space-y-2">
+          {CRYSTAL_PACKS.map((p) => (
+            <div key={p.id} className="flex items-center gap-3 rounded-xl border-2 border-emerald-400/30 bg-[#0a1c3a]/70 p-3">
+              <div className="text-3xl">💎</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 text-sm text-emerald-300" style={{ fontFamily: "'Lilita One', cursive" }}>
+                  {p.gems} cristais
+                  {p.bonus > 0 && <span className="rounded-full bg-emerald-400 px-2 py-[1px] text-[9px] uppercase text-[#0a1c3a]">+{p.bonus} bônus</span>}
+                  {p.tag && <span className="rounded-full bg-amber-400 px-2 py-[1px] text-[9px] uppercase text-[#0a1c3a]">{p.tag}</span>}
+                </div>
+                <div className="text-[11px] opacity-70">R$ {p.priceBRL.toFixed(2).replace(".", ",")}</div>
+              </div>
+              <button
+                onClick={() => onBuy(p.id)}
+                className="rounded-lg border-2 border-emerald-400 bg-gradient-to-b from-emerald-400 to-emerald-600 px-3 py-2 text-xs text-[#0a1c3a]"
+                style={{ fontFamily: "'Lilita One', cursive" }}
+              >
+                RESGATAR
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-4 text-center text-[10px] opacity-50">
+          Filosofia: <b>Pay-to-Fast</b>. Todo jogador free tem acesso ao mesmo teto de poder.
+        </p>
+      </div>
+    </div>
+  );
+}
