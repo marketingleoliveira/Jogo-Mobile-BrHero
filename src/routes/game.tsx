@@ -1098,6 +1098,12 @@ function loadSave(): SaveState {
         ...(parsed.event ?? {}),
         missions: Array.isArray(parsed.event?.missions) ? parsed.event.missions : [],
       },
+      skins: {
+        owned: Array.isArray(parsed.skins?.owned) && parsed.skins.owned.length > 0
+          ? (parsed.skins.owned.filter((x: string) => (x as SkinId) in SKIN_DEFS) as SkinId[])
+          : ["classic"],
+        equipped: (parsed.skins?.equipped as SkinId) in SKIN_DEFS ? parsed.skins.equipped : "classic",
+      },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
