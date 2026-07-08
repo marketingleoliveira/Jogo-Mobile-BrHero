@@ -1339,6 +1339,20 @@ function loadSave(): SaveState {
           ? (parsed.runes.equipped.filter((k: string) => (RUNE_ORDER as string[]).includes(k)) as RuneKind[]).slice(0, RUNE_MAX_EQUIPPED)
           : [],
       },
+      cosmetics: (() => {
+        const base = emptyCosmetics();
+        const parsedOwned: string[] = Array.isArray(parsed.cosmetics?.owned) ? parsed.cosmetics.owned : [];
+        const ownedSet = new Set<string>([...base.owned, ...parsedOwned.filter((id) => id in COSMETIC_DEFS)]);
+        const eq: Partial<Record<CosmeticCategory, CosmeticId | null>> = { ...base.equipped };
+        const pe = (parsed.cosmetics?.equipped ?? {}) as Record<string, unknown>;
+        for (const c of COSMETIC_CATEGORIES) {
+          const v = pe[c.key];
+          if (typeof v === "string" && v in COSMETIC_DEFS && ownedSet.has(v) && COSMETIC_DEFS[v].category === c.key) {
+            eq[c.key] = v;
+          }
+        }
+        return { owned: Array.from(ownedSet), equipped: eq };
+      })(),
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
