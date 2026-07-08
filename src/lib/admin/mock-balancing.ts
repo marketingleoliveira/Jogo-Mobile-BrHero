@@ -198,3 +198,27 @@ export function simulate(cfg: BalancingConfig, input: SimulatorInput): Simulator
 
   return { heroPower, killEnemyMs, killBossMs, goldPerHour, xpPerHour, difficulty, ratio };
 }
+
+// ---------------- Supabase sync (Fase 2) ----------------
+import { remoteLoadBalancing, remoteSaveBalancing } from "./supabase-module-store";
+
+void (async () => {
+  const remote = await remoteLoadBalancing<BalancingConfig>();
+  if (remote) {
+    store = { ...store, config: remote };
+    emit();
+  }
+})();
+
+const _origUpdateSection = balancingActions.updateSection;
+const _origResetAll = balancingActions.resetAll;
+balancingActions.updateSection = function <K extends keyof BalancingConfig>(
+  section: K, next: BalancingConfig[K], reason: string,
+) {
+  _origUpdateSection(section, next, reason);
+  void remoteSaveBalancing(store.config);
+};
+balancingActions.resetAll = (reason: string) => {
+  _origResetAll(reason);
+  void remoteSaveBalancing(store.config);
+};
