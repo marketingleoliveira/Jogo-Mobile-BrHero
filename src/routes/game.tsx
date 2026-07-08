@@ -3632,3 +3632,143 @@ function TowerModal({
     </div>
   );
 }
+
+// -------- Active Blessings Bar (Fase 3 — Bloco 4) --------
+function ActiveBlessingsBar({ save, onOpen }: { save: SaveState; onOpen: () => void }) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const now = Date.now();
+  const active = (Object.keys(BLESSING_DEFS) as BlessingKind[]).filter((k) => (save.blessings?.[k] ?? 0) > now);
+  if (active.length === 0) return null;
+  return (
+    <button
+      onClick={onOpen}
+      className="flex w-full items-center justify-center gap-1.5 border-b-2 border-[#1A0F08] bg-gradient-to-r from-[#3E2723] via-[#5D4037] to-[#3E2723] px-2 py-1 text-[10px]"
+    >
+      {active.map((k) => {
+        const ms = (save.blessings?.[k] ?? 0) - now;
+        const mins = Math.max(0, Math.ceil(ms / 60000));
+        const label = mins >= 60 ? `${Math.floor(mins / 60)}h${mins % 60}m` : `${mins}m`;
+        return (
+          <span key={k} className="rounded border border-[#1A0F08] bg-black/40 px-1.5 py-0.5 font-black text-amber-100">
+            {BLESSING_DEFS[k].icon} {label}
+          </span>
+        );
+      })}
+    </button>
+  );
+}
+
+// -------- Blessings Modal (Fase 3 — Bloco 4) --------
+function BlessingsModal({
+  save,
+  onClose,
+  onActivate,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onActivate: (kind: BlessingKind, durationIdx: number, pay: "gold" | "gems") => void;
+}) {
+  const locked = save.level < BLESSING_UNLOCK_LEVEL;
+  const [selectedDur, setSelectedDur] = useState(0);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const now = Date.now();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>✨ Bênçãos</h2>
+          <div className="text-[10px] opacity-70">Bônus temporários — não pay-to-win</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {BLESSING_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && (
+          <>
+            <div className="mb-3 flex gap-2">
+              {BLESSING_DURATIONS.map((d, i) => (
+                <button
+                  key={d.label}
+                  onClick={() => setSelectedDur(i)}
+                  className={`flex-1 rounded-lg border-2 border-[#1A0F08] py-1.5 text-xs font-black ${
+                    selectedDur === i ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+              {(Object.keys(BLESSING_DEFS) as BlessingKind[]).map((k) => {
+                const def = BLESSING_DEFS[k];
+                const dur = BLESSING_DURATIONS[selectedDur];
+                const goldCost = Math.floor(def.baseGold * dur.goldMul);
+                const gemCost = Math.floor(def.baseGems * dur.gemMul);
+                const exp = save.blessings?.[k] ?? 0;
+                const active = exp > now;
+                const remMs = active ? exp - now : 0;
+                const remMin = Math.ceil(remMs / 60000);
+                const remLabel = remMin >= 60 ? `${Math.floor(remMin / 60)}h${remMin % 60}m` : `${remMin}m`;
+                return (
+                  <div key={k} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-2`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="text-2xl">{def.icon}</div>
+                        <div>
+                          <div className="text-xs font-black text-amber-50 drop-shadow">{def.label}</div>
+                          <div className="text-[10px] text-amber-50/90">{def.desc}</div>
+                          {active && (
+                            <div className="mt-0.5 text-[10px] font-black text-emerald-200">⏳ Ativa · {remLabel}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => onActivate(k, selectedDur, "gold")}
+                          disabled={save.gold < goldCost}
+                          className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2 py-1 text-[10px] font-black text-amber-100 disabled:opacity-50"
+                        >
+                          🪙 {fmt(goldCost)}
+                        </button>
+                        <button
+                          onClick={() => onActivate(k, selectedDur, "gems")}
+                          disabled={save.gems < gemCost}
+                          className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2 py-1 text-[10px] font-black text-amber-100 disabled:opacity-50"
+                        >
+                          💎 {gemCost}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-2 text-center text-[10px] opacity-70">
+              Ativar novamente empilha o tempo restante.
+            </div>
+          </>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
