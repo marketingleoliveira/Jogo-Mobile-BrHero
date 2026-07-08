@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 const ACCOUNT_KEY = "hero-rise-account-v1";
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+const GOOGLE_CLIENT_ID = "363043719780-cnfdm9g2ror5uh6u48k0avceddvf80ij.apps.googleusercontent.com";
 
 type Account = {
   name: string;
