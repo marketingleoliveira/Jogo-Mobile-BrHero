@@ -699,7 +699,7 @@ function GamePage() {
 
   if (!save || !stats || !enemyRef.current) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
+      <div className="flex min-h-screen items-center justify-center bg-[#1A0F08] text-amber-300 font-cartoon">
         Carregando…
       </div>
     );
@@ -709,112 +709,117 @@ function GamePage() {
   const xpNeed = xpForLevel(save.level);
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-950 text-slate-100 select-none">
+    <div
+      className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-[#2D1B0E] text-white select-none"
+      style={{ fontFamily: "'Fredoka', system-ui, sans-serif" }}
+    >
       {/* ===== Top HUD ===== */}
-      <header className="sticky top-0 z-20 bg-slate-950/95 backdrop-blur border-b border-slate-800">
-        {/* Row 1: avatar + level + xp + home */}
-        <div className="flex items-center gap-2 px-3 pt-2">
+      <header className="relative bg-gradient-to-b from-[#3E2723] to-[#2D1B0E] border-b-4 border-[#8B4513] px-3 pt-2 pb-2">
+        <div className="flex items-center gap-2">
+          {/* Avatar */}
           <Link
             to="/"
             aria-label="Início"
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 text-slate-900 shadow ring-2 ring-amber-300/40"
+            className="relative grid h-12 w-12 shrink-0 place-items-center rounded-full border-4 border-[#8B4513] bg-gradient-to-br from-amber-300 to-orange-500 text-amber-950 shadow-lg active:translate-y-0.5"
           >
-            <Home className="h-4 w-4" />
+            <Home className="h-4 w-4" strokeWidth={3} />
+            <span
+              className="absolute -bottom-1 -right-1 rounded-full border-2 border-[#8B4513] bg-[#2D1B0E] px-1 py-0 text-[9px] font-bold text-amber-300"
+              style={{ fontFamily: "'Luckiest Guy', cursive" }}
+            >
+              Lv{save.level}
+            </span>
           </Link>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2">
-              <span
-                className={`text-sm font-black truncate ${
-                  levelFlash ? "animate-pulse text-amber-300" : ""
-                }`}
-              >
-                Herói · Lv {save.level}
-              </span>
-              <span className="text-[10px] text-slate-400 tabular-nums">
-                {save.xp}/{xpNeed} XP
-              </span>
+
+          {/* Currencies */}
+          <div className="flex flex-1 flex-col gap-1">
+            <div className="flex gap-2">
+              <CartoonPill
+                color="amber"
+                icon={<div className="h-3.5 w-3.5 rotate-45 rounded-sm bg-amber-400 shadow-[inset_-1px_-1px_0_rgba(0,0,0,0.3)]" />}
+                value={fmt(save.gold)}
+              />
+              <CartoonPill
+                color="emerald"
+                icon={<div className="h-3.5 w-3 rounded-full bg-emerald-400 shadow-[inset_-1px_-1px_0_rgba(0,0,0,0.3)]" />}
+                value={fmt(save.gems)}
+              />
             </div>
-            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+            <div className="h-2 w-full overflow-hidden rounded-full border-2 border-[#1A0F08] bg-[#1A0F08]">
               <div
-                className="h-full bg-gradient-to-r from-amber-400 to-yellow-300 transition-all"
+                className="h-full bg-gradient-to-r from-amber-300 to-yellow-400 transition-all"
                 style={{ width: `${(save.xp / xpNeed) * 100}%` }}
               />
             </div>
           </div>
-        </div>
-        {/* Row 2: currencies + stage */}
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 px-3 py-2 text-xs">
-          <Pill icon={<Coins className="h-3.5 w-3.5 text-amber-400" />} value={fmt(save.gold)} />
-          <Pill icon={<Gem className="h-3.5 w-3.5 text-fuchsia-400" />} value={fmt(save.gems)} />
-          <Pill
-            icon={<Trophy className="h-3.5 w-3.5 text-sky-400" />}
-            value={`Fase ${save.stage}`}
-          />
-        </div>
-        {/* Row 3: quick actions VIP / Pass / Events */}
-        <div className="flex items-center gap-2 px-3 pb-2">
-          <QuickBtn
-            icon={<Crown className="h-3.5 w-3.5" />}
-            label="VIP"
-            onClick={() => flashToast("VIP em breve")}
-          />
-          <QuickBtn
-            icon={<Ticket className="h-3.5 w-3.5" />}
-            label="Passe"
-            onClick={() => flashToast("Passe em breve")}
-          />
-          <QuickBtn
-            icon={<Calendar className="h-3.5 w-3.5" />}
-            label="Eventos"
-            onClick={() => flashToast("Eventos em breve")}
-          />
+
+          {/* VIP/Pass stack */}
+          <div className="flex flex-col gap-1">
+            <QuickCartoonBtn icon={<Crown className="h-3 w-3" />} label="TOP" onClick={() => flashToast("VIP em breve")} />
+            <QuickCartoonBtn icon={<Ticket className="h-3 w-3" />} label="PASS" onClick={() => flashToast("Passe em breve")} />
+          </div>
         </div>
       </header>
 
       {/* ===== Battle arena ===== */}
       <section
-        className={`relative h-64 overflow-hidden bg-gradient-to-b ${biome.bg}`}
+        className={`relative h-56 overflow-hidden bg-gradient-to-b ${biome.bg} border-b-4 border-[#1A0F08]`}
         aria-label="Campo de batalha"
       >
-        {/* biome label */}
-        <div className="absolute left-2 top-2 rounded-md bg-black/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/80">
-          {biome.name}
+        {/* stage banner */}
+        <div className="absolute left-1/2 top-3 -translate-x-1/2 rounded-full border-2 border-black/60 bg-black/50 px-4 py-0.5 backdrop-blur-sm">
+          <span
+            className="text-sm tracking-wider text-amber-100 drop-shadow-[0_2px_0_rgba(0,0,0,0.6)]"
+            style={{ fontFamily: "'Luckiest Guy', cursive" }}
+          >
+            {biome.name.toUpperCase()}: {Math.floor((save.stage - 1) / 10) + 1}-{((save.stage - 1) % 10) + 1}
+          </span>
         </div>
-        {/* stage badge */}
-        <div className="absolute right-2 top-2 rounded-md bg-black/40 px-2 py-0.5 text-[10px] font-semibold text-white/80">
-          {enemy.isBoss ? "👑 CHEFE" : `Estágio ${save.stage}`}
-        </div>
+        {enemy.isBoss && (
+          <div
+            className="absolute right-2 top-12 rounded-lg border-2 border-amber-950 bg-amber-500 px-2 py-0.5 text-[10px] text-amber-950 shadow"
+            style={{ fontFamily: "'Luckiest Guy', cursive" }}
+          >
+            👑 BOSS
+          </div>
+        )}
 
-        {/* clouds/particles (simple) */}
-        <div className="absolute inset-0 opacity-30 mix-blend-overlay">
+        {/* clouds */}
+        <div className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none">
           <div className="absolute left-4 top-8 h-4 w-16 rounded-full bg-white blur-md" />
           <div className="absolute right-8 top-14 h-3 w-10 rounded-full bg-white blur-md" />
         </div>
 
         {/* Hero */}
         <div
-          className={`absolute bottom-14 left-6 flex flex-col items-center ${
+          className={`absolute bottom-10 left-6 flex flex-col items-center ${
             heroHit ? "translate-x-1" : ""
           } transition-transform`}
         >
-          <div className="text-5xl drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)]">🧝‍♂️</div>
-          <div className="mt-1 h-1.5 w-16 overflow-hidden rounded-full bg-black/50">
+          <div className="mb-1 h-2 w-16 overflow-hidden rounded-full border-2 border-black/60 bg-black/50">
             <div
               className="h-full bg-gradient-to-r from-emerald-400 to-emerald-300 transition-all"
               style={{ width: `${(heroHp / stats.hp) * 100}%` }}
             />
           </div>
-          <div className="mt-0.5 text-[9px] tabular-nums text-white/80">
+          <div className="text-5xl drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)]">🧝‍♂️</div>
+          <div className="mt-0.5 text-[9px] tabular-nums text-white/90 font-bold">
             {fmt(heroHp)}/{fmt(stats.hp)}
           </div>
         </div>
 
         {/* Enemy */}
         <div
-          className={`absolute bottom-14 right-6 flex flex-col items-center ${
+          className={`absolute bottom-10 right-6 flex flex-col items-center ${
             enemyHit ? "-translate-x-1" : ""
           } ${enemyDying ? "opacity-0 scale-50" : ""} transition-all duration-200`}
         >
+          <div className="mb-1 h-2 w-20 overflow-hidden rounded-full border-2 border-black/60 bg-black/50">
+            <div
+              className="h-full bg-gradient-to-r from-rose-500 to-red-400 transition-all"
+              style={{ width: `${(enemyHp / enemy.hp) * 100}%` }}
+            />
+          </div>
           <div
             className={`drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] ${
               enemy.isBoss ? "text-6xl" : "text-5xl"
@@ -822,112 +827,95 @@ function GamePage() {
           >
             {enemy.isBoss ? "🐲" : pickEnemyEmoji(save.stage)}
           </div>
-          <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-black/50">
-            <div
-              className="h-full bg-gradient-to-r from-rose-500 to-red-400 transition-all"
-              style={{ width: `${(enemyHp / enemy.hp) * 100}%` }}
-            />
-          </div>
-          <div className="mt-0.5 text-[9px] tabular-nums text-white/80">
+          <div className="mt-0.5 text-[9px] tabular-nums text-white/90 font-bold">
             {fmt(enemyHp)}/{fmt(enemy.hp)}
           </div>
         </div>
 
-        {/* ground */}
-        <div className={`absolute bottom-0 left-0 right-0 h-14 ${biome.ground} opacity-70`} />
+        {/* ground grass strip */}
+        <div className="absolute bottom-6 left-0 right-0 h-2 bg-emerald-400/70 rounded-full scale-x-110" />
+        <div className={`absolute bottom-0 left-0 right-0 h-8 ${biome.ground} border-t-4 border-emerald-950`} />
 
         {/* damage numbers */}
         {damages.map((d) => (
           <span
             key={d.id}
-            className={`pointer-events-none absolute animate-[floatUp_0.9s_ease-out_forwards] text-sm font-black tabular-nums drop-shadow ${
+            className={`pointer-events-none absolute animate-[floatUp_0.9s_ease-out_forwards] tabular-nums drop-shadow-[0_2px_0_rgba(0,0,0,0.6)] ${
               d.from === "hero"
                 ? d.crit
-                  ? "text-yellow-300 text-lg"
-                  : "text-white"
-                : "text-rose-400"
+                  ? "text-yellow-300 text-2xl"
+                  : "text-white text-lg"
+                : "text-rose-400 text-base"
             }`}
-            style={{ left: `${d.x}%`, top: `${d.y}%` }}
+            style={{ left: `${d.x}%`, top: `${d.y}%`, fontFamily: "'Luckiest Guy', cursive" }}
           >
             {d.crit ? `✦${d.value}` : d.value}
           </span>
         ))}
-        <style>{`@keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-32px);opacity:0}}`}</style>
+        <style>{`@keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-40px);opacity:0}}`}</style>
       </section>
 
-      {/* ===== Skill bar ===== */}
-      <section className="grid grid-cols-4 gap-2 border-b border-slate-800 bg-slate-900/60 px-3 py-2">
+      {/* ===== Skill bar (wood frames) ===== */}
+      <section className="relative -mt-4 z-10 flex gap-2 overflow-x-auto px-3 pb-2 no-scrollbar">
         {SKILLS.map((sk, i) => {
           const locked = save.level < sk.unlock;
+          const colors = ["bg-orange-400", "bg-red-400", "bg-blue-400", "bg-purple-400"];
           return (
             <button
               key={sk.name}
               disabled={locked}
               onClick={() => flashToast(`${sk.name} (auto)`)}
-              className={`relative flex aspect-square flex-col items-center justify-center rounded-xl border text-[10px] font-semibold ${
+              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-4 p-1 shadow-lg active:translate-y-0.5 ${
                 locked
-                  ? "border-slate-800 bg-slate-900 text-slate-600"
-                  : i === 3
-                    ? "border-amber-400/60 bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/20 animate-pulse"
-                    : "border-slate-700 bg-slate-800 text-slate-100"
+                  ? "border-[#1A0F08] bg-[#3E2723]"
+                  : `border-[#5D2E0C] bg-[#8B4513] ${i === 3 ? "animate-pulse ring-2 ring-amber-300" : ""}`
               }`}
+              aria-label={sk.name}
             >
               {locked ? (
-                <>
-                  <Lock className="h-4 w-4" />
-                  <span className="mt-0.5">Lv {sk.unlock}</span>
-                </>
+                <Lock className="h-4 w-4 text-amber-900/50" />
               ) : (
-                <>
-                  <Sparkles className="h-4 w-4" />
-                  <span className="mt-0.5 truncate">{sk.name}</span>
-                </>
+                <div className={`h-full w-full rounded-md ${colors[i] ?? "bg-emerald-400"} shadow-inner grid place-items-center`}>
+                  <Sparkles className="h-4 w-4 text-white/90" strokeWidth={2.5} />
+                </div>
               )}
             </button>
           );
         })}
+        {/* passive slots */}
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-4 border-[#1A0F08] bg-[#3E2723]">
+          <Lock className="h-4 w-4 text-amber-900/50" />
+        </div>
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-4 border-[#1A0F08] bg-[#3E2723]">
+          <Lock className="h-4 w-4 text-amber-900/50" />
+        </div>
       </section>
 
-      {/* ===== Menu row ===== */}
-      <section className="grid grid-cols-2 gap-2 border-b border-slate-800 bg-slate-900/60 px-3 py-2">
-        <MenuBtn
-          locked={save.level < 3}
-          unlockLv={3}
-          icon={<Shield className="h-4 w-4" />}
-          label="Equipamentos"
-          badge={save.inventory.length > 0 ? save.inventory.length : undefined}
-          onClick={() => setModal("equip")}
-        />
-        <MenuBtn
-          locked={save.level < 50}
-          unlockLv={50}
-          icon={<Users className="h-4 w-4" />}
-          label="Arena Beta"
-          badge={save.pvpWins > 0 ? save.pvpWins : undefined}
-          onClick={() => setModal("arena")}
-        />
-      </section>
+      {/* ===== Tabs ===== */}
+      <div className="flex gap-2 px-3 mb-2">
+        <TabBtn active label="STAT" />
+        <TabBtn label="BLESSING" locked />
+        <TabBtn label="LIMITLESS" locked />
+      </div>
 
       {/* ===== Next unlock strip ===== */}
-
       {nextUnlock && (
-        <div className="flex items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/40 px-3 py-1.5 text-[11px] text-slate-300">
+        <div className="mx-3 mb-2 flex items-center justify-between gap-2 rounded-lg border-2 border-[#5D2E0C] bg-[#3E2723] px-3 py-1 text-[11px] text-amber-200">
           <span className="flex items-center gap-1.5">
             {nextUnlock.icon}
-            Próximo: <span className="font-semibold text-slate-100">{nextUnlock.label}</span>
+            Próximo: <span className="font-bold text-amber-100">{nextUnlock.label}</span>
           </span>
-          <span className="text-slate-500">Lv {nextUnlock.level}</span>
+          <span
+            className="text-amber-400"
+            style={{ fontFamily: "'Luckiest Guy', cursive" }}
+          >
+            Lv {nextUnlock.level}
+          </span>
         </div>
       )}
 
-      {/* ===== Attributes panel ===== */}
-      <section className="flex-1 space-y-2 px-3 py-3 pb-6">
-        <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Atributos
-          </h2>
-          <span className="text-[10px] text-slate-500">Toque para evoluir</span>
-        </div>
+      {/* ===== Attributes panel (brick style) ===== */}
+      <section className="flex-1 space-y-2 px-3 pb-28">
         {ATTR_ORDER.map((key) => {
           const d = ATTR_DEFS[key];
           const lvl = save.attrs[key].level;
@@ -939,45 +927,53 @@ function GamePage() {
           return (
             <div
               key={key}
-              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-2"
+              className="flex items-center gap-3 rounded-3xl border-t-4 border-b-4 border-t-[#795548] border-b-[#1A0F08] bg-[#5D4037] p-2 shadow-lg"
             >
-              <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-800 ${d.color}`}>
-                {d.icon}
+              {/* Icon block */}
+              <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border-4 border-[#1A0F08] bg-[#3E2723]">
+                <div className={d.color}>{d.icon}</div>
+                <span className="mt-0 text-[8px] font-bold text-amber-200/70 leading-none">Lv.{lvl}</span>
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center justify-between gap-2 text-xs">
-                  <span className="truncate font-semibold text-slate-100">{d.label}</span>
-                  <span className="shrink-0 text-[10px] text-slate-400">Lv.{lvl}</span>
+
+              {/* Values */}
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-bold text-amber-200 uppercase tracking-wide">
+                  {d.label}
                 </div>
-                <div className="mt-0.5 text-[11px] tabular-nums text-slate-300">
-                  <span className="font-bold text-slate-100">{format(cur)}</span>
-                  <span className="mx-1 text-slate-500">→</span>
+                <div
+                  className="flex items-center gap-1.5 text-base tabular-nums text-white"
+                  style={{ fontFamily: "'Luckiest Guy', cursive" }}
+                >
+                  <span>{format(cur)}</span>
+                  <span className="text-[10px] text-amber-500/60">▶</span>
                   <span className="text-emerald-300">{format(nxt)}</span>
                 </div>
               </div>
+
+              {/* Upgrade button */}
               <button
                 onClick={() => upgrade(key)}
                 disabled={!can}
-                className={`flex shrink-0 flex-col items-center justify-center rounded-lg px-3 py-1.5 text-[11px] font-bold transition-transform active:scale-95 ${
+                className={`flex h-14 shrink-0 flex-col items-center justify-center rounded-2xl border-b-4 px-3 transition-transform active:translate-y-1 active:border-b-0 ${
                   can
-                    ? "bg-gradient-to-b from-emerald-400 to-emerald-600 text-white shadow"
-                    : "bg-slate-800 text-slate-500"
+                    ? "border-green-900 bg-[#4CAF50] text-white"
+                    : "border-[#1A0F08] bg-[#3E2723] text-amber-900/60"
                 }`}
               >
-                <span className="flex items-center gap-1 leading-none">
-                  <ChevronUp className="h-3 w-3" />
-                  Upgrade
-                </span>
-                <span className="mt-0.5 flex items-center gap-0.5 text-[10px] font-semibold leading-none">
-                  <Coins className="h-2.5 w-2.5" />
+                <div className="text-[10px] font-bold leading-none">UPGRADE</div>
+                <div
+                  className="mt-0.5 flex items-center gap-1 text-xs leading-none"
+                  style={{ fontFamily: "'Luckiest Guy', cursive" }}
+                >
+                  <div className="h-2.5 w-2.5 rotate-45 rounded-sm bg-amber-400" />
                   {fmt(cost)}
-                </span>
+                </div>
               </button>
             </div>
           );
         })}
 
-        {/* Reset (debug) */}
+        {/* Reset */}
         <button
           onClick={() => {
             if (!confirm("Resetar progresso?")) return;
@@ -987,13 +983,55 @@ function GamePage() {
             respawn();
             flashToast("Progresso resetado");
           }}
-          className="mt-4 w-full rounded-lg border border-slate-800 bg-slate-900 py-2 text-[10px] text-slate-500 hover:text-slate-300"
+          className="mt-4 w-full rounded-lg border-2 border-[#5D2E0C] bg-[#3E2723] py-2 text-[10px] text-amber-200/50 hover:text-amber-200"
         >
           Resetar progresso (beta)
         </button>
       </section>
 
-      {/* ===== Equipment modal ===== */}
+      {/* ===== Bottom tab bar ===== */}
+      <nav className="fixed bottom-0 left-1/2 z-30 flex h-20 w-full max-w-md -translate-x-1/2 items-end justify-around border-t-4 border-[#8B4513] bg-[#3E2723] px-2 pb-2 pt-1">
+        <TabBarItem
+          icon="🧑‍🎤"
+          label="Hero"
+          onClick={() => setModal("equip")}
+          badge={save.inventory.length || undefined}
+        />
+        <TabBarItem
+          icon="✨"
+          label="Skill"
+          onClick={() => flashToast("Skills — auto")}
+        />
+        {/* Center Battle */}
+        <button
+          onClick={() => flashToast("⚔️ Batalha automática!")}
+          className="-mt-8 flex h-20 w-20 flex-col items-center justify-center rounded-2xl border-4 border-[#E65100] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] shadow-[0_6px_0_#B34700] active:translate-y-1 active:shadow-[0_2px_0_#B34700]"
+        >
+          <Sword className="h-8 w-8 text-amber-950" strokeWidth={2.5} />
+          <span
+            className="text-xs tracking-widest text-amber-950"
+            style={{ fontFamily: "'Luckiest Guy', cursive" }}
+          >
+            BATTLE
+          </span>
+        </button>
+        <TabBarItem
+          icon="🏰"
+          label="Dungeon"
+          locked={save.level < 10}
+          unlockLv={10}
+          onClick={() => flashToast("Dungeon em breve")}
+        />
+        <TabBarItem
+          icon="🛒"
+          label="Store"
+          locked={save.level < 50}
+          unlockLv={50}
+          onClick={() => setModal("arena")}
+        />
+      </nav>
+
+      {/* ===== Modals ===== */}
       {modal === "equip" && (
         <EquipmentModal
           save={save}
@@ -1003,17 +1041,17 @@ function GamePage() {
           onSell={sellItem}
         />
       )}
-
-      {/* ===== Arena modal ===== */}
       {modal === "arena" && (
         <ArenaModal save={save} onClose={() => setModal(null)} onFight={doPvp} />
       )}
 
       {/* Toast */}
-
       {toast && (
-        <div className="pointer-events-none fixed inset-x-0 top-24 z-30 flex justify-center px-4">
-          <div className="rounded-full bg-slate-800/95 px-4 py-2 text-sm font-medium text-white shadow-xl ring-1 ring-white/10">
+        <div className="pointer-events-none fixed inset-x-0 top-20 z-40 flex justify-center px-4">
+          <div
+            className="rounded-full border-2 border-[#1A0F08] bg-[#5D4037] px-4 py-2 text-sm text-amber-100 shadow-xl"
+            style={{ fontFamily: "'Luckiest Guy', cursive" }}
+          >
             {toast}
           </div>
         </div>
@@ -1022,17 +1060,32 @@ function GamePage() {
   );
 }
 
+
 // -------- Sub-components --------
-function Pill({ icon, value }: { icon: React.ReactNode; value: string }) {
+function CartoonPill({
+  icon,
+  value,
+  color,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  color: "amber" | "emerald";
+}) {
+  const ring = color === "amber" ? "border-amber-800" : "border-emerald-800";
   return (
-    <div className="flex min-w-0 items-center justify-center gap-1 rounded-full border border-slate-800 bg-slate-900 px-2 py-1">
+    <div className={`flex flex-1 items-center gap-1 rounded-full border-2 ${ring} bg-[#1A0F08]/80 px-2 py-0.5`}>
       {icon}
-      <span className="truncate font-semibold tabular-nums">{value}</span>
+      <span
+        className="truncate text-xs text-amber-100 tabular-nums"
+        style={{ fontFamily: "'Luckiest Guy', cursive" }}
+      >
+        {value}
+      </span>
     </div>
   );
 }
 
-function QuickBtn({
+function QuickCartoonBtn({
   icon,
   label,
   onClick,
@@ -1044,13 +1097,70 @@ function QuickBtn({
   return (
     <button
       onClick={onClick}
-      className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-800 bg-gradient-to-b from-slate-800 to-slate-900 px-2 py-1.5 text-[10px] font-semibold text-slate-200 active:scale-95"
+      className="flex items-center gap-1 rounded-full border-2 border-amber-900 bg-gradient-to-b from-amber-500 to-orange-600 px-2 py-0.5 text-[10px] font-bold text-amber-950 shadow active:translate-y-0.5"
     >
       {icon}
       {label}
     </button>
   );
 }
+
+function TabBtn({ label, active, locked }: { label: string; active?: boolean; locked?: boolean }) {
+  return (
+    <button
+      disabled={locked}
+      className={`flex-1 rounded-2xl border-b-4 py-2 text-xs tracking-wider shadow active:translate-y-0.5 active:border-b-0 ${
+        active
+          ? "border-red-950 bg-[#D32F2F] text-white"
+          : locked
+            ? "border-stone-950 bg-[#5D4037] text-amber-200/40"
+            : "border-stone-950 bg-[#795548] text-amber-200/70"
+      }`}
+      style={{ fontFamily: "'Luckiest Guy', cursive" }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function TabBarItem({
+  icon,
+  label,
+  onClick,
+  locked,
+  unlockLv,
+  badge,
+}: {
+  icon: string;
+  label: string;
+  onClick: () => void;
+  locked?: boolean;
+  unlockLv?: number;
+  badge?: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={locked}
+      className={`relative flex flex-1 flex-col items-center justify-end gap-0.5 pb-1 ${
+        locked ? "opacity-40" : ""
+      }`}
+    >
+      <div className="grid h-10 w-10 place-items-center rounded-xl border-2 border-[#1A0F08] bg-[#5D4037] text-xl shadow-inner">
+        {locked ? <Lock className="h-4 w-4 text-amber-900" /> : icon}
+      </div>
+      <span className="text-[9px] font-bold uppercase text-amber-200/80">
+        {locked ? `Lv${unlockLv}` : label}
+      </span>
+      {!locked && badge !== undefined && (
+        <span className="absolute right-1 top-0 grid h-4 min-w-4 place-items-center rounded-full border-2 border-[#3E2723] bg-rose-500 px-1 text-[9px] font-bold text-white">
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
 
 // -------- Derived stats --------
 function computeStats(s: SaveState) {
