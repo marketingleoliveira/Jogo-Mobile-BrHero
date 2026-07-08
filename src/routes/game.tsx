@@ -3175,3 +3175,166 @@ function DungeonModal({
   );
 }
 
+
+// -------- Pets Modal (Fase 3 — Bloco 2) --------
+function PetsModal({
+  save,
+  onClose,
+  onEquip,
+  onUpgrade,
+  onCraft,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onEquip: (id: string | null) => void;
+  onUpgrade: (id: string) => void;
+  onCraft: (kind: PetKind) => void;
+}) {
+  const locked = save.level < PETS_UNLOCK_LEVEL;
+  const [tab, setTab] = useState<"collection" | "forge">("collection");
+  const equipped = save.pets.find((p) => p.id === save.equippedPetId) ?? null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🐾 Pets</h2>
+          <div className="text-[10px] opacity-70">1 equipado · bônus passivos</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {PETS_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && (
+          <>
+            {equipped && (
+              <div className={`mb-3 rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${PET_DEFS[equipped.kind].color} p-3`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="text-2xl">{PET_DEFS[equipped.kind].icon}</div>
+                    <div>
+                      <div className="text-sm font-black text-amber-50 drop-shadow">{PET_DEFS[equipped.kind].label}</div>
+                      <div className="text-[10px] text-amber-50/90">{equipped.rarity} · Lv {equipped.level} · {PET_DEFS[equipped.kind].desc}</div>
+                    </div>
+                  </div>
+                  <button onClick={() => onEquip(null)} className="rounded-md border-2 border-[#1A0F08] bg-[#1A0F08]/60 px-2 py-1 text-[10px] font-black">Desequipar</button>
+                </div>
+              </div>
+            )}
+
+            <div className="mb-3 flex gap-2">
+              {(["collection", "forge"] as const).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setTab(k)}
+                  className={`flex-1 rounded-lg border-2 border-[#1A0F08] py-1.5 text-xs font-black ${
+                    tab === k ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+                  }`}
+                >
+                  {k === "collection" ? `📚 Coleção (${save.pets.length})` : "🔨 Forjar"}
+                </button>
+              ))}
+            </div>
+
+            {tab === "collection" && (
+              <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
+                {save.pets.length === 0 && (
+                  <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs opacity-70">
+                    Sem pets ainda. Abra baús raros ou faça masmorra de equipamento.
+                  </div>
+                )}
+                {save.pets.map((p) => {
+                  const def = PET_DEFS[p.kind];
+                  const cost = petUpgradeCost(p);
+                  const isEq = p.id === save.equippedPetId;
+                  const canUp = p.level < PET_MAX_LEVEL && save.gold >= cost.gold && save.petFragments[p.kind] >= cost.fragments;
+                  return (
+                    <div key={p.id} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`grid h-10 w-10 place-items-center rounded-md bg-gradient-to-br ${def.color} text-xl`}>{def.icon}</div>
+                          <div>
+                            <div className="text-xs font-black">{def.label} <span className="opacity-70">({p.rarity})</span></div>
+                            <div className="text-[10px] opacity-80">Lv {p.level}/{PET_MAX_LEVEL} · {def.desc}</div>
+                            {p.level < PET_MAX_LEVEL && (
+                              <div className="text-[10px] opacity-70">🪙{fmt(cost.gold)} · 🧩{cost.fragments}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={() => onEquip(isEq ? null : p.id)}
+                            className={`rounded-md border-2 border-[#1A0F08] px-2 py-1 text-[10px] font-black ${
+                              isEq ? "bg-emerald-700" : "bg-[#5D4037]"
+                            }`}
+                          >
+                            {isEq ? "✓ Equipado" : "Equipar"}
+                          </button>
+                          <button
+                            onClick={() => onUpgrade(p.id)}
+                            disabled={!canUp}
+                            className={`rounded-md border-2 border-[#1A0F08] px-2 py-1 text-[10px] font-black ${
+                              canUp ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#3E2723] opacity-60"
+                            }`}
+                          >
+                            {p.level >= PET_MAX_LEVEL ? "MAX" : "Evoluir"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {tab === "forge" && (
+              <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
+                <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2 text-[11px] opacity-80">
+                  Use fragmentos (obtidos em baús raros e masmorra de equipamento) para forjar um pet novo. Custa <b>{craftPetCost()}🧩</b> do mesmo tipo.
+                </div>
+                {PET_KINDS.map((k) => {
+                  const def = PET_DEFS[k];
+                  const cur = save.petFragments[k];
+                  const cost = craftPetCost();
+                  const ok = cur >= cost;
+                  return (
+                    <div key={k} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`grid h-10 w-10 place-items-center rounded-md bg-gradient-to-br ${def.color} text-xl`}>{def.icon}</div>
+                          <div>
+                            <div className="text-xs font-black">{def.label}</div>
+                            <div className="text-[10px] opacity-80">{def.desc} · 🧩 {cur}/{cost}</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => onCraft(k)}
+                          disabled={!ok}
+                          className={`rounded-md border-2 border-[#1A0F08] px-3 py-1 text-[10px] font-black ${
+                            ok ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#3E2723] opacity-60"
+                          }`}
+                        >
+                          Forjar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
