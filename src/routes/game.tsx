@@ -2708,6 +2708,12 @@ function GamePage() {
               label={save.level >= RUNE_UNLOCK_LEVEL ? "RUNAS" : `🔒Lv${RUNE_UNLOCK_LEVEL}`}
               onClick={() => setModal("runes")}
             />
+            <QuickCartoonBtn
+              icon={<Package className="h-3 w-3" />}
+              label="COSMÉTICOS"
+              onClick={() => setModal("cosmetics")}
+            />
+
 
 
           </div>
