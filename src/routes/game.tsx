@@ -2775,6 +2775,11 @@ function GamePage() {
               label="COSMÉTICOS"
               onClick={() => setModal("cosmetics")}
             />
+            <QuickCartoonBtn
+              icon={<Ticket className="h-3 w-3" />}
+              label="CÓDIGOS"
+              onClick={() => setModal("codes")}
+            />
 
 
 
