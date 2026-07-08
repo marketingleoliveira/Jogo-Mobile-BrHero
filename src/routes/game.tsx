@@ -1060,14 +1060,14 @@ function GamePage() {
       <nav className="fixed bottom-0 left-1/2 z-30 flex h-20 w-full max-w-md -translate-x-1/2 items-end justify-around border-t-4 border-[#8B4513] bg-[#3E2723] px-2 pb-2 pt-1">
         <TabBarItem
           icon="🧑‍🎤"
-          label="Hero"
+          label="Herói"
           onClick={() => setModal("equip")}
           badge={save.inventory.length || undefined}
         />
         <TabBarItem
           icon="✨"
-          label="Skills"
-          onClick={() => flashToast("Skills — auto")}
+          label="Habilidades"
+          onClick={() => flashToast("Habilidades — automáticas")}
         />
         {/* Center Battle */}
         <button
