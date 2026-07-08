@@ -1219,6 +1219,7 @@ function defaultSave(): SaveState {
     event: emptyEvent(),
     skins: emptySkins(),
     achievements: emptyAchievements(),
+    runes: emptyRunes(),
     version: SAVE_VERSION,
   };
 }
