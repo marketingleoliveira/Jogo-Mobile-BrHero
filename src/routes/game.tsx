@@ -408,6 +408,7 @@ function GamePage() {
   const [enemyDying, setEnemyDying] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
+  const [bgCache, setBgCache] = useState<Record<string, string>>({});
   const [modal, setModal] = useState<"equip" | "arena" | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -702,6 +703,43 @@ function GamePage() {
     () => UNLOCKS.find((u) => u.level > (save?.level ?? 1)),
     [save?.level],
   );
+
+  // Load cached AI backgrounds from localStorage once
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("hero-rise-bg-cache-v1");
+      if (raw) setBgCache(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  // Fetch AI-generated background per biome (dynamic, cached)
+  useEffect(() => {
+    if (!save) return;
+    if (bgCache[biome.name]) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/generate-bg", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ biome: biome.name, stage: save.stage }),
+        });
+        if (!res.ok) return;
+        const { dataUrl } = (await res.json()) as { dataUrl: string };
+        if (cancelled || !dataUrl) return;
+        setBgCache((prev) => {
+          const next = { ...prev, [biome.name]: dataUrl };
+          try {
+            localStorage.setItem("hero-rise-bg-cache-v1", JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [biome.name, save?.stage, bgCache]);
 
   if (!save || !stats || !enemyRef.current) {
     return (
