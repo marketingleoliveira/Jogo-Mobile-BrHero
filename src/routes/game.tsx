@@ -130,6 +130,87 @@ const RARE_CHEST_MS = 24 * 60 * 60 * 1000;  // 24h
 const OFFLINE_MAX_MS = 8 * 60 * 60 * 1000;  // 8h
 const STREAK_MILESTONES = [7, 14, 30, 60, 100] as const;
 
+// ===== Missões =====
+function weekKey(d = new Date()) {
+  // ISO-week style YYYY-Www
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((tmp.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return `${tmp.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+const MISSION_LABELS: Record<MissionKind, (n: number) => string> = {
+  enemies: (n) => `Derrote ${n} inimigos`,
+  bosses: (n) => `Derrote ${n} chefes`,
+  upgrades: (n) => `Evolua ${n} atributos`,
+  chests: (n) => `Abra ${n} baús`,
+  playMinutes: (n) => `Jogue ${n} minutos`,
+};
+const MISSION_ICONS: Record<MissionKind, string> = {
+  enemies: "⚔️", bosses: "👑", upgrades: "⬆️", chests: "📦", playMinutes: "⏱️",
+};
+
+type MissionSpec = { kind: MissionKind; base: number; scale: number };
+const DAILY_POOL: MissionSpec[] = [
+  { kind: "enemies", base: 30, scale: 3 },
+  { kind: "bosses", base: 2, scale: 0.3 },
+  { kind: "upgrades", base: 3, scale: 0.2 },
+  { kind: "chests", base: 1, scale: 0.05 },
+  { kind: "playMinutes", base: 10, scale: 0 },
+];
+const WEEKLY_POOL: MissionSpec[] = [
+  { kind: "enemies", base: 300, scale: 20 },
+  { kind: "bosses", base: 15, scale: 1.5 },
+  { kind: "upgrades", base: 25, scale: 1 },
+  { kind: "chests", base: 8, scale: 0.3 },
+  { kind: "playMinutes", base: 60, scale: 0 },
+];
+
+function counterOf(c: Counters, k: MissionKind): number {
+  if (k === "playMinutes") return Math.floor(c.playMs / 60000);
+  return c[k];
+}
+
+function makeMission(spec: MissionSpec, stage: number, counters: Counters, weekly: boolean): Mission {
+  const goal = Math.max(1, Math.floor(spec.base + spec.scale * stage));
+  const mult = weekly ? 10 : 1;
+  return {
+    id: `${spec.kind}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    kind: spec.kind,
+    goal,
+    snapshot: counterOf(counters, spec.kind),
+    reward: weekly
+      ? { gold: goal * 20, gems: 15 + Math.floor(goal / 20), essence: 2, chest: 2 }
+      : { gold: goal * 8,  gems: 5 + Math.floor(goal / 20), essence: 0, chest: goal >= 5 ? 1 : 0 },
+    claimed: false,
+  };
+}
+
+function pickN<T>(arr: T[], n: number): T[] {
+  const pool = [...arr];
+  const out: T[] = [];
+  while (out.length < n && pool.length) {
+    out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  }
+  return out;
+}
+
+function generateDaily(stage: number, counters: Counters): Mission[] {
+  const n = 3 + Math.floor(Math.random() * 3); // 3..5
+  return pickN(DAILY_POOL, Math.min(n, DAILY_POOL.length)).map((s) => makeMission(s, stage, counters, false));
+}
+function generateWeekly(stage: number, counters: Counters): Mission[] {
+  return pickN(WEEKLY_POOL, 4).map((s) => makeMission(s, stage, counters, true));
+}
+function emptyCounters(): Counters {
+  return { enemies: 0, bosses: 0, upgrades: 0, chests: 0, playMs: 0 };
+}
+function emptyMissions(): MissionsState {
+  return { daily: [], weekly: [], dailyKey: "", weeklyKey: "" };
+}
+
 function todayKey(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
