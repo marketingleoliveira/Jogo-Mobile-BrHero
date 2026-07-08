@@ -2292,3 +2292,170 @@ function CrystalsModal({
     </div>
   );
 }
+
+// -------- Daily / Streak / Free Chests Modal --------
+function DailyModal({
+  save,
+  onClose,
+  onClaimDaily,
+  onClaimStreak,
+  onClaimChest,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onClaimDaily: () => void;
+  onClaimStreak: (m: number) => void;
+  onClaimChest: (tier: "free" | "rare") => void;
+}) {
+  const today = todayKey();
+  const claimedToday = save.daily.lastClaimDay === today;
+  const now = Date.now();
+  const freeLeft = Math.max(0, FREE_CHEST_MS - (now - save.freeChest.lastFreeAt));
+  const rareLeft = Math.max(0, RARE_CHEST_MS - (now - save.freeChest.lastRareAt));
+  const fmtCd = (ms: number) => {
+    if (ms <= 0) return "PRONTO";
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>📅 Diário</h2>
+          <div className="text-xs opacity-70">🔥 Streak: <b className="text-[#f5c542]">{save.daily.streak}d</b> · Melhor: {save.daily.bestStreak}d</div>
+        </div>
+
+        {/* Ciclo de 7 dias */}
+        <div className="mb-3 rounded-xl border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+          <div className="mb-2 text-[11px] opacity-80">Login diário (7 dias) — próximo: <b>Dia {save.daily.cycleDay + 1}</b></div>
+          <div className="grid grid-cols-7 gap-1">
+            {DAILY_CYCLE.map((r, i) => {
+              const isNext = i === save.daily.cycleDay && !claimedToday;
+              const isDone = i < save.daily.cycleDay || (i === save.daily.cycleDay && claimedToday);
+              return (
+                <div
+                  key={i}
+                  className={`flex flex-col items-center rounded-lg border-2 p-1 text-center text-[9px] ${
+                    isNext ? "border-[#f5c542] bg-[#5D4037] animate-pulse" : isDone ? "border-emerald-700 bg-emerald-950/50 opacity-60" : "border-[#1A0F08] bg-[#3E2723]"
+                  }`}
+                >
+                  <div className="text-lg">{r.icon}</div>
+                  <div className="opacity-70">D{i + 1}</div>
+                  {isDone && <div className="text-emerald-400">✓</div>}
+                </div>
+              );
+            })}
+          </div>
+          <button
+            onClick={onClaimDaily}
+            disabled={claimedToday}
+            className={`mt-2 w-full rounded-lg border-2 border-[#1A0F08] py-2 text-sm font-black ${
+              claimedToday ? "bg-[#3E2723] opacity-50" : "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950 active:translate-y-0.5"
+            }`}
+          >
+            {claimedToday ? "✅ Reivindicado hoje" : `Reivindicar ${DAILY_CYCLE[save.daily.cycleDay].label}`}
+          </button>
+        </div>
+
+        {/* Streak marcos */}
+        <div className="mb-3 rounded-xl border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+          <div className="mb-2 text-[11px] opacity-80">🔥 Marcos de Streak</div>
+          <div className="grid grid-cols-5 gap-1">
+            {STREAK_MILESTONES.map((m) => {
+              const claimed = save.daily.streakClaimed.includes(m);
+              const ready = save.daily.streak >= m && !claimed;
+              const r = streakRewardFor(m);
+              return (
+                <button
+                  key={m}
+                  onClick={() => onClaimStreak(m)}
+                  disabled={!ready}
+                  className={`flex flex-col items-center rounded-lg border-2 p-1 text-[9px] ${
+                    claimed ? "border-emerald-700 bg-emerald-950/50 opacity-50"
+                      : ready ? "border-[#f5c542] bg-[#5D4037] animate-pulse"
+                      : "border-[#1A0F08] bg-[#3E2723] opacity-60"
+                  }`}
+                >
+                  <div className="text-sm font-black">{m}d</div>
+                  <div className="opacity-80">🪙{fmt(r.gold)}</div>
+                  <div className="opacity-80">💎{r.gems}{r.essence ? ` ✨${r.essence}` : ""}</div>
+                  {claimed && <div className="text-emerald-400">✓</div>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Baús grátis */}
+        <div className="mb-3 rounded-xl border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+          <div className="mb-2 text-[11px] opacity-80">🎁 Baús gratuitos</div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => onClaimChest("free")}
+              disabled={freeLeft > 0}
+              className={`rounded-lg border-2 border-[#1A0F08] p-2 text-xs ${freeLeft <= 0 ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#3E2723] opacity-60"}`}
+            >
+              <div className="text-2xl">📦</div>
+              <div className="font-black">Baú Grátis</div>
+              <div className="opacity-80">{fmtCd(freeLeft)}</div>
+              <div className="opacity-60">a cada 4h</div>
+            </button>
+            <button
+              onClick={() => onClaimChest("rare")}
+              disabled={rareLeft > 0}
+              className={`rounded-lg border-2 border-[#1A0F08] p-2 text-xs ${rareLeft <= 0 ? "bg-gradient-to-b from-purple-400 to-purple-600 text-white" : "bg-[#3E2723] opacity-60"}`}
+            >
+              <div className="text-2xl">🎁</div>
+              <div className="font-black">Baú Raro</div>
+              <div className="opacity-80">{fmtCd(rareLeft)}</div>
+              <div className="opacity-60">a cada 24h</div>
+            </button>
+          </div>
+        </div>
+
+        <button onClick={onClose} className="w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
+// -------- Offline Rewards Modal --------
+function OfflineModal({
+  report,
+  onClose,
+}: {
+  report: { ms: number; gold: number; xp: number; drops: number };
+  onClose: () => void;
+}) {
+  const h = Math.floor(report.ms / 3600000);
+  const m = Math.floor((report.ms % 3600000) / 60000);
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 px-4" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm rounded-2xl border-4 border-[#8B4513] bg-gradient-to-b from-[#5D4037] to-[#3E2723] p-5 text-center text-amber-100"
+      >
+        <div className="text-4xl">🌙</div>
+        <h2 className="mt-1 text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>Bem-vindo de volta!</h2>
+        <p className="mt-1 text-xs opacity-80">Seu herói continuou lutando por {h > 0 ? `${h}h ` : ""}{m}m</p>
+        <div className="mt-3 space-y-1 rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-3 text-sm">
+          <div>🪙 +{fmt(report.gold)} ouro</div>
+          <div>✨ +{fmt(report.xp)} XP</div>
+          {report.drops > 0 && <div>📦 +{report.drops} equipamentos</div>}
+        </div>
+        <p className="mt-2 text-[10px] opacity-60">Limite offline: 8h (Fase beta)</p>
+        <button
+          onClick={onClose}
+          className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-2 font-black text-amber-950 active:translate-y-0.5"
+        >
+          Coletar
+        </button>
+      </div>
+    </div>
+  );
+}
