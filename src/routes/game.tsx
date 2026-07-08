@@ -1735,12 +1735,23 @@ function GamePage() {
         if (d.pet) { pets = [...pets, d.pet]; flashToast(`🐾 Pet ${PET_DEFS[d.pet.kind].label} (${d.pet.rarity})!`); }
         else if (d.fragKind && d.fragAmt) { frags = { ...frags, [d.fragKind]: frags[d.fragKind] + d.fragAmt }; flashToast(`🧩 +${d.fragAmt} frag. ${PET_DEFS[d.fragKind].label}`); }
       }
+      // Chance pequena de skin cosmética no baú raro
+      let skins = prev.skins;
+      if (tier === "rare" && Math.random() < 0.05) {
+        const pool: SkinId[] = (["green", "gold", "shadow"] as SkinId[]).filter((s) => !skins.owned.includes(s));
+        if (pool.length > 0) {
+          const drop = pool[Math.floor(Math.random() * pool.length)]!;
+          skins = { ...skins, owned: [...skins.owned, drop] };
+          flashToast(`✨ Skin desbloqueada: ${SKIN_DEFS[drop].label}!`);
+        }
+      }
       return {
         ...prev,
         inventory: [...prev.inventory, item].slice(-60),
         counters: { ...prev.counters, chests: prev.counters.chests + 1 },
         pets,
         petFragments: frags,
+        skins,
         freeChest: tier === "free"
           ? { ...prev.freeChest, lastFreeAt: now }
           : { ...prev.freeChest, lastRareAt: now },
