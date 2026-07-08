@@ -631,6 +631,65 @@ function GamePage() {
     });
   };
 
+  const equipItem = (item: Item) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const current = prev.equipment[item.slot];
+      const equipment = { ...prev.equipment, [item.slot]: item };
+      const inventory = prev.inventory.filter((i) => i.id !== item.id);
+      if (current) inventory.push(current);
+      return { ...prev, equipment, inventory };
+    });
+  };
+
+  const unequipItem = (slot: SlotKey) => {
+    setSave((prev) => {
+      if (!prev || !prev.equipment[slot]) return prev;
+      const item = prev.equipment[slot]!;
+      return {
+        ...prev,
+        equipment: { ...prev.equipment, [slot]: null },
+        inventory: [...prev.inventory, item],
+      };
+    });
+  };
+
+  const sellItem = (id: string) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const item = prev.inventory.find((i) => i.id === id);
+      if (!item) return prev;
+      const gain = Math.floor(50 * (RARITIES.find((r) => r.name === item.rarity)?.mult ?? 1));
+      flashToast(`+${fmt(gain)} 🪙`);
+      return {
+        ...prev,
+        gold: prev.gold + gain,
+        inventory: prev.inventory.filter((i) => i.id !== id),
+      };
+    });
+  };
+
+  const doPvp = () => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      // simulated: 65% win based on our power vs random opponent power
+      const s = computeStats(prev);
+      const our = s.atk * 3 + s.hp + s.defense * 2;
+      const opp = our * (0.7 + Math.random() * 0.6);
+      const win = our >= opp;
+      const reward = win ? { gold: 500 + prev.level * 40, gems: 3 } : { gold: 100, gems: 1 };
+      flashToast(win ? `🏆 Vitória! +${reward.gems}💎` : "😞 Derrota — mas ganhou consolação");
+      return {
+        ...prev,
+        gold: prev.gold + reward.gold,
+        gems: prev.gems + reward.gems,
+        pvpWins: prev.pvpWins + (win ? 1 : 0),
+      };
+    });
+  };
+
+
+
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
   const biome = useMemo(() => biomeFor(save?.stage ?? 1), [save?.stage]);
   const nextUnlock = useMemo(
