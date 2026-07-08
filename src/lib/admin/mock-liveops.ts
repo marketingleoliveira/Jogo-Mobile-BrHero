@@ -192,3 +192,36 @@ export function campaignStatus(c: LiveOpsCampaign): CampaignStatus {
   if (c.endsAt && new Date(c.endsAt).getTime() < t) return "expired";
   return "active";
 }
+
+// ---------------- Supabase sync (Fase 2) ----------------
+import { hydrateModule, remoteUpsert, remoteDelete } from "./supabase-module-store";
+
+void hydrateModule<LiveOpsCampaign>("liveops", (list) => {
+  if (list.length === 0) return;
+  store = { ...store, campaigns: list };
+  emit();
+});
+
+const _origCreateLo = liveOpsActions.create;
+const _origUpdateLo = liveOpsActions.update;
+const _origToggleLo = liveOpsActions.toggle;
+const _origRemoveLo = liveOpsActions.remove;
+liveOpsActions.create = (input, reason) => {
+  const r = _origCreateLo(input, reason);
+  if (r) void remoteUpsert("liveops", r.id, r);
+  return r;
+};
+liveOpsActions.update = (id, input, reason) => {
+  _origUpdateLo(id, input, reason);
+  const r = store.campaigns.find((c) => c.id === id);
+  if (r) void remoteUpsert("liveops", r.id, r);
+};
+liveOpsActions.toggle = (id, reason) => {
+  _origToggleLo(id, reason);
+  const r = store.campaigns.find((c) => c.id === id);
+  if (r) void remoteUpsert("liveops", r.id, r);
+};
+liveOpsActions.remove = (id, reason) => {
+  _origRemoveLo(id, reason);
+  void remoteDelete("liveops", id);
+};
