@@ -947,18 +947,20 @@ function QuickBtn({
 
 // -------- Derived stats --------
 function computeStats(s: SaveState) {
+  const eq = equipmentBonus(s.equipment);
   return {
-    atk: attrValue("atk", s.attrs.atk.level),
-    hp: attrValue("hp", s.attrs.hp.level),
+    atk: attrValue("atk", s.attrs.atk.level) + eq.atk,
+    hp: attrValue("hp", s.attrs.hp.level) + eq.hp,
     regen: attrValue("regen", s.attrs.regen.level),
     critDmg: attrValue("critDmg", s.attrs.critDmg.level),
     critChance: attrValue("critChance", s.attrs.critChance.level),
     atkSpeed: attrValue("atkSpeed", s.attrs.atkSpeed.level),
     lifesteal: attrValue("lifesteal", s.attrs.lifesteal.level),
     penetration: attrValue("penetration", s.attrs.penetration.level),
-    defense: attrValue("defense", s.attrs.defense.level),
+    defense: attrValue("defense", s.attrs.defense.level) + eq.def,
   };
 }
+
 
 function pickEnemyEmoji(stage: number) {
   const pool = ["👹", "👺", "🧟", "👻", "🦇", "🐍", "🕷️", "🐺", "🦂", "🐗"];
