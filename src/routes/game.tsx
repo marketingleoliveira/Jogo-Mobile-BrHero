@@ -849,6 +849,7 @@ function loadSave(): SaveState {
       petFragments: { ...emptyPetFragments(), ...(parsed.petFragments ?? {}) },
       tower: { ...emptyTower(), ...(parsed.tower ?? {}) },
       blessings: { ...emptyBlessings(), ...(parsed.blessings ?? {}) },
+      guild: { ...emptyGuild(), ...(parsed.guild ?? {}) },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
