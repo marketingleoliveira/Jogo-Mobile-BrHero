@@ -1682,6 +1682,11 @@ function GamePage() {
               label={save.level >= PETS_UNLOCK_LEVEL ? "PETS" : `🔒Lv${PETS_UNLOCK_LEVEL}`}
               onClick={() => setModal("pets")}
             />
+            <QuickCartoonBtn
+              icon={<Lock className="h-3 w-3" />}
+              label={save.level >= TOWER_UNLOCK_LEVEL ? "TORRE" : `🔒Lv${TOWER_UNLOCK_LEVEL}`}
+              onClick={() => setModal("tower")}
+            />
           </div>
         </div>
       </header>
