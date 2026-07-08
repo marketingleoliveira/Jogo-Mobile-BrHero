@@ -2322,6 +2322,11 @@ function GamePage() {
               label={save.level >= EVENT_UNLOCK_LEVEL ? `${ACTIVE_EVENT.icon} EVENTO` : `🔒Lv${EVENT_UNLOCK_LEVEL}`}
               onClick={() => setModal("event")}
             />
+            <QuickCartoonBtn
+              icon={<Lock className="h-3 w-3" />}
+              label={save.level >= SKIN_UNLOCK_LEVEL ? `${equippedSkinDef(save).icon} SKINS` : `🔒Lv${SKIN_UNLOCK_LEVEL}`}
+              onClick={() => setModal("skins")}
+            />
           </div>
         </div>
       </header>
