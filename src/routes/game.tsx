@@ -2049,6 +2049,13 @@ function GamePage() {
           onCraft={craftPet}
         />
       )}
+      {modal === "tower" && (
+        <TowerModal
+          save={save}
+          onClose={() => setModal(null)}
+          onRun={runTower}
+        />
+      )}
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
