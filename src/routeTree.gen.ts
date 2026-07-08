@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ApiGenerateBgRouteImport } from './routes/api/generate-bg'
 import { Route as AdminShopRouteImport } from './routes/admin.shop'
+import { Route as AdminSetupRouteImport } from './routes/admin.setup'
 import { Route as AdminPlayersRouteImport } from './routes/admin.players'
 import { Route as AdminLogsRouteImport } from './routes/admin.logs'
 import { Route as AdminLiveopsRouteImport } from './routes/admin.liveops'
@@ -64,6 +65,11 @@ const ApiGenerateBgRoute = ApiGenerateBgRouteImport.update({
 const AdminShopRoute = AdminShopRouteImport.update({
   id: '/shop',
   path: '/shop',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSetupRoute = AdminSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPlayersRoute = AdminPlayersRouteImport.update({
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/admin/liveops': typeof AdminLiveopsRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/players': typeof AdminPlayersRoute
+  '/admin/setup': typeof AdminSetupRoute
   '/admin/shop': typeof AdminShopRoute
   '/api/generate-bg': typeof ApiGenerateBgRoute
   '/admin/': typeof AdminIndexRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/admin/liveops': typeof AdminLiveopsRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/players': typeof AdminPlayersRoute
+  '/admin/setup': typeof AdminSetupRoute
   '/admin/shop': typeof AdminShopRoute
   '/api/generate-bg': typeof ApiGenerateBgRoute
   '/admin': typeof AdminIndexRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/admin/liveops': typeof AdminLiveopsRoute
   '/admin/logs': typeof AdminLogsRoute
   '/admin/players': typeof AdminPlayersRoute
+  '/admin/setup': typeof AdminSetupRoute
   '/admin/shop': typeof AdminShopRoute
   '/api/generate-bg': typeof ApiGenerateBgRoute
   '/admin/': typeof AdminIndexRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/admin/liveops'
     | '/admin/logs'
     | '/admin/players'
+    | '/admin/setup'
     | '/admin/shop'
     | '/api/generate-bg'
     | '/admin/'
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/admin/liveops'
     | '/admin/logs'
     | '/admin/players'
+    | '/admin/setup'
     | '/admin/shop'
     | '/api/generate-bg'
     | '/admin'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/admin/liveops'
     | '/admin/logs'
     | '/admin/players'
+    | '/admin/setup'
     | '/admin/shop'
     | '/api/generate-bg'
     | '/admin/'
@@ -284,6 +296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminShopRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/setup': {
+      id: '/admin/setup'
+      path: '/setup'
+      fullPath: '/admin/setup'
+      preLoaderRoute: typeof AdminSetupRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/players': {
       id: '/admin/players'
       path: '/players'
@@ -352,6 +371,7 @@ interface AdminRouteChildren {
   AdminLiveopsRoute: typeof AdminLiveopsRoute
   AdminLogsRoute: typeof AdminLogsRoute
   AdminPlayersRoute: typeof AdminPlayersRoute
+  AdminSetupRoute: typeof AdminSetupRoute
   AdminShopRoute: typeof AdminShopRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -365,6 +385,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminLiveopsRoute: AdminLiveopsRoute,
   AdminLogsRoute: AdminLogsRoute,
   AdminPlayersRoute: AdminPlayersRoute,
+  AdminSetupRoute: AdminSetupRoute,
   AdminShopRoute: AdminShopRoute,
   AdminIndexRoute: AdminIndexRoute,
 }

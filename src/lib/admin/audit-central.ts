@@ -1,7 +1,8 @@
 // Audit log centralizado — unifica logs de todos os módulos do Admin CMS.
-// Persistido em localStorage. Cada entrada carrega admin + perfil (RBAC).
+// Persistido em localStorage + dual-write no Supabase quando disponível.
 
 import { getCurrentAdmin, type AdminModule, type AdminRole, ROLE_LABEL } from "./rbac";
+import { persistRemoteLog } from "./supabase-admin";
 
 export interface CentralAuditEntry {
   id: string;
@@ -70,5 +71,11 @@ export function logAction(input: LogInput): CentralAuditEntry {
   };
   store.entries = [entry, ...store.entries].slice(0, 1000);
   emit();
+  // Dual-write no Supabase (fire-and-forget)
+  void persistRemoteLog({
+    module: input.module, action: input.action, target: input.target,
+    reason: input.reason, before: input.before, after: input.after,
+    role: admin.role,
+  });
   return entry;
 }
