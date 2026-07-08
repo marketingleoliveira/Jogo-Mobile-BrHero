@@ -2101,6 +2101,8 @@ function GamePage() {
     let ev = ensureEventStarted(prev);
     ev = addMedals(ev, 10 + Math.floor(floor / 5));
     if (floorsClimbed > 0) ev = bumpEventMission(ev, "tower", floorsClimbed);
+    // Runas: fragmentos por escalada (2 + floor/10)
+    const runeFragGain = prev.level >= RUNE_UNLOCK_LEVEL ? 2 + Math.floor(floor / 10) : 0;
     setSave({
       ...prev,
       gold: prev.gold + gold,
@@ -2111,6 +2113,7 @@ function GamePage() {
       counters: { ...prev.counters, chests: prev.counters.chests + chests },
       tower: { bestFloor: best, runs: prev.tower.runs + 1, lastRunAt: Date.now() },
       event: ev,
+      runes: { ...prev.runes, fragments: prev.runes.fragments + runeFragGain },
     });
     return { floor, best, newRecord, rewards: { gold, gems, essence, chests, frag: rw.frag } };
   }, [flashToast]);
