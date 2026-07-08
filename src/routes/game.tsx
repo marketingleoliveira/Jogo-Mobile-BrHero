@@ -952,11 +952,13 @@ function GamePage() {
                 icon={<div className="h-3.5 w-3.5 rotate-45 rounded-sm bg-amber-400 shadow-[inset_-1px_-1px_0_rgba(0,0,0,0.3)]" />}
                 value={fmt(save.gold)}
               />
-              <CartoonPill
-                color="emerald"
-                icon={<div className="h-3.5 w-3 rounded-full bg-emerald-400 shadow-[inset_-1px_-1px_0_rgba(0,0,0,0.3)]" />}
-                value={fmt(save.gems)}
-              />
+              <button onClick={() => setModal("crystals")} className="active:scale-95" title="Comprar cristais">
+                <CartoonPill
+                  color="emerald"
+                  icon={<div className="h-3.5 w-3 rounded-full bg-emerald-400 shadow-[inset_-1px_-1px_0_rgba(0,0,0,0.3)]" />}
+                  value={fmt(save.gems)}
+                />
+              </button>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full border-2 border-[#1A0F08] bg-[#1A0F08]">
               <div
@@ -966,9 +968,13 @@ function GamePage() {
             </div>
           </div>
 
-          {/* VIP/Pass stack */}
+          {/* Rebirth + Pass stack */}
           <div className="flex flex-col gap-1">
-            <QuickCartoonBtn icon={<Crown className="h-3 w-3" />} label="VIP" onClick={() => flashToast("VIP em breve")} />
+            <QuickCartoonBtn
+              icon={<Sparkles className="h-3 w-3" />}
+              label={save.stage >= PRESTIGE_UNLOCK_STAGE ? "REBIRTH" : "🔒"}
+              onClick={() => setModal("rebirth")}
+            />
             <QuickCartoonBtn icon={<Ticket className="h-3 w-3" />} label="PASSE" onClick={() => flashToast("Passe em breve")} />
           </div>
         </div>
