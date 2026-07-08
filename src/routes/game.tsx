@@ -581,6 +581,13 @@ function loadSave(): SaveState {
       daily: { ...base.daily, ...(parsed.daily ?? {}), streakClaimed: Array.isArray(parsed.daily?.streakClaimed) ? parsed.daily.streakClaimed : [] },
       freeChest: { ...base.freeChest, ...(parsed.freeChest ?? {}) },
       lastSeenAt: typeof parsed.lastSeenAt === "number" ? parsed.lastSeenAt : Date.now(),
+      counters: { ...emptyCounters(), ...(parsed.counters ?? {}) },
+      missions: {
+        ...emptyMissions(),
+        ...(parsed.missions ?? {}),
+        daily: Array.isArray(parsed.missions?.daily) ? parsed.missions.daily : [],
+        weekly: Array.isArray(parsed.missions?.weekly) ? parsed.missions.weekly : [],
+      },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
