@@ -3196,6 +3196,9 @@ function GamePage() {
       {modal === "cosmetics" && (
         <CosmeticsModal save={save} onClose={() => setModal(null)} onEquip={equipCosmetic} />
       )}
+      {modal === "codes" && (
+        <CodesModal save={save} onClose={() => setModal(null)} onRedeem={redeemCode} />
+      )}
 
 
 
