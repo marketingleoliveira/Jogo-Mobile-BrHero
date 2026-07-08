@@ -971,6 +971,94 @@ function GamePage() {
   }, [flashToast]);
 
 
+  // ==== Retenção: helpers de reivindicação ====
+  const applyReward = useCallback((next: SaveState, r: DailyReward): { next: SaveState; msg: string } => {
+    if (r.kind === "gold") {
+      const amt = r.amount(next);
+      return { next: { ...next, gold: next.gold + amt }, msg: `🪙 +${fmt(amt)} ouro` };
+    }
+    if (r.kind === "gems") {
+      const amt = r.amount(next);
+      return { next: { ...next, gems: next.gems + amt }, msg: `💎 +${amt} cristais` };
+    }
+    if (r.kind === "essence") {
+      const amt = r.amount(next);
+      return { next: { ...next, essence: next.essence + amt }, msg: `✨ +${amt} essência` };
+    }
+    // chest
+    const bonusStage = r.tier === "common" ? 0 : r.tier === "epic" ? 2 : 5;
+    const count = r.tier === "legendary" ? 2 : 1;
+    let inv = next.inventory;
+    for (let i = 0; i < count; i++) {
+      const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+      inv = [...inv, rollItem(slot, next.stage + bonusStage)].slice(-60);
+    }
+    return { next: { ...next, inventory: inv }, msg: `${r.icon} ${r.label} aberto!` };
+  }, []);
+
+  const claimDaily = useCallback(() => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const today = todayKey();
+      if (prev.daily.lastClaimDay === today) { flashToast("✅ Já reivindicado hoje"); return prev; }
+      const gap = prev.daily.lastClaimDay ? daysBetween(prev.daily.lastClaimDay, today) : 999;
+      const streak = gap === 1 ? prev.daily.streak + 1 : 1;
+      const cycleDay = prev.daily.cycleDay % DAILY_CYCLE.length;
+      const reward = DAILY_CYCLE[cycleDay];
+      const { next, msg } = applyReward(prev, reward);
+      flashToast(msg);
+      return {
+        ...next,
+        daily: {
+          ...prev.daily,
+          lastClaimDay: today,
+          cycleDay: (cycleDay + 1) % DAILY_CYCLE.length,
+          streak,
+          bestStreak: Math.max(prev.daily.bestStreak, streak),
+        },
+      };
+    });
+  }, [applyReward, flashToast]);
+
+  const claimStreak = useCallback((milestone: number) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.daily.streak < milestone) { flashToast(`🔥 Precisa de ${milestone} dias seguidos`); return prev; }
+      if (prev.daily.streakClaimed.includes(milestone)) { flashToast("✅ Já reivindicado"); return prev; }
+      const r = streakRewardFor(milestone);
+      flashToast(`🏆 Marco ${milestone}d! +${fmt(r.gold)} 🪙 +${r.gems} 💎${r.essence ? ` +${r.essence} ✨` : ""}`);
+      return {
+        ...prev,
+        gold: prev.gold + r.gold,
+        gems: prev.gems + r.gems,
+        essence: prev.essence + r.essence,
+        daily: { ...prev.daily, streakClaimed: [...prev.daily.streakClaimed, milestone] },
+      };
+    });
+  }, [flashToast]);
+
+  const claimFreeChest = useCallback((tier: "free" | "rare") => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const now = Date.now();
+      const cd = tier === "free" ? FREE_CHEST_MS : RARE_CHEST_MS;
+      const last = tier === "free" ? prev.freeChest.lastFreeAt : prev.freeChest.lastRareAt;
+      if (now - last < cd) { flashToast("⏳ Ainda em recarga"); return prev; }
+      const bonusStage = tier === "rare" ? 3 : 0;
+      const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+      const item = rollItem(slot, prev.stage + bonusStage);
+      flashToast(`${tier === "rare" ? "🎁" : "📦"} ${item.rarity} ${SLOTS.find(s => s.key === slot)!.label}`);
+      return {
+        ...prev,
+        inventory: [...prev.inventory, item].slice(-60),
+        freeChest: tier === "free"
+          ? { ...prev.freeChest, lastFreeAt: now }
+          : { ...prev.freeChest, lastRareAt: now },
+      };
+    });
+  }, [flashToast]);
+
+  const closeOfflineReport = useCallback(() => setOfflineReport(null), []);
 
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
