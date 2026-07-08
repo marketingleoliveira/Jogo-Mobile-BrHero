@@ -1361,6 +1361,7 @@ function loadSave(): SaveState {
         }
         return { owned: Array.from(ownedSet), equipped: eq };
       })(),
+      redeem: { used: Array.isArray(parsed.redeem?.used) ? parsed.redeem.used.filter((c: unknown) => typeof c === "string") : [] },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
