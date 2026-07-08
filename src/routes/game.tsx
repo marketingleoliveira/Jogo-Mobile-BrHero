@@ -4559,3 +4559,148 @@ function ArenaPvpModal({
     </div>
   );
 }
+
+// -------- Event Modal (Fase 3 — Bloco 7) --------
+function EventModal({
+  save,
+  onClose,
+  onClaimMission,
+  onBuy,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onClaimMission: (id: string) => void;
+  onBuy: (id: string) => void;
+}) {
+  const locked = save.level < EVENT_UNLOCK_LEVEL;
+  const [tab, setTab] = useState<"missions" | "shop">("missions");
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const ev = save.event;
+  const ms = eventTimeLeft(ev);
+  const active = eventActive(ev);
+  const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const mins = Math.floor((ms % (60 * 60 * 1000)) / 60000);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+            {ACTIVE_EVENT.icon} {ACTIVE_EVENT.name}
+          </h2>
+          <div className="text-[10px] opacity-70">Beta · limitado</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {EVENT_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && (
+          <>
+            <div className="mb-3 rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br from-fuchsia-600 to-purple-800 p-3">
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] text-amber-50/90">{ACTIVE_EVENT.desc}</div>
+                <div className="text-right">
+                  <div className="text-sm font-black text-amber-50">{ACTIVE_EVENT.medalIcon} {fmt(ev.medals)}</div>
+                  <div className="text-[10px] text-amber-50/80">{active ? `${days}d ${hours}h ${mins}m` : "Encerrado"}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 flex gap-2">
+              <button
+                onClick={() => setTab("missions")}
+                className={`flex-1 rounded-lg border-2 border-[#1A0F08] py-1.5 text-xs font-black ${
+                  tab === "missions" ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+                }`}
+              >
+                Missões
+              </button>
+              <button
+                onClick={() => setTab("shop")}
+                className={`flex-1 rounded-lg border-2 border-[#1A0F08] py-1.5 text-xs font-black ${
+                  tab === "shop" ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+                }`}
+              >
+                Loja
+              </button>
+            </div>
+
+            {tab === "missions" && (
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                {EVENT_MISSIONS.map((def) => {
+                  const m = ev.missions.find((x) => x.id === def.id) ?? { id: def.id, progress: 0, claimed: false };
+                  const pct = Math.min(100, (m.progress / def.target) * 100);
+                  const done = m.progress >= def.target;
+                  return (
+                    <div key={def.id} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-black">{def.label}</div>
+                          <div className="text-[10px] opacity-70">{def.hint} · +{def.medalReward} {ACTIVE_EVENT.medalIcon}</div>
+                          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full border border-[#1A0F08] bg-black/40">
+                            <div className="h-full bg-amber-300" style={{ width: `${pct}%` }} />
+                          </div>
+                          <div className="mt-0.5 text-right text-[10px]">{m.progress}/{def.target}</div>
+                        </div>
+                        <button
+                          onClick={() => onClaimMission(def.id)}
+                          disabled={!done || m.claimed || !active}
+                          className="rounded-md border-2 border-[#1A0F08] bg-gradient-to-b from-emerald-500 to-emerald-700 px-2.5 py-1 text-[10px] font-black text-amber-50 disabled:opacity-40"
+                        >
+                          {m.claimed ? "Coletado" : "Coletar"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {tab === "shop" && (
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                {EVENT_SHOP.map((item) => {
+                  const can = ev.medals >= item.cost && active;
+                  return (
+                    <div key={item.id} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="text-2xl">{item.icon}</div>
+                          <div>
+                            <div className="text-xs font-black">{item.label}</div>
+                            <div className="text-[10px] opacity-70">{item.desc}</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => onBuy(item.id)}
+                          disabled={!can}
+                          className="rounded-md border-2 border-[#1A0F08] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] px-2.5 py-1 text-[10px] font-black text-amber-950 disabled:opacity-40"
+                        >
+                          {ACTIVE_EVENT.medalIcon} {item.cost}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
