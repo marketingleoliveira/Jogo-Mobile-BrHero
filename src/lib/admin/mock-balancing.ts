@@ -1,5 +1,8 @@
 // Mock store for Admin CMS - Balancing module.
 // Ainda não conectado a Supabase. Persiste em localStorage.
+import { guard } from "./rbac";
+import { logAction } from "./audit-central";
+
 
 export interface CurveConfig {
   base: number;       // valor no nível/estágio 1
