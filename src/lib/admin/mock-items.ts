@@ -221,3 +221,36 @@ export const itemActions = {
   },
 };
 
+
+// ---------------- Supabase sync (Fase 2) ----------------
+import { hydrateModule, remoteUpsert, remoteDelete } from "./supabase-module-store";
+
+void hydrateModule<CatalogItem>("items", (list) => {
+  if (list.length === 0) return;
+  store = { ...store, items: list };
+  emit();
+});
+
+const _origCreateIt = itemActions.create;
+const _origUpdateIt = itemActions.update;
+const _origToggleIt = itemActions.toggle;
+const _origRemoveIt = itemActions.remove;
+itemActions.create = (input, reason) => {
+  const r = _origCreateIt(input, reason);
+  if (r) void remoteUpsert("items", r.id, r);
+  return r;
+};
+itemActions.update = (id, input, reason) => {
+  _origUpdateIt(id, input, reason);
+  const r = store.items.find((c) => c.id === id);
+  if (r) void remoteUpsert("items", r.id, r);
+};
+itemActions.toggle = (id, reason) => {
+  _origToggleIt(id, reason);
+  const r = store.items.find((c) => c.id === id);
+  if (r) void remoteUpsert("items", r.id, r);
+};
+itemActions.remove = (id, reason) => {
+  _origRemoveIt(id, reason);
+  void remoteDelete("items", id);
+};

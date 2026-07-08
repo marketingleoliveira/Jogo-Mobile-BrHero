@@ -179,3 +179,36 @@ export function codeStatus(c: RedeemCode): "active" | "inactive" | "scheduled" |
   if (c.endsAt   && new Date(c.endsAt).getTime()   < t) return "expired";
   return "active";
 }
+
+// ---------------- Supabase sync (Fase 2) ----------------
+import { hydrateModule, remoteUpsert, remoteDelete } from "./supabase-module-store";
+
+void hydrateModule<RedeemCode>("codes", (list) => {
+  if (list.length === 0) return;
+  store = { ...store, codes: list };
+  emit();
+});
+
+const _origCreateCode = codeActions.create;
+const _origUpdateCode = codeActions.update;
+const _origToggleCode = codeActions.toggle;
+const _origRemoveCode = codeActions.remove;
+codeActions.create = (input, reason) => {
+  const r = _origCreateCode(input, reason);
+  if (r) void remoteUpsert("codes", r.id, r);
+  return r;
+};
+codeActions.update = (id, input, reason) => {
+  _origUpdateCode(id, input, reason);
+  const r = store.codes.find((c) => c.id === id);
+  if (r) void remoteUpsert("codes", r.id, r);
+};
+codeActions.toggle = (id, reason) => {
+  _origToggleCode(id, reason);
+  const r = store.codes.find((c) => c.id === id);
+  if (r) void remoteUpsert("codes", r.id, r);
+};
+codeActions.remove = (id, reason) => {
+  _origRemoveCode(id, reason);
+  void remoteDelete("codes", id);
+};

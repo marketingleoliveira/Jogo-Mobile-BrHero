@@ -209,3 +209,36 @@ export function shopStatus(c: ShopItem): ShopStatus {
   if (c.endsAt && new Date(c.endsAt).getTime() < t) return "expired";
   return "active";
 }
+
+// ---------------- Supabase sync (Fase 2) ----------------
+import { hydrateModule, remoteUpsert, remoteDelete } from "./supabase-module-store";
+
+void hydrateModule<ShopItem>("shop", (list) => {
+  if (list.length === 0) return;
+  store = { ...store, items: list };
+  emit();
+});
+
+const _origCreateSh = shopActions.create;
+const _origUpdateSh = shopActions.update;
+const _origToggleSh = shopActions.toggle;
+const _origRemoveSh = shopActions.remove;
+shopActions.create = (input, reason) => {
+  const r = _origCreateSh(input, reason);
+  if (r) void remoteUpsert("shop", r.id, r);
+  return r;
+};
+shopActions.update = (id, input, reason) => {
+  _origUpdateSh(id, input, reason);
+  const r = store.items.find((c) => c.id === id);
+  if (r) void remoteUpsert("shop", r.id, r);
+};
+shopActions.toggle = (id, reason) => {
+  _origToggleSh(id, reason);
+  const r = store.items.find((c) => c.id === id);
+  if (r) void remoteUpsert("shop", r.id, r);
+};
+shopActions.remove = (id, reason) => {
+  _origRemoveSh(id, reason);
+  void remoteDelete("shop", id);
+};
