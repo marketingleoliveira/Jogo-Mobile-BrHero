@@ -1518,7 +1518,7 @@ function computeStats(s: SaveState) {
     hp: Math.floor((attrValue("hp", s.attrs.hp.level) + eq.hp) * hpBonus),
     regen: attrValue("regen", s.attrs.regen.level),
     critDmg: attrValue("critDmg", s.attrs.critDmg.level),
-    critChance: attrValue("critChance", s.attrs.critChance.level),
+    critChance: attrValue("critChance", s.attrs.critChance.level) + (s.globalUp?.crit ?? 0) * GLOBAL_UP_DEFS.crit.perLevel * 100,
     atkSpeed: attrValue("atkSpeed", s.attrs.atkSpeed.level),
     lifesteal: attrValue("lifesteal", s.attrs.lifesteal.level),
     penetration: attrValue("penetration", s.attrs.penetration.level),
