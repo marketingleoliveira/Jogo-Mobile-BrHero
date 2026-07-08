@@ -812,6 +812,7 @@ function defaultSave(): SaveState {
     petFragments: emptyPetFragments(),
     tower: emptyTower(),
     blessings: emptyBlessings(),
+    guild: emptyGuild(),
     version: SAVE_VERSION,
   };
 }
