@@ -53,6 +53,36 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_module_entities: {
+        Row: {
+          created_at: string
+          data: Json
+          entity_id: string
+          id: string
+          module: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          data: Json
+          entity_id: string
+          id?: string
+          module: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          entity_id?: string
+          id?: string
+          module?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       admin_profiles: {
         Row: {
           avatar_url: string | null
