@@ -993,7 +993,24 @@ function GamePage() {
         </button>
       </section>
 
+      {/* ===== Equipment modal ===== */}
+      {modal === "equip" && (
+        <EquipmentModal
+          save={save}
+          onClose={() => setModal(null)}
+          onEquip={equipItem}
+          onUnequip={unequipItem}
+          onSell={sellItem}
+        />
+      )}
+
+      {/* ===== Arena modal ===== */}
+      {modal === "arena" && (
+        <ArenaModal save={save} onClose={() => setModal(null)} onFight={doPvp} />
+      )}
+
       {/* Toast */}
+
       {toast && (
         <div className="pointer-events-none fixed inset-x-0 top-24 z-30 flex justify-center px-4">
           <div className="rounded-full bg-slate-800/95 px-4 py-2 text-sm font-medium text-white shadow-xl ring-1 ring-white/10">
