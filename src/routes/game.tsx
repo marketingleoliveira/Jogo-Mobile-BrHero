@@ -114,6 +114,9 @@ type SaveState = {
   daily: DailyState;
   freeChest: FreeChestState;
   lastSeenAt: number;
+  // Missões (Fase 2 — Bloco 2)
+  counters: Counters;
+  missions: MissionsState;
   version: number;
 };
 
