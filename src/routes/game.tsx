@@ -1754,6 +1754,11 @@ function GamePage() {
               label={save.level >= TOWER_UNLOCK_LEVEL ? "TORRE" : `🔒Lv${TOWER_UNLOCK_LEVEL}`}
               onClick={() => setModal("tower")}
             />
+            <QuickCartoonBtn
+              icon={<Sparkles className="h-3 w-3" />}
+              label={save.level >= BLESSING_UNLOCK_LEVEL ? "BÊNÇÃOS" : `🔒Lv${BLESSING_UNLOCK_LEVEL}`}
+              onClick={() => setModal("blessings")}
+            />
           </div>
         </div>
       </header>
