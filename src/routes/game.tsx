@@ -1682,6 +1682,72 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Guilda (Fase 3 — Bloco 5) ====
+  const joinGuild = useCallback((id: GuildId) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.level < GUILD_UNLOCK_LEVEL) { flashToast(`🔒 Libera no Lv ${GUILD_UNLOCK_LEVEL}`); return prev; }
+      if (prev.guild.id) { flashToast("Você já pertence a uma guilda"); return prev; }
+      flashToast(`${GUILD_DEFS[id].icon} Bem-vindo aos ${GUILD_DEFS[id].name}!`);
+      return { ...prev, guild: { ...prev.guild, id, joinedAt: Date.now() } };
+    });
+  }, [flashToast]);
+
+  const donateGuild = useCallback(() => {
+    setSave((prev) => {
+      if (!prev || !prev.guild.id) return prev;
+      const today = todayKey();
+      const wk = weekKey();
+      const donationsToday = prev.guild.lastDonateDay === today ? prev.guild.donationsToday : 0;
+      const contribWeek = prev.guild.weekKey === wk ? prev.guild.contribWeek : 0;
+      if (donationsToday >= GUILD_DAILY_DONATIONS) { flashToast("Doações diárias esgotadas"); return prev; }
+      const cost = guildDonationCost(prev.level, donationsToday);
+      if (prev.gold < cost) { flashToast("💰 Ouro insuficiente"); return prev; }
+      const xpGain = 120 + prev.level * 8;
+      flashToast(`🎁 +${xpGain} XP Guilda`);
+      return {
+        ...prev,
+        gold: prev.gold - cost,
+        guild: {
+          ...prev.guild,
+          xp: prev.guild.xp + xpGain,
+          donationsToday: donationsToday + 1,
+          lastDonateDay: today,
+          contribWeek: contribWeek + xpGain,
+          weekKey: wk,
+        },
+      };
+    });
+  }, [flashToast]);
+
+  const fightGuildBoss = useCallback(() => {
+    setSave((prev) => {
+      if (!prev || !prev.guild.id) return prev;
+      const now = Date.now();
+      if (now - prev.guild.bossLastAt < GUILD_BOSS_COOLDOWN_MS) { flashToast("⏳ Chefão em recarga"); return prev; }
+      const power = heroPower(computeStats(prev));
+      const threshold = 500 + guildLevel(prev.guild.xp) * 40;
+      const win = power >= threshold || Math.random() < Math.min(0.9, power / threshold);
+      if (!win) {
+        flashToast("💀 Chefão te derrotou — treine mais!");
+        return { ...prev, guild: { ...prev.guild, bossLastAt: now } };
+      }
+      const gold = 5000 + prev.level * 300;
+      const gems = 50;
+      const essence = 1;
+      flashToast(`🏆 Vitória! +${fmt(gold)}🪙 +${gems}💎 +${essence}✨`);
+      return {
+        ...prev,
+        gold: prev.gold + gold,
+        gems: prev.gems + gems,
+        essence: prev.essence + essence,
+        guild: { ...prev.guild, bossLastAt: now, bossKills: prev.guild.bossKills + 1 },
+      };
+    });
+  }, [flashToast]);
+
+
+
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
   const biome = useMemo(() => biomeFor(save?.stage ?? 1), [save?.stage]);
