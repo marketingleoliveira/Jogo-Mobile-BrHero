@@ -579,6 +579,38 @@ function addMedals(ev: EventState, amount: number): EventState {
   return { ...ev, medals: ev.medals + amount };
 }
 
+// ===== Skins / Cosméticos =====
+const SKIN_UNLOCK_LEVEL = 10;
+
+type SkinDef = {
+  id: SkinId;
+  label: string;
+  icon: string;
+  rarity: "Comum" | "Raro" | "Épico" | "Lendário";
+  color: string;
+  desc: string;
+};
+
+const SKIN_DEFS: Record<SkinId, SkinDef> = {
+  classic: { id: "classic", label: "Herói Clássico",     icon: "🧙", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "O visual original — todos começam aqui." },
+  green:   { id: "green",   label: "Guerreiro Verde",    icon: "🥷", rarity: "Raro",     color: "from-emerald-500 to-green-700",   desc: "Furtivo e ágil, camuflado na floresta." },
+  gold:    { id: "gold",    label: "Cavaleiro Dourado",  icon: "🤴", rarity: "Épico",    color: "from-amber-400 to-yellow-700",    desc: "Armadura reluzente forjada em ouro." },
+  brasil:  { id: "brasil",  label: "Guardião do Brasil", icon: "🦸", rarity: "Épico",    color: "from-green-500 to-yellow-500",    desc: "Herói tupiniquim das terras tropicais." },
+  shadow:  { id: "shadow",  label: "Sombra Lendária",    icon: "🥷", rarity: "Lendário", color: "from-purple-700 to-black",        desc: "Rumores dizem que ele nunca é visto." },
+};
+
+function emptySkins(): SkinsState {
+  return { owned: ["classic"], equipped: "classic" };
+}
+
+function equippedSkinDef(save: SaveState): SkinDef {
+  const id = save.skins?.equipped ?? "classic";
+  return SKIN_DEFS[id] ?? SKIN_DEFS.classic;
+}
+
+
+
+
 // ===== Retenção: tempo =====
 const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
 const RARE_CHEST_MS = 24 * 60 * 60 * 1000;  // 24h
