@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import brheroLogo from "@/assets/brhero-logo.png.asset.json";
 import {
   Swords,
   Sparkles,
@@ -48,13 +49,13 @@ function decodeJwt(token: string): any {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "BRHero - RPG IDLE BRASILEIRO" },
+      { title: "BRHero — O 1º RPG IDLE Brasileiro" },
       {
         name: "description",
         content:
           "BRHero - RPG mobile idle brasileiro. Batalhas automáticas, evolução constante e chefões épicos. Entre com Google e jogue no navegador ou baixe no Google Play.",
       },
-      { property: "og:title", content: "BRHero - RPG IDLE BRASILEIRO" },
+      { property: "og:title", content: "BRHero — O 1º RPG IDLE Brasileiro" },
       {
         property: "og:description",
         content: "BRHero - RPG mobile idle brasileiro. Batalhas automáticas, evolução constante e chefões épicos. Entre com Google e jogue no navegador ou baixe no Google Play.",
@@ -129,20 +130,17 @@ function Landing() {
       <div className="mx-auto w-full max-w-md px-5 pb-24 pt-10">
         {/* Hero */}
         <header className="text-center">
-          <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-3xl border-4 border-[#8B4513] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] shadow-[0_6px_0_#B34700]">
-            <Swords className="h-12 w-12 text-amber-950" strokeWidth={2.5} />
-          </div>
-          <h1
-            className="text-5xl leading-none text-[#FFE0B2] drop-shadow-[0_3px_0_#1A0F08]"
-            style={{ fontFamily: "'Luckiest Guy', cursive" }}
-          >
-            HERO RISE
-          </h1>
+          <img
+            src={brheroLogo.url}
+            alt="BRHero — O primeiro RPG IDLE Brasileiro"
+            className="mx-auto h-56 w-56 object-contain drop-shadow-[0_6px_20px_rgba(0,0,0,0.6)]"
+          />
+          <h1 className="sr-only">BRHero</h1>
           <p
-            className="mt-2 text-sm tracking-widest text-amber-200"
+            className="mt-1 text-sm tracking-widest text-amber-200"
             style={{ fontFamily: "'Fredoka', sans-serif" }}
           >
-            RPG IDLE · 100% EM PORTUGUÊS
+            O 1º RPG IDLE BRASILEIRO
           </p>
         </header>
 
@@ -154,7 +152,7 @@ function Landing() {
                 className="mb-2 text-xl text-amber-200"
                 style={{ fontFamily: "'Luckiest Guy', cursive" }}
               >
-                🎮 O que é Hero Rise?
+                🎮 O que é BRHero?
               </h2>
               <p className="text-sm leading-relaxed text-amber-100">
                 Um RPG <b>idle</b> (o herói luta sozinho!) inspirado em Legend of
@@ -246,7 +244,7 @@ function Landing() {
         }} />}
 
         <p className="mt-8 text-center text-[10px] text-amber-200/60">
-          © Hero Rise · Beta MVP · Feito com ❤️ no Brasil
+          © BRHero · Beta MVP · Feito com ❤️ no Brasil
         </p>
       </div>
     </main>
