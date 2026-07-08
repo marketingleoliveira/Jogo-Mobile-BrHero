@@ -720,6 +720,7 @@ function defaultSave(): SaveState {
     pets: [],
     equippedPetId: null,
     petFragments: emptyPetFragments(),
+    tower: emptyTower(),
     version: SAVE_VERSION,
   };
 }
