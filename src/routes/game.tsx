@@ -1863,6 +1863,10 @@ function GamePage() {
     let frags = prev.petFragments;
     if (rw.frag) frags = { ...frags, [rw.frag.kind]: frags[rw.frag.kind] + rw.frag.amt };
 
+    const floorsClimbed = Math.max(0, floor - prev.tower.bestFloor);
+    let ev = ensureEventStarted(prev);
+    ev = addMedals(ev, 10 + Math.floor(floor / 5));
+    if (floorsClimbed > 0) ev = bumpEventMission(ev, "tower", floorsClimbed);
     setSave({
       ...prev,
       gold: prev.gold + gold,
@@ -1872,6 +1876,7 @@ function GamePage() {
       petFragments: frags,
       counters: { ...prev.counters, chests: prev.counters.chests + chests },
       tower: { bestFloor: best, runs: prev.tower.runs + 1, lastRunAt: Date.now() },
+      event: ev,
     });
     return { floor, best, newRecord, rewards: { gold, gems, essence, chests, frag: rw.frag } };
   }, [flashToast]);
