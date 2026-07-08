@@ -58,6 +58,8 @@ type Item = {
   bonus: { atk: number; hp: number; def: number };
 };
 
+type GlobalUpKey = "gold" | "atk" | "hp" | "xp" | "startStage";
+
 type SaveState = {
   level: number;
   xp: number;
@@ -68,10 +70,17 @@ type SaveState = {
   equipment: Record<SlotKey, Item | null>;
   inventory: Item[];
   pvpWins: number;
+  // Prestige / Rebirth
+  essence: number;
+  prestigeLevel: number;
+  maxStage: number;
+  globalUp: Record<GlobalUpKey, number>;
   version: number;
 };
 
-const STORAGE_KEY = "hero-rise-idle-v3";
+const STORAGE_KEY = "hero-rise-idle-v4";
+const SAVE_VERSION = 4;
+const PRESTIGE_UNLOCK_STAGE = 100;
 
 const SLOTS: Array<{ key: SlotKey; label: string; emoji: string }> = [
   { key: "sword", label: "Espada", emoji: "⚔️" },
