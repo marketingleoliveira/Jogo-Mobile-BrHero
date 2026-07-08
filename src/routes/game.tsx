@@ -2519,6 +2519,18 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Cosméticos avançados (Fase 3 — Bloco 11) ====
+  const equipCosmetic = useCallback((category: CosmeticCategory, id: CosmeticId) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const def = COSMETIC_DEFS[id];
+      if (!def || def.category !== category) return prev;
+      if (!prev.cosmetics.owned.includes(id)) { flashToast("🔒 Cosmético bloqueado"); return prev; }
+      flashToast(`${def.icon} ${def.label}`);
+      return { ...prev, cosmetics: { ...prev.cosmetics, equipped: { ...prev.cosmetics.equipped, [category]: id } } };
+    });
+  }, [flashToast]);
+
 
 
 
