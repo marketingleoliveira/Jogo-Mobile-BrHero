@@ -1524,7 +1524,41 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Torre Infinita: tentativa ====
+  const runTower = useCallback((): { floor: number; best: number; newRecord: boolean; rewards: ReturnType<typeof towerRewards> } | null => {
+    const prev = saveRef.current;
+    if (!prev) return null;
+    if (prev.level < TOWER_UNLOCK_LEVEL) { flashToast(`🔒 Libera no Lv ${TOWER_UNLOCK_LEVEL}`); return null; }
+    const floor = simulateTowerRun(prev);
+    const best = Math.max(prev.tower.bestFloor, floor);
+    const newRecord = floor > prev.tower.bestFloor;
+    const rw = towerRewards(floor, prev.stage, prev);
+    const multi = newRecord ? 1.5 : 1;
+    const gold = Math.floor(rw.gold * multi);
+    const gems = Math.floor(rw.gems * multi);
+    const essence = Math.floor(rw.essence * multi);
+    const chests = Math.floor(rw.chests * multi);
 
+    let inv = prev.inventory;
+    for (let i = 0; i < chests; i++) {
+      const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+      inv = [...inv, rollItem(slot, prev.stage + 3)].slice(-60);
+    }
+    let frags = prev.petFragments;
+    if (rw.frag) frags = { ...frags, [rw.frag.kind]: frags[rw.frag.kind] + rw.frag.amt };
+
+    setSave({
+      ...prev,
+      gold: prev.gold + gold,
+      gems: prev.gems + gems,
+      essence: prev.essence + essence,
+      inventory: inv,
+      petFragments: frags,
+      counters: { ...prev.counters, chests: prev.counters.chests + chests },
+      tower: { bestFloor: best, runs: prev.tower.runs + 1, lastRunAt: Date.now() },
+    });
+    return { floor, best, newRecord, rewards: { gold, gems, essence, chests, frag: rw.frag } };
+  }, [flashToast]);
 
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
