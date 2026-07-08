@@ -808,6 +808,15 @@ function GamePage() {
       {/* ===== Battle arena ===== */}
       <section
         className={`relative h-56 overflow-hidden bg-gradient-to-b ${biome.bg} border-b-4 border-[#1A0F08]`}
+        style={
+          bgCache[biome.name]
+            ? {
+                backgroundImage: `url(${bgCache[biome.name]})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+            : undefined
+        }
         aria-label="Campo de batalha"
       >
         {/* stage banner */}
