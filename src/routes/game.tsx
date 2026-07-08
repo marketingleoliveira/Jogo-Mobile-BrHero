@@ -2251,6 +2251,36 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Conquistas / Achievements (Fase 3 — Bloco 9) ====
+  const claimAchievement = useCallback((id: AchievementId) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const def = ACHIEVEMENTS.find((a) => a.id === id);
+      if (!def) return prev;
+      if (prev.achievements.claimed.includes(id)) return prev;
+      if (def.metric(prev) < def.goal) { flashToast("🔒 Progresso insuficiente"); return prev; }
+      const r = def.reward;
+      let next: SaveState = {
+        ...prev,
+        gold: prev.gold + (r.gold ?? 0),
+        gems: prev.gems + (r.gems ?? 0),
+        essence: prev.essence + (r.essence ?? 0),
+        achievements: { ...prev.achievements, claimed: [...prev.achievements.claimed, id] },
+      };
+      if (r.chest) {
+        const items = generateChestItems(r.chest === 2 ? "rare" : "normal");
+        next = { ...next, inventory: [...next.inventory, ...items] };
+      }
+      if (r.petFrags && r.petFragKind) {
+        next = { ...next, petFragments: { ...next.petFragments, [r.petFragKind]: next.petFragments[r.petFragKind] + r.petFrags } };
+      }
+      flashToast(`🏆 ${def.label} — ${achievementRewardLabel(r)}`);
+      return next;
+    });
+  }, [flashToast]);
+
+
+
 
 
 
