@@ -694,6 +694,7 @@ function achievementRewardLabel(r: AchievementReward): string {
   if (r.chest) parts.push(r.chest === 2 ? "🎁 Baú Raro" : "🎁 Baú");
   if (r.petFrags && r.petFragKind) parts.push(`${r.petFrags}🧩 ${r.petFragKind}`);
   if (r.runeFrags) parts.push(`${r.runeFrags}🔮 runa`);
+  if (r.cosmetic && COSMETIC_DEFS[r.cosmetic]) parts.push(`🎭 ${COSMETIC_DEFS[r.cosmetic].label}`);
   return parts.join(" · ");
 }
 
