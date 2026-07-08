@@ -2413,6 +2413,12 @@ function GamePage() {
               label={save.level >= SKIN_UNLOCK_LEVEL ? `${equippedSkinDef(save).icon} SKINS` : `🔒Lv${SKIN_UNLOCK_LEVEL}`}
               onClick={() => setModal("skins")}
             />
+            <QuickCartoonBtn
+              icon={<Trophy className="h-3 w-3" />}
+              label="CONQUISTAS"
+              onClick={() => setModal("achievements")}
+            />
+
           </div>
         </div>
       </header>
