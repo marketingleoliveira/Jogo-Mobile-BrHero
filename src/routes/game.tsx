@@ -39,6 +39,19 @@ type AttrKey =
 
 type Attr = { level: number };
 
+type Rarity = "Comum" | "Raro" | "Épico" | "Lendário" | "Mítico" | "Divino";
+type SlotKey = "sword" | "armor" | "helm" | "ring" | "amulet" | "boots";
+
+type Item = {
+  id: string;
+  slot: SlotKey;
+  name: string;
+  rarity: Rarity;
+  stars: number;
+  level: number;
+  bonus: { atk: number; hp: number; def: number };
+};
+
 type SaveState = {
   level: number;
   xp: number;
@@ -46,10 +59,78 @@ type SaveState = {
   gems: number;
   stage: number;
   attrs: Record<AttrKey, Attr>;
+  equipment: Record<SlotKey, Item | null>;
+  inventory: Item[];
+  pvpWins: number;
   version: number;
 };
 
-const STORAGE_KEY = "hero-rise-idle-v2";
+const STORAGE_KEY = "hero-rise-idle-v3";
+
+const SLOTS: Array<{ key: SlotKey; label: string; emoji: string }> = [
+  { key: "sword", label: "Espada", emoji: "⚔️" },
+  { key: "armor", label: "Armadura", emoji: "🛡️" },
+  { key: "helm", label: "Capacete", emoji: "⛑️" },
+  { key: "ring", label: "Anel", emoji: "💍" },
+  { key: "amulet", label: "Amuleto", emoji: "📿" },
+  { key: "boots", label: "Botas", emoji: "🥾" },
+];
+
+const RARITIES: Array<{ name: Rarity; mult: number; chance: number; color: string }> = [
+  { name: "Comum", mult: 1, chance: 0.5, color: "text-slate-300 border-slate-600" },
+  { name: "Raro", mult: 1.8, chance: 0.25, color: "text-sky-300 border-sky-500/60" },
+  { name: "Épico", mult: 3, chance: 0.14, color: "text-fuchsia-300 border-fuchsia-500/60" },
+  { name: "Lendário", mult: 5, chance: 0.07, color: "text-amber-300 border-amber-400/70" },
+  { name: "Mítico", mult: 8, chance: 0.03, color: "text-rose-300 border-rose-400/70" },
+  { name: "Divino", mult: 14, chance: 0.01, color: "text-emerald-300 border-emerald-300/80" },
+];
+
+function rollRarity(): Rarity {
+  const r = Math.random();
+  let acc = 0;
+  for (const rr of RARITIES) {
+    acc += rr.chance;
+    if (r <= acc) return rr.name;
+  }
+  return "Comum";
+}
+
+function rollItem(slot: SlotKey, stage: number): Item {
+  const rarity = rollRarity();
+  const mult = RARITIES.find((r) => r.name === rarity)!.mult;
+  const base = 5 + stage * 2;
+  const slotInfo = SLOTS.find((s) => s.key === slot)!;
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    slot,
+    name: `${slotInfo.label}`,
+    rarity,
+    stars: 1 + Math.floor(Math.random() * 3),
+    level: 1,
+    bonus: {
+      atk: slot === "sword" ? Math.floor(base * mult) : Math.floor(base * mult * 0.15),
+      hp: slot === "amulet" || slot === "armor" ? Math.floor(base * mult * 5) : Math.floor(base * mult),
+      def: slot === "armor" || slot === "helm" ? Math.floor(base * mult) : Math.floor(base * mult * 0.2),
+    },
+  };
+}
+
+function emptyEquipment(): Record<SlotKey, Item | null> {
+  return { sword: null, armor: null, helm: null, ring: null, amulet: null, boots: null };
+}
+
+function equipmentBonus(eq: Record<SlotKey, Item | null>) {
+  let atk = 0, hp = 0, def = 0;
+  for (const k of Object.keys(eq) as SlotKey[]) {
+    const i = eq[k];
+    if (!i) continue;
+    atk += i.bonus.atk;
+    hp += i.bonus.hp;
+    def += i.bonus.def;
+  }
+  return { atk, hp, def };
+}
+
 
 // -------- Attribute definitions --------
 const ATTR_DEFS: Record<
@@ -242,7 +323,10 @@ function defaultSave(): SaveState {
     gems: 10,
     stage: 1,
     attrs: Object.fromEntries(ATTR_ORDER.map((k) => [k, { level: 0 }])) as Record<AttrKey, Attr>,
-    version: 2,
+    equipment: emptyEquipment(),
+    inventory: [],
+    pvpWins: 0,
+    version: 3,
   };
 }
 
@@ -252,13 +336,16 @@ function loadSave(): SaveState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultSave();
     const parsed = JSON.parse(raw);
-    if (parsed?.version !== 2) return defaultSave();
-    // ensure all attrs present
+    if (parsed?.version !== 3) return defaultSave();
     const base = defaultSave();
     for (const k of ATTR_ORDER) {
       if (!parsed.attrs?.[k]) parsed.attrs[k] = { level: 0 };
     }
+    if (!parsed.equipment) parsed.equipment = emptyEquipment();
+    if (!Array.isArray(parsed.inventory)) parsed.inventory = [];
+    if (typeof parsed.pvpWins !== "number") parsed.pvpWins = 0;
     return { ...base, ...parsed, attrs: parsed.attrs };
+
   } catch {
     return defaultSave();
   }
@@ -315,7 +402,9 @@ function GamePage() {
   const [enemyDying, setEnemyDying] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
+  const [modal, setModal] = useState<"equip" | "arena" | null>(null);
   const prevLevelRef = useRef(1);
+
 
   // Init
   useEffect(() => {
@@ -485,6 +574,12 @@ function GamePage() {
       xp -= xpForLevel(level);
       level += 1;
     }
+    // loot: bosses always drop, normal enemies 12% chance (once equipment is unlocked)
+    const canDrop = level >= 3 || cur.level >= 3;
+    const drop = canDrop && (enemy.isBoss || Math.random() < 0.12)
+      ? rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, cur.stage)
+      : null;
+    if (drop) flashToast(`📦 ${drop.rarity} ${SLOTS.find(s => s.key === drop.slot)!.label}`);
     const next: SaveState = {
       ...cur,
       xp,
@@ -492,9 +587,11 @@ function GamePage() {
       gold: cur.gold + enemy.gold,
       gems: cur.gems + enemy.gems,
       stage: cur.stage + 1,
+      inventory: drop ? [...cur.inventory, drop].slice(-60) : cur.inventory,
     };
     setSave(next);
     saveRef.current = next;
+
     // new enemy
     const e = enemyForStage(next.stage);
     enemyRef.current = e;
@@ -533,6 +630,65 @@ function GamePage() {
       return next;
     });
   };
+
+  const equipItem = (item: Item) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const current = prev.equipment[item.slot];
+      const equipment = { ...prev.equipment, [item.slot]: item };
+      const inventory = prev.inventory.filter((i) => i.id !== item.id);
+      if (current) inventory.push(current);
+      return { ...prev, equipment, inventory };
+    });
+  };
+
+  const unequipItem = (slot: SlotKey) => {
+    setSave((prev) => {
+      if (!prev || !prev.equipment[slot]) return prev;
+      const item = prev.equipment[slot]!;
+      return {
+        ...prev,
+        equipment: { ...prev.equipment, [slot]: null },
+        inventory: [...prev.inventory, item],
+      };
+    });
+  };
+
+  const sellItem = (id: string) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const item = prev.inventory.find((i) => i.id === id);
+      if (!item) return prev;
+      const gain = Math.floor(50 * (RARITIES.find((r) => r.name === item.rarity)?.mult ?? 1));
+      flashToast(`+${fmt(gain)} 🪙`);
+      return {
+        ...prev,
+        gold: prev.gold + gain,
+        inventory: prev.inventory.filter((i) => i.id !== id),
+      };
+    });
+  };
+
+  const doPvp = () => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      // simulated: 65% win based on our power vs random opponent power
+      const s = computeStats(prev);
+      const our = s.atk * 3 + s.hp + s.defense * 2;
+      const opp = our * (0.7 + Math.random() * 0.6);
+      const win = our >= opp;
+      const reward = win ? { gold: 500 + prev.level * 40, gems: 3 } : { gold: 100, gems: 1 };
+      flashToast(win ? `🏆 Vitória! +${reward.gems}💎` : "😞 Derrota — mas ganhou consolação");
+      return {
+        ...prev,
+        gold: prev.gold + reward.gold,
+        gems: prev.gems + reward.gems,
+        pvpWins: prev.pvpWins + (win ? 1 : 0),
+      };
+    });
+  };
+
+
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
   const biome = useMemo(() => biomeFor(save?.stage ?? 1), [save?.stage]);
@@ -732,7 +888,28 @@ function GamePage() {
         })}
       </section>
 
+      {/* ===== Menu row ===== */}
+      <section className="grid grid-cols-2 gap-2 border-b border-slate-800 bg-slate-900/60 px-3 py-2">
+        <MenuBtn
+          locked={save.level < 3}
+          unlockLv={3}
+          icon={<Shield className="h-4 w-4" />}
+          label="Equipamentos"
+          badge={save.inventory.length > 0 ? save.inventory.length : undefined}
+          onClick={() => setModal("equip")}
+        />
+        <MenuBtn
+          locked={save.level < 50}
+          unlockLv={50}
+          icon={<Users className="h-4 w-4" />}
+          label="Arena Beta"
+          badge={save.pvpWins > 0 ? save.pvpWins : undefined}
+          onClick={() => setModal("arena")}
+        />
+      </section>
+
       {/* ===== Next unlock strip ===== */}
+
       {nextUnlock && (
         <div className="flex items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/40 px-3 py-1.5 text-[11px] text-slate-300">
           <span className="flex items-center gap-1.5">
@@ -816,7 +993,24 @@ function GamePage() {
         </button>
       </section>
 
+      {/* ===== Equipment modal ===== */}
+      {modal === "equip" && (
+        <EquipmentModal
+          save={save}
+          onClose={() => setModal(null)}
+          onEquip={equipItem}
+          onUnequip={unequipItem}
+          onSell={sellItem}
+        />
+      )}
+
+      {/* ===== Arena modal ===== */}
+      {modal === "arena" && (
+        <ArenaModal save={save} onClose={() => setModal(null)} onFight={doPvp} />
+      )}
+
       {/* Toast */}
+
       {toast && (
         <div className="pointer-events-none fixed inset-x-0 top-24 z-30 flex justify-center px-4">
           <div className="rounded-full bg-slate-800/95 px-4 py-2 text-sm font-medium text-white shadow-xl ring-1 ring-white/10">
@@ -860,18 +1054,233 @@ function QuickBtn({
 
 // -------- Derived stats --------
 function computeStats(s: SaveState) {
+  const eq = equipmentBonus(s.equipment);
   return {
-    atk: attrValue("atk", s.attrs.atk.level),
-    hp: attrValue("hp", s.attrs.hp.level),
+    atk: attrValue("atk", s.attrs.atk.level) + eq.atk,
+    hp: attrValue("hp", s.attrs.hp.level) + eq.hp,
     regen: attrValue("regen", s.attrs.regen.level),
     critDmg: attrValue("critDmg", s.attrs.critDmg.level),
     critChance: attrValue("critChance", s.attrs.critChance.level),
     atkSpeed: attrValue("atkSpeed", s.attrs.atkSpeed.level),
     lifesteal: attrValue("lifesteal", s.attrs.lifesteal.level),
     penetration: attrValue("penetration", s.attrs.penetration.level),
-    defense: attrValue("defense", s.attrs.defense.level),
+    defense: attrValue("defense", s.attrs.defense.level) + eq.def,
   };
 }
+
+function MenuBtn({
+  locked,
+  unlockLv,
+  icon,
+  label,
+  badge,
+  onClick,
+}: {
+  locked: boolean;
+  unlockLv: number;
+  icon: React.ReactNode;
+  label: string;
+  badge?: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={locked}
+      className={`relative flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold active:scale-95 ${
+        locked
+          ? "border-slate-800 bg-slate-900 text-slate-600"
+          : "border-indigo-500/50 bg-gradient-to-b from-indigo-600 to-indigo-800 text-white shadow"
+      }`}
+    >
+      {locked ? <Lock className="h-4 w-4" /> : icon}
+      <span>{locked ? `${label} · Lv ${unlockLv}` : label}</span>
+      {!locked && badge !== undefined && (
+        <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function ModalShell({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 backdrop-blur-sm">
+      <div className="mx-auto flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border-t border-slate-700 bg-slate-950 shadow-2xl animate-[slideUp_0.25s_ease-out]">
+        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+          <h2 className="text-sm font-black text-slate-100">{title}</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg bg-slate-800 px-3 py-1 text-xs font-bold text-slate-300 hover:bg-slate-700"
+          >
+            Fechar
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
+      </div>
+      <style>{`@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
+    </div>
+  );
+}
+
+function EquipmentModal({
+  save,
+  onClose,
+  onEquip,
+  onUnequip,
+  onSell,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onEquip: (item: Item) => void;
+  onUnequip: (slot: SlotKey) => void;
+  onSell: (id: string) => void;
+}) {
+  const bonus = equipmentBonus(save.equipment);
+  return (
+    <ModalShell title="Equipamentos" onClose={onClose}>
+      {/* equipped slots */}
+      <div className="mb-4 grid grid-cols-3 gap-2">
+        {SLOTS.map((s) => {
+          const item = save.equipment[s.key];
+          const color = item ? RARITIES.find((r) => r.name === item.rarity)!.color : "border-slate-800 text-slate-500";
+          return (
+            <button
+              key={s.key}
+              onClick={() => item && onUnequip(s.key)}
+              className={`flex aspect-square flex-col items-center justify-center rounded-xl border-2 bg-slate-900/60 p-1 text-[10px] ${color}`}
+            >
+              <span className="text-2xl">{s.emoji}</span>
+              <span className="truncate font-bold">{s.label}</span>
+              {item && <span className="text-[9px] opacity-80">{item.rarity}</span>}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mb-3 flex items-center justify-around rounded-lg bg-slate-900 py-2 text-[11px] text-slate-300">
+        <span>ATK <span className="font-bold text-rose-300">+{fmt(bonus.atk)}</span></span>
+        <span>HP <span className="font-bold text-emerald-300">+{fmt(bonus.hp)}</span></span>
+        <span>DEF <span className="font-bold text-sky-300">+{fmt(bonus.def)}</span></span>
+      </div>
+
+      <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+        Inventário ({save.inventory.length})
+      </h3>
+      {save.inventory.length === 0 && (
+        <p className="rounded-lg border border-dashed border-slate-800 py-6 text-center text-xs text-slate-500">
+          Vença inimigos e chefes para ganhar equipamentos.
+        </p>
+      )}
+      <div className="space-y-2">
+        {save.inventory.map((item) => {
+          const slotInfo = SLOTS.find((s) => s.key === item.slot)!;
+          const color = RARITIES.find((r) => r.name === item.rarity)!.color;
+          return (
+            <div
+              key={item.id}
+              className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border ${color} bg-slate-900/60 px-2 py-2`}
+            >
+              <span className="text-2xl">{slotInfo.emoji}</span>
+              <div className="min-w-0 text-[11px]">
+                <div className="flex items-center gap-1 font-bold">
+                  <span className="truncate">{slotInfo.label}</span>
+                  <span className="opacity-70">·</span>
+                  <span className="truncate">{item.rarity}</span>
+                  <span className="text-amber-300">{"★".repeat(item.stars)}</span>
+                </div>
+                <div className="text-[10px] text-slate-400 tabular-nums">
+                  +{item.bonus.atk} ATK · +{item.bonus.hp} HP · +{item.bonus.def} DEF
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={() => onEquip(item)}
+                  className="rounded bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white active:scale-95"
+                >
+                  Equipar
+                </button>
+                <button
+                  onClick={() => onSell(item.id)}
+                  className="rounded bg-slate-800 px-2 py-1 text-[10px] font-bold text-slate-300 active:scale-95"
+                >
+                  Vender
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </ModalShell>
+  );
+}
+
+function ArenaModal({
+  save,
+  onClose,
+  onFight,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onFight: () => void;
+}) {
+  return (
+    <ModalShell title="Arena dos Heróis · Beta" onClose={onClose}>
+      <div className="mb-4 rounded-2xl bg-gradient-to-br from-indigo-700 to-purple-900 p-4 text-center text-white">
+        <Crown className="mx-auto mb-2 h-8 w-8 text-amber-300" />
+        <div className="text-lg font-black">Multiplayer Beta</div>
+        <div className="text-[11px] opacity-80">
+          PvP assíncrono contra outros heróis (simulado).
+        </div>
+      </div>
+
+      <div className="mb-3 grid grid-cols-3 gap-2 text-center text-[11px]">
+        <div className="rounded-lg bg-slate-900 py-2">
+          <div className="text-[10px] text-slate-500">Vitórias</div>
+          <div className="text-lg font-black text-amber-300">{save.pvpWins}</div>
+        </div>
+        <div className="rounded-lg bg-slate-900 py-2">
+          <div className="text-[10px] text-slate-500">Rank</div>
+          <div className="text-lg font-black text-sky-300">
+            {save.pvpWins < 5 ? "Bronze" : save.pvpWins < 20 ? "Prata" : save.pvpWins < 50 ? "Ouro" : "Diamante"}
+          </div>
+        </div>
+        <div className="rounded-lg bg-slate-900 py-2">
+          <div className="text-[10px] text-slate-500">Nível</div>
+          <div className="text-lg font-black text-emerald-300">{save.level}</div>
+        </div>
+      </div>
+
+      <button
+        onClick={onFight}
+        className="mb-3 w-full rounded-xl bg-gradient-to-b from-rose-500 to-red-700 py-3 text-sm font-black text-white shadow-lg active:scale-95"
+      >
+        ⚔️ Procurar Oponente
+      </button>
+
+      <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 text-[11px] text-slate-400">
+        <p className="mb-1 font-bold text-slate-300">Em breve:</p>
+        <ul className="list-disc space-y-0.5 pl-4">
+          <li>Ranking global online</li>
+          <li>Guildas e chat</li>
+          <li>Desafios semanais</li>
+          <li>Recompensas de temporada</li>
+        </ul>
+      </div>
+    </ModalShell>
+  );
+}
+
+
+
 
 function pickEnemyEmoji(stage: number) {
   const pool = ["👹", "👺", "🧟", "👻", "🦇", "🐍", "🕷️", "🐺", "🦂", "🐗"];
