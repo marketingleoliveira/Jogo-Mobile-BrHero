@@ -48,16 +48,16 @@ function decodeJwt(token: string): any {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Hero Rise — RPG Mobile Idle em Português" },
+      { title: "BRHero - RPG IDLE BRASILEIRO" },
       {
         name: "description",
         content:
-          "Hero Rise: RPG mobile idle brasileiro. Batalhas automáticas, evolução constante e chefões épicos. Entre com Google e jogue no navegador ou baixe no Google Play.",
+          "BRHero - RPG mobile idle brasileiro. Batalhas automáticas, evolução constante e chefões épicos. Entre com Google e jogue no navegador ou baixe no Google Play.",
       },
-      { property: "og:title", content: "Hero Rise — RPG Mobile Idle" },
+      { property: "og:title", content: "BRHero - RPG IDLE BRASILEIRO" },
       {
         property: "og:description",
-        content: "RPG idle em português. Entre com Google e comece agora.",
+        content: "BRHero - RPG mobile idle brasileiro. Batalhas automáticas, evolução constante e chefões épicos. Entre com Google e jogue no navegador ou baixe no Google Play.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
