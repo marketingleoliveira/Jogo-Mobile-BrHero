@@ -941,6 +941,7 @@ function GamePage() {
           ...prev.attrs,
           [key]: { level: prev.attrs[key].level + 1 },
         },
+        counters: { ...prev.counters, upgrades: prev.counters.upgrades + 1 },
       };
       saveRef.current = next;
       // if hp upgraded, keep ratio
