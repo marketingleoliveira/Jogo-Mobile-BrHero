@@ -1,5 +1,8 @@
 // Mock store for Admin CMS - Balancing module.
 // Ainda não conectado a Supabase. Persiste em localStorage.
+import { guard } from "./rbac";
+import { logAction } from "./audit-central";
+
 
 export interface CurveConfig {
   base: number;       // valor no nível/estágio 1
@@ -104,20 +107,25 @@ export const balancingActions = {
     next: BalancingConfig[K],
     reason: string,
   ) {
+    guard("balancing", "edit");
     if (!reason.trim()) throw new Error("Motivo obrigatório");
     const before = store.config[section];
     store.config = { ...store.config, [section]: next };
     pushLog({ section, before, after: next, reason: reason.trim() });
+    logAction({ module: "balancing", action: "update", target: String(section), before, after: next, reason: reason.trim() });
     emit();
   },
   resetAll(reason: string) {
+    guard("balancing", "critical");
     if (!reason.trim()) throw new Error("Motivo obrigatório");
     const before = store.config;
     store.config = DEFAULT_CONFIG;
     pushLog({ section: "xpCurve", before, after: DEFAULT_CONFIG, reason: `RESET GLOBAL — ${reason.trim()}` });
+    logAction({ module: "balancing", action: "reset_all", target: "global", before, after: DEFAULT_CONFIG, reason: reason.trim() });
     emit();
   },
 };
+
 
 // ----- Curve helpers -----
 export const curveValue = (c: CurveConfig, lvl: number) =>

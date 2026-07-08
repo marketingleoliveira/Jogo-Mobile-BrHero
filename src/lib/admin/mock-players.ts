@@ -1,6 +1,9 @@
 // Mock data store for Admin CMS - Players module
 // Arquitetura preparada para futuramente ser substituída por Supabase.
 // NÃO afeta o game.tsx real.
+import { guard } from "./rbac";
+import { logAction } from "./audit-central";
+
 
 export type PlayerStatus = "active" | "suspended" | "banned";
 
@@ -142,18 +145,20 @@ function pushLog(entry: Omit<AuditLog, "id" | "date" | "admin">) {
 }
 
 function mutate(playerId: string, action: string, reason: string, fn: (p: MockPlayer) => Partial<MockPlayer>) {
+  const critical = action === "suspend" || action === "ban" || action === "unban" || action === "reset";
+  guard("players", critical ? "critical" : "edit");
   const idx = store.players.findIndex((p) => p.id === playerId);
   if (idx < 0) return;
   const before = { ...store.players[idx] };
   const patch = fn(store.players[idx]);
   const after = { ...before, ...patch };
   store.players = store.players.map((p, i) => (i === idx ? after : p));
-  pushLog({
-    action, player: `${after.nickname} (${after.id})`,
-    before: pickChanged(before, patch), after: patch as Record<string, unknown>, reason,
-  });
+  const beforeChanged = pickChanged(before, patch);
+  pushLog({ action, player: `${after.nickname} (${after.id})`, before: beforeChanged, after: patch as Record<string, unknown>, reason });
+  logAction({ module: "players", action, target: `${after.nickname} (${after.id})`, before: beforeChanged, after: patch, reason });
   emit();
 }
+
 
 function pickChanged(before: MockPlayer, patch: Partial<MockPlayer>) {
   const out: Record<string, unknown> = {};

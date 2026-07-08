@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
+import { useSyncExternalStore } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -31,6 +32,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  AVAILABLE_PROFILES, ROLE_LABEL, getCurrentAdmin, setCurrentAdmin, subscribeAdmin,
+} from "@/lib/admin/rbac";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -45,6 +52,7 @@ export const Route = createFileRoute("/admin")({
   }),
   component: AdminLayout,
 });
+
 
 type NavItem = {
   to: string;
@@ -164,16 +172,39 @@ function AdminHeader() {
         <Button variant="outline" size="icon" className="h-9 w-9 border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white">
           <Bell className="h-4 w-4" />
         </Button>
-        <div className="hidden items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-2 py-1 md:flex">
-          <div className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-[10px] font-black text-slate-950">
-            GM
-          </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-[11px] font-bold text-slate-100">Game Master</span>
-            <span className="text-[9px] uppercase tracking-widest text-amber-400">root</span>
-          </div>
-        </div>
+        <AdminProfileSelector />
+
       </div>
     </header>
   );
 }
+
+function AdminProfileSelector() {
+  const current = useSyncExternalStore(subscribeAdmin, getCurrentAdmin, getCurrentAdmin);
+  return (
+    <div className="hidden items-center gap-2 rounded-lg border border-amber-500/30 bg-slate-900 px-2 py-1 md:flex">
+      <div className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-[10px] font-black text-slate-950">
+        {current.name.slice(0, 2).toUpperCase()}
+      </div>
+      <div className="flex flex-col leading-tight">
+        <span className="text-[11px] font-bold text-slate-100">{current.name}</span>
+        <span className="text-[9px] uppercase tracking-widest text-amber-400">
+          {ROLE_LABEL[current.role]}
+        </span>
+      </div>
+      <Select value={current.id} onValueChange={(v) => setCurrentAdmin(v)}>
+        <SelectTrigger className="ml-1 h-7 w-[40px] border-slate-700 bg-slate-800 px-1 text-[10px] text-slate-200">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+          {AVAILABLE_PROFILES.map((p) => (
+            <SelectItem key={p.id} value={p.id} className="text-xs">
+              {p.name} · {ROLE_LABEL[p.role]}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
