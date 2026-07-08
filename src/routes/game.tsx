@@ -1440,6 +1440,11 @@ function GamePage() {
             />
             <QuickCartoonBtn icon={<Calendar className="h-3 w-3" />} label="DIÁRIO" onClick={() => setModal("daily")} />
             <QuickCartoonBtn icon={<Target className="h-3 w-3" />} label="MISSÕES" onClick={() => setModal("missions")} />
+            <QuickCartoonBtn
+              icon={<Lock className="h-3 w-3" />}
+              label={save.level >= DUNGEON_UNLOCK_LEVEL ? "MASMORRA" : `🔒Lv${DUNGEON_UNLOCK_LEVEL}`}
+              onClick={() => setModal("dungeon")}
+            />
           </div>
         </div>
       </header>
