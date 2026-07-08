@@ -1702,6 +1702,13 @@ function GamePage() {
           onClaimChest={claimFreeChest}
         />
       )}
+      {modal === "missions" && (
+        <MissionsModal
+          save={save}
+          onClose={() => setModal(null)}
+          onClaim={claimMission}
+        />
+      )}
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
