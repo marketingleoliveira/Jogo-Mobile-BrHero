@@ -58,6 +58,8 @@ type Item = {
   bonus: { atk: number; hp: number; def: number };
 };
 
+type GlobalUpKey = "gold" | "atk" | "hp" | "xp" | "startStage";
+
 type SaveState = {
   level: number;
   xp: number;
@@ -68,10 +70,17 @@ type SaveState = {
   equipment: Record<SlotKey, Item | null>;
   inventory: Item[];
   pvpWins: number;
+  // Prestige / Rebirth
+  essence: number;
+  prestigeLevel: number;
+  maxStage: number;
+  globalUp: Record<GlobalUpKey, number>;
   version: number;
 };
 
-const STORAGE_KEY = "hero-rise-idle-v3";
+const STORAGE_KEY = "hero-rise-idle-v4";
+const SAVE_VERSION = 4;
+const PRESTIGE_UNLOCK_STAGE = 100;
 
 const SLOTS: Array<{ key: SlotKey; label: string; emoji: string }> = [
   { key: "sword", label: "Espada", emoji: "⚔️" },
@@ -259,7 +268,11 @@ function attrValue(key: AttrKey, level: number) {
 }
 function attrCost(key: AttrKey, level: number) {
   const d = ATTR_DEFS[key];
-  return Math.floor(d.costBase * Math.pow(d.costMul, level));
+  // Soft-cap: costMul aplicado só até level 80; depois cresce a taxa reduzida
+  // para manter upgrades viáveis até late game (Lv 200-500).
+  const capped = Math.min(level, 80);
+  const overflow = Math.max(0, level - 80);
+  return Math.floor(d.costBase * Math.pow(d.costMul, capped) * Math.pow(1.055, overflow));
 }
 function fmt(n: number) {
   if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(2) + "B";
@@ -308,18 +321,54 @@ function xpForLevel(level: number) {
   return Math.floor(30 * Math.pow(level, 1.55));
 }
 
-// Enemy for stage
+// Enemy for stage — smooth curve tuned for Lv 1-500+
+// Uses tiered growth: linear + soft exponential so late-game stays challenging
+// but not impossible; gold scales in lockstep so upgrade costs remain viable.
 function enemyForStage(stage: number) {
   const isBoss = stage % 10 === 0;
-  const mult = isBoss ? 4 : 1;
-  const hp = Math.floor((80 + stage * 45 + Math.pow(stage, 1.6) * 4) * mult);
-  const atk = Math.floor((6 + stage * 3 + Math.pow(stage, 1.35)) * mult);
-  const def = Math.floor(2 + stage * 0.7);
-  const gold = Math.floor((10 + stage * 6) * (isBoss ? 6 : 1));
-  const xp = Math.floor((14 + stage * 5) * (isBoss ? 5 : 1));
+  const mult = isBoss ? 3.5 : 1;
+  const expo = Math.pow(1.045, stage); // ~1.045^stage soft exponential
+  const hp = Math.floor((60 + stage * 25) * expo * mult);
+  const atk = Math.floor((5 + stage * 2) * Math.pow(1.035, stage) * mult);
+  const def = Math.floor(2 + stage * 0.6);
+  const gold = Math.floor((8 + stage * 5) * Math.pow(1.042, stage) * (isBoss ? 5 : 1));
+  const xp = Math.floor((14 + stage * 4) * (isBoss ? 5 : 1));
   const gems = isBoss ? Math.max(1, Math.floor(stage / 10)) : 0;
   return { hp, atk, def, gold, xp, gems, isBoss };
 }
+
+// ==== Prestige / Rebirth ====
+const GLOBAL_UP_DEFS: Record<GlobalUpKey, { label: string; icon: string; perLevel: number; costBase: number; costMul: number; max: number; suffix?: string }> = {
+  gold:       { label: "Ouro Global",    icon: "🪙", perLevel: 0.10, costBase: 1, costMul: 1.6, max: 50, suffix: "%" },
+  atk:        { label: "ATK Global",     icon: "⚔️", perLevel: 0.08, costBase: 2, costMul: 1.7, max: 50, suffix: "%" },
+  hp:         { label: "HP Global",      icon: "❤️", perLevel: 0.08, costBase: 2, costMul: 1.7, max: 50, suffix: "%" },
+  xp:         { label: "XP Global",      icon: "✨", perLevel: 0.10, costBase: 1, costMul: 1.6, max: 40, suffix: "%" },
+  startStage: { label: "Estágio Inicial",icon: "🚀", perLevel: 5,    costBase: 3, costMul: 2.0, max: 40, suffix: " estágios" },
+};
+
+function emptyGlobalUp(): Record<GlobalUpKey, number> {
+  return { gold: 0, atk: 0, hp: 0, xp: 0, startStage: 0 };
+}
+
+function globalUpCost(key: GlobalUpKey, level: number) {
+  const d = GLOBAL_UP_DEFS[key];
+  return Math.ceil(d.costBase * Math.pow(d.costMul, level));
+}
+
+// Essence earned by rebirth. Curve: sqrt-based so early prestiges reward, later scale.
+function essenceForRebirth(stage: number) {
+  if (stage < PRESTIGE_UNLOCK_STAGE) return 0;
+  return Math.floor(Math.pow((stage - PRESTIGE_UNLOCK_STAGE) / 20 + 1, 1.4));
+}
+
+// ==== Crystal packs (MOCK: sem cobrança real; Stripe/Play depois) ====
+type CrystalPack = { id: string; gems: number; bonus: number; priceBRL: number; tag?: string };
+const CRYSTAL_PACKS: CrystalPack[] = [
+  { id: "starter",  gems: 80,   bonus: 0,   priceBRL: 4.90 },
+  { id: "popular",  gems: 250,  bonus: 50,  priceBRL: 14.90, tag: "popular" },
+  { id: "big",      gems: 600,  bonus: 200, priceBRL: 29.90, tag: "melhor valor" },
+  { id: "whale",    gems: 1500, bonus: 800, priceBRL: 69.90, tag: "mega bônus" },
+];
 
 function defaultSave(): SaveState {
   return {
@@ -332,7 +381,11 @@ function defaultSave(): SaveState {
     equipment: emptyEquipment(),
     inventory: [],
     pvpWins: 0,
-    version: 3,
+    essence: 0,
+    prestigeLevel: 0,
+    maxStage: 1,
+    globalUp: emptyGlobalUp(),
+    version: SAVE_VERSION,
   };
 }
 
@@ -342,20 +395,16 @@ function loadSave(): SaveState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultSave();
     const parsed = JSON.parse(raw);
+    // Version bump wipes old saves during beta rebalance
+    if (parsed.version !== SAVE_VERSION) return defaultSave();
     const base = defaultSave();
-    // Non-destructive migration: keep old progress, fill missing fields
     const merged: SaveState = {
       ...base,
       ...parsed,
-      attrs: {
-        ...base.attrs,
-        ...(parsed.attrs ?? {}),
-      } as Record<AttrKey, Attr>,
+      attrs: { ...base.attrs, ...(parsed.attrs ?? {}) } as Record<AttrKey, Attr>,
       equipment: { ...emptyEquipment(), ...(parsed.equipment ?? {}) },
       inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
-      pvpWins: typeof parsed.pvpWins === "number" ? parsed.pvpWins : 0,
-      gems: typeof parsed.gems === "number" ? parsed.gems : base.gems,
-      version: 3,
+      globalUp: { ...emptyGlobalUp(), ...(parsed.globalUp ?? {}) },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
@@ -418,7 +467,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | null>(null);
   const prevLevelRef = useRef(1);
 
 
@@ -583,32 +632,36 @@ function GamePage() {
     if (!cur) return;
     const enemy = enemyRef.current;
     if (!enemy) return;
-    // rewards
+    // Global prestige bonuses
+    const goldMul = 1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel;
+    const xpMul = 1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel;
+    const gainedGold = Math.floor(enemy.gold * goldMul);
+    const gainedXp = Math.floor(enemy.xp * xpMul);
     let level = cur.level;
-    let xp = cur.xp + enemy.xp;
+    let xp = cur.xp + gainedXp;
     while (xp >= xpForLevel(level)) {
       xp -= xpForLevel(level);
       level += 1;
     }
-    // loot: bosses always drop, normal enemies 12% chance (once equipment is unlocked)
     const canDrop = level >= 3 || cur.level >= 3;
     const drop = canDrop && (enemy.isBoss || Math.random() < 0.12)
       ? rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, cur.stage)
       : null;
     if (drop) flashToast(`📦 ${drop.rarity} ${SLOTS.find(s => s.key === drop.slot)!.label}`);
+    const nextStage = cur.stage + 1;
     const next: SaveState = {
       ...cur,
       xp,
       level,
-      gold: cur.gold + enemy.gold,
+      gold: cur.gold + gainedGold,
       gems: cur.gems + enemy.gems,
-      stage: cur.stage + 1,
+      stage: nextStage,
+      maxStage: Math.max(cur.maxStage ?? 1, nextStage),
       inventory: drop ? [...cur.inventory, drop].slice(-60) : cur.inventory,
     };
     setSave(next);
     saveRef.current = next;
 
-    // new enemy
     const e = enemyForStage(next.stage);
     enemyRef.current = e;
     enemyHpRef.current = e.hp;
@@ -754,6 +807,64 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Prestige / Rebirth ====
+  const doRebirth = useCallback(() => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.stage < PRESTIGE_UNLOCK_STAGE) {
+        flashToast(`🔒 Rebirth libera no estágio ${PRESTIGE_UNLOCK_STAGE}`);
+        return prev;
+      }
+      const gained = essenceForRebirth(prev.stage);
+      const startStage = 1 + (prev.globalUp?.startStage ?? 0) * GLOBAL_UP_DEFS.startStage.perLevel;
+      const fresh = defaultSave();
+      const next: SaveState = {
+        ...fresh,
+        // Preservado entre prestígios
+        gems: prev.gems,
+        essence: prev.essence + gained,
+        prestigeLevel: prev.prestigeLevel + 1,
+        maxStage: prev.maxStage,
+        globalUp: prev.globalUp,
+        stage: startStage,
+      };
+      flashToast(`🌟 Renasceu! +${gained} Essência (Prestígio ${next.prestigeLevel})`);
+      // reset combat
+      const stats = computeStats(next);
+      heroHpRef.current = stats.hp;
+      setHeroHp(stats.hp);
+      const e = enemyForStage(next.stage);
+      enemyRef.current = e;
+      enemyHpRef.current = e.hp;
+      setEnemyHp(e.hp);
+      prevLevelRef.current = 1;
+      return next;
+    });
+  }, [flashToast]);
+
+  const buyGlobalUp = useCallback((key: GlobalUpKey) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const lvl = prev.globalUp[key] ?? 0;
+      const def = GLOBAL_UP_DEFS[key];
+      if (lvl >= def.max) { flashToast("🌟 Nível máximo"); return prev; }
+      const cost = globalUpCost(key, lvl);
+      if (prev.essence < cost) { flashToast("✨ Essência insuficiente"); return prev; }
+      flashToast(`🌟 ${def.label} +1`);
+      return { ...prev, essence: prev.essence - cost, globalUp: { ...prev.globalUp, [key]: lvl + 1 } };
+    });
+  }, [flashToast]);
+
+  // ==== Crystal packs (MOCK — sem cobrança real) ====
+  const buyCrystalPack = useCallback((id: string) => {
+    const pack = CRYSTAL_PACKS.find((p) => p.id === id);
+    if (!pack) return;
+    setSave((prev) => prev ? { ...prev, gems: prev.gems + pack.gems + pack.bonus } : prev);
+    flashToast(`💎 +${pack.gems + pack.bonus} cristais (mock — Stripe em breve)`);
+  }, [flashToast]);
+
+
+
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
   const biome = useMemo(() => biomeFor(save?.stage ?? 1), [save?.stage]);
@@ -841,11 +952,13 @@ function GamePage() {
                 icon={<div className="h-3.5 w-3.5 rotate-45 rounded-sm bg-amber-400 shadow-[inset_-1px_-1px_0_rgba(0,0,0,0.3)]" />}
                 value={fmt(save.gold)}
               />
-              <CartoonPill
-                color="emerald"
-                icon={<div className="h-3.5 w-3 rounded-full bg-emerald-400 shadow-[inset_-1px_-1px_0_rgba(0,0,0,0.3)]" />}
-                value={fmt(save.gems)}
-              />
+              <button onClick={() => setModal("crystals")} className="active:scale-95" title="Comprar cristais">
+                <CartoonPill
+                  color="emerald"
+                  icon={<div className="h-3.5 w-3 rounded-full bg-emerald-400 shadow-[inset_-1px_-1px_0_rgba(0,0,0,0.3)]" />}
+                  value={fmt(save.gems)}
+                />
+              </button>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full border-2 border-[#1A0F08] bg-[#1A0F08]">
               <div
@@ -855,9 +968,13 @@ function GamePage() {
             </div>
           </div>
 
-          {/* VIP/Pass stack */}
+          {/* Rebirth + Pass stack */}
           <div className="flex flex-col gap-1">
-            <QuickCartoonBtn icon={<Crown className="h-3 w-3" />} label="VIP" onClick={() => flashToast("VIP em breve")} />
+            <QuickCartoonBtn
+              icon={<Sparkles className="h-3 w-3" />}
+              label={save.stage >= PRESTIGE_UNLOCK_STAGE ? "REBIRTH" : "🔒"}
+              onClick={() => setModal("rebirth")}
+            />
             <QuickCartoonBtn icon={<Ticket className="h-3 w-3" />} label="PASSE" onClick={() => flashToast("Passe em breve")} />
           </div>
         </div>
@@ -1174,6 +1291,23 @@ function GamePage() {
           onBuy={buyStoreItem}
         />
       )}
+      {modal === "rebirth" && (
+        <RebirthModal
+          save={save}
+          onClose={() => setModal(null)}
+          onRebirth={doRebirth}
+          onBuyUp={buyGlobalUp}
+        />
+      )}
+      {modal === "crystals" && (
+        <CrystalsModal
+          save={save}
+          onClose={() => setModal(null)}
+          onBuy={buyCrystalPack}
+        />
+      )}
+
+
 
       {/* Toast */}
       {toast && (
@@ -1374,9 +1508,11 @@ function TabBarItem({
 // -------- Derived stats --------
 function computeStats(s: SaveState) {
   const eq = equipmentBonus(s.equipment);
+  const atkBonus = 1 + (s.globalUp?.atk ?? 0) * GLOBAL_UP_DEFS.atk.perLevel;
+  const hpBonus = 1 + (s.globalUp?.hp ?? 0) * GLOBAL_UP_DEFS.hp.perLevel;
   return {
-    atk: attrValue("atk", s.attrs.atk.level) + eq.atk,
-    hp: attrValue("hp", s.attrs.hp.level) + eq.hp,
+    atk: Math.floor((attrValue("atk", s.attrs.atk.level) + eq.atk) * atkBonus),
+    hp: Math.floor((attrValue("hp", s.attrs.hp.level) + eq.hp) * hpBonus),
     regen: attrValue("regen", s.attrs.regen.level),
     critDmg: attrValue("critDmg", s.attrs.critDmg.level),
     critChance: attrValue("critChance", s.attrs.critChance.level),
@@ -1781,3 +1917,168 @@ function StoreModal({
   );
 }
 
+
+// -------- Rebirth Modal (Prestígio) --------
+function RebirthModal({
+  save,
+  onClose,
+  onRebirth,
+  onBuyUp,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onRebirth: () => void;
+  onBuyUp: (key: GlobalUpKey) => void;
+}) {
+  const canRebirth = save.stage >= PRESTIGE_UNLOCK_STAGE;
+  const gain = essenceForRebirth(save.stage);
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/70 backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose}>
+      <div
+        className="max-h-[88vh] w-full overflow-y-auto rounded-t-3xl border-4 border-[#f5c542] bg-gradient-to-b from-[#1a0d3a] to-[#2b1560] p-5 text-[#e8ecf1] shadow-2xl sm:max-w-md sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-2xl text-[#f5c542]" style={{ fontFamily: "'Lilita One', cursive" }}>
+            🌟 Rebirth
+          </h2>
+          <button onClick={onClose} className="rounded-full border border-[#f5c542]/40 px-3 py-1 text-xs text-[#f5c542]">
+            Fechar
+          </button>
+        </div>
+
+        <div className="mb-3 grid grid-cols-3 gap-2 rounded-xl border-2 border-[#f5c542]/40 bg-black/30 px-3 py-2 text-center text-xs">
+          <div><div className="text-[10px] opacity-70">Prestígio</div><b className="text-[#f5c542]">{save.prestigeLevel}</b></div>
+          <div><div className="text-[10px] opacity-70">Essência ✨</div><b className="text-[#f5c542]">{fmt(save.essence)}</b></div>
+          <div><div className="text-[10px] opacity-70">Recorde</div><b className="text-[#f5c542]">Etp {save.maxStage}</b></div>
+        </div>
+
+        <div className="mb-3 rounded-lg border border-[#f5c542]/30 bg-[#f5c542]/10 p-3 text-xs">
+          <b>Como funciona:</b> ao atingir o estágio {PRESTIGE_UNLOCK_STAGE}+, você pode renascer.
+          Perde progresso de nível, atributos, ouro e equipamentos, mas ganha <b>Essência ✨</b>
+          para comprar bônus permanentes que aceleram cada nova jornada.
+          <div className="mt-2 opacity-80">Cristais 💎 e melhorias globais são mantidos.</div>
+        </div>
+
+        <button
+          onClick={() => { if (canRebirth) { onRebirth(); onClose(); } }}
+          disabled={!canRebirth}
+          className={`mb-4 w-full rounded-xl border-4 py-3 text-sm ${
+            canRebirth
+              ? "border-[#f5c542] bg-gradient-to-b from-[#f5c542] to-[#d4a02a] text-[#1a0d3a] shadow-[0_4px_0_#8a6a1a] active:translate-y-[2px] active:shadow-[0_2px_0_#8a6a1a]"
+              : "border-slate-600 bg-slate-800 text-slate-500"
+          }`}
+          style={{ fontFamily: "'Lilita One', cursive" }}
+        >
+          {canRebirth
+            ? `🌟 Renascer agora — +${gain} ✨`
+            : `🔒 Alcance o estágio ${PRESTIGE_UNLOCK_STAGE} (${save.stage}/${PRESTIGE_UNLOCK_STAGE})`}
+        </button>
+
+        <h3 className="mb-2 text-sm text-[#f5c542]" style={{ fontFamily: "'Lilita One', cursive" }}>
+          Melhorias Permanentes
+        </h3>
+        <div className="space-y-2">
+          {(Object.keys(GLOBAL_UP_DEFS) as GlobalUpKey[]).map((key) => {
+            const def = GLOBAL_UP_DEFS[key];
+            const lvl = save.globalUp[key] ?? 0;
+            const cost = globalUpCost(key, lvl);
+            const cur = lvl * def.perLevel;
+            const maxed = lvl >= def.max;
+            const cant = save.essence < cost;
+            return (
+              <div key={key} className="flex items-center gap-3 rounded-xl border-2 border-[#f5c542]/30 bg-black/30 p-2">
+                <div className="text-2xl">{def.icon}</div>
+                <div className="flex-1">
+                  <div className="text-xs text-[#f5c542]" style={{ fontFamily: "'Lilita One', cursive" }}>
+                    {def.label} <span className="text-[10px] opacity-70">Lv {lvl}/{def.max}</span>
+                  </div>
+                  <div className="text-[10px] opacity-80">
+                    Atual: +{def.suffix === "%" ? Math.round(cur * 100) : cur}{def.suffix ?? ""}
+                  </div>
+                </div>
+                <button
+                  onClick={() => onBuyUp(key)}
+                  disabled={maxed || cant}
+                  className={`rounded-lg border-2 px-2 py-1 text-[11px] ${
+                    maxed || cant
+                      ? "border-slate-600 bg-slate-800 text-slate-500"
+                      : "border-[#f5c542] bg-gradient-to-b from-[#f5c542] to-[#d4a02a] text-[#1a0d3a]"
+                  }`}
+                  style={{ fontFamily: "'Lilita One', cursive" }}
+                >
+                  {maxed ? "MAX" : `✨ ${cost}`}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// -------- Crystals Modal (pacotes mock) --------
+function CrystalsModal({
+  save,
+  onClose,
+  onBuy,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onBuy: (id: string) => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-black/70 backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose}>
+      <div
+        className="max-h-[85vh] w-full overflow-y-auto rounded-t-3xl border-4 border-emerald-400 bg-gradient-to-b from-[#0a1c3a] to-[#0d2b4a] p-5 text-[#e8ecf1] shadow-2xl sm:max-w-md sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-2xl text-emerald-300" style={{ fontFamily: "'Lilita One', cursive" }}>
+            💎 Cristais
+          </h2>
+          <button onClick={onClose} className="rounded-full border border-emerald-400/40 px-3 py-1 text-xs text-emerald-300">
+            Fechar
+          </button>
+        </div>
+
+        <div className="mb-3 rounded-xl border-2 border-emerald-400/40 bg-black/30 px-3 py-2 text-sm">
+          💎 Saldo: <b className="text-emerald-300">{fmt(save.gems)}</b>
+        </div>
+
+        <p className="mb-3 rounded-lg border border-amber-400/40 bg-amber-500/10 p-2 text-[11px] text-amber-200">
+          ⚠️ <b>Beta:</b> os pacotes abaixo são <b>gratuitos</b> por enquanto (mock).
+          Preços em R$ são apenas de referência para a monetização final via Google Play / Stripe.
+        </p>
+
+        <div className="space-y-2">
+          {CRYSTAL_PACKS.map((p) => (
+            <div key={p.id} className="flex items-center gap-3 rounded-xl border-2 border-emerald-400/30 bg-[#0a1c3a]/70 p-3">
+              <div className="text-3xl">💎</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 text-sm text-emerald-300" style={{ fontFamily: "'Lilita One', cursive" }}>
+                  {p.gems} cristais
+                  {p.bonus > 0 && <span className="rounded-full bg-emerald-400 px-2 py-[1px] text-[9px] uppercase text-[#0a1c3a]">+{p.bonus} bônus</span>}
+                  {p.tag && <span className="rounded-full bg-amber-400 px-2 py-[1px] text-[9px] uppercase text-[#0a1c3a]">{p.tag}</span>}
+                </div>
+                <div className="text-[11px] opacity-70">R$ {p.priceBRL.toFixed(2).replace(".", ",")}</div>
+              </div>
+              <button
+                onClick={() => onBuy(p.id)}
+                className="rounded-lg border-2 border-emerald-400 bg-gradient-to-b from-emerald-400 to-emerald-600 px-3 py-2 text-xs text-[#0a1c3a]"
+                style={{ fontFamily: "'Lilita One', cursive" }}
+              >
+                RESGATAR
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-4 text-center text-[10px] opacity-50">
+          Filosofia: <b>Pay-to-Fast</b>. Todo jogador free tem acesso ao mesmo teto de poder.
+        </p>
+      </div>
+    </div>
+  );
+}
