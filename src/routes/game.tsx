@@ -39,6 +39,19 @@ type AttrKey =
 
 type Attr = { level: number };
 
+type Rarity = "Comum" | "Raro" | "Épico" | "Lendário" | "Mítico" | "Divino";
+type SlotKey = "sword" | "armor" | "helm" | "ring" | "amulet" | "boots";
+
+type Item = {
+  id: string;
+  slot: SlotKey;
+  name: string;
+  rarity: Rarity;
+  stars: number;
+  level: number;
+  bonus: { atk: number; hp: number; def: number };
+};
+
 type SaveState = {
   level: number;
   xp: number;
@@ -46,10 +59,78 @@ type SaveState = {
   gems: number;
   stage: number;
   attrs: Record<AttrKey, Attr>;
+  equipment: Record<SlotKey, Item | null>;
+  inventory: Item[];
+  pvpWins: number;
   version: number;
 };
 
-const STORAGE_KEY = "hero-rise-idle-v2";
+const STORAGE_KEY = "hero-rise-idle-v3";
+
+const SLOTS: Array<{ key: SlotKey; label: string; emoji: string }> = [
+  { key: "sword", label: "Espada", emoji: "⚔️" },
+  { key: "armor", label: "Armadura", emoji: "🛡️" },
+  { key: "helm", label: "Capacete", emoji: "⛑️" },
+  { key: "ring", label: "Anel", emoji: "💍" },
+  { key: "amulet", label: "Amuleto", emoji: "📿" },
+  { key: "boots", label: "Botas", emoji: "🥾" },
+];
+
+const RARITIES: Array<{ name: Rarity; mult: number; chance: number; color: string }> = [
+  { name: "Comum", mult: 1, chance: 0.5, color: "text-slate-300 border-slate-600" },
+  { name: "Raro", mult: 1.8, chance: 0.25, color: "text-sky-300 border-sky-500/60" },
+  { name: "Épico", mult: 3, chance: 0.14, color: "text-fuchsia-300 border-fuchsia-500/60" },
+  { name: "Lendário", mult: 5, chance: 0.07, color: "text-amber-300 border-amber-400/70" },
+  { name: "Mítico", mult: 8, chance: 0.03, color: "text-rose-300 border-rose-400/70" },
+  { name: "Divino", mult: 14, chance: 0.01, color: "text-emerald-300 border-emerald-300/80" },
+];
+
+function rollRarity(): Rarity {
+  const r = Math.random();
+  let acc = 0;
+  for (const rr of RARITIES) {
+    acc += rr.chance;
+    if (r <= acc) return rr.name;
+  }
+  return "Comum";
+}
+
+function rollItem(slot: SlotKey, stage: number): Item {
+  const rarity = rollRarity();
+  const mult = RARITIES.find((r) => r.name === rarity)!.mult;
+  const base = 5 + stage * 2;
+  const slotInfo = SLOTS.find((s) => s.key === slot)!;
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    slot,
+    name: `${slotInfo.label}`,
+    rarity,
+    stars: 1 + Math.floor(Math.random() * 3),
+    level: 1,
+    bonus: {
+      atk: slot === "sword" ? Math.floor(base * mult) : Math.floor(base * mult * 0.15),
+      hp: slot === "amulet" || slot === "armor" ? Math.floor(base * mult * 5) : Math.floor(base * mult),
+      def: slot === "armor" || slot === "helm" ? Math.floor(base * mult) : Math.floor(base * mult * 0.2),
+    },
+  };
+}
+
+function emptyEquipment(): Record<SlotKey, Item | null> {
+  return { sword: null, armor: null, helm: null, ring: null, amulet: null, boots: null };
+}
+
+function equipmentBonus(eq: Record<SlotKey, Item | null>) {
+  let atk = 0, hp = 0, def = 0;
+  for (const k of Object.keys(eq) as SlotKey[]) {
+    const i = eq[k];
+    if (!i) continue;
+    atk += i.bonus.atk;
+    hp += i.bonus.hp;
+    def += i.bonus.def;
+  }
+  return { atk, hp, def };
+}
+
 
 // -------- Attribute definitions --------
 const ATTR_DEFS: Record<
