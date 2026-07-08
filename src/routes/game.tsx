@@ -3006,6 +3006,11 @@ function GamePage() {
       {modal === "achievements" && (
         <AchievementsModal save={save} onClose={() => setModal(null)} onClaim={claimAchievement} />
       )}
+      {modal === "runes" && (
+        <RunesModal save={save} onClose={() => setModal(null)} onUpgrade={upgradeRune} onToggle={toggleRune} />
+      )}
+
+
 
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
