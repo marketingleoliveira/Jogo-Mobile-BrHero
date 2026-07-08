@@ -704,11 +704,36 @@ function GamePage() {
     prevLevelRef.current = s.level;
   }, []);
 
-  // Marca "visto agora" a cada 30s e antes de sair
+  // Marca "visto agora" a cada 30s, contabiliza playtime e checa rotação de missões
   useEffect(() => {
     const iv = setInterval(() => {
-      setSave((p) => (p ? { ...p, lastSeenAt: Date.now() } : p));
+      setSave((p) => {
+        if (!p) return p;
+        const dk = todayKey();
+        const wk = weekKey();
+        let missions = p.missions;
+        if (missions.dailyKey !== dk) {
+          missions = { ...missions, daily: generateDaily(p.stage, p.counters), dailyKey: dk };
+        }
+        if (missions.weeklyKey !== wk) {
+          missions = { ...missions, weekly: generateWeekly(p.stage, p.counters), weeklyKey: wk };
+        }
+        return {
+          ...p,
+          lastSeenAt: Date.now(),
+          counters: { ...p.counters, playMs: p.counters.playMs + 30_000 },
+          missions,
+        };
+      });
     }, 30_000);
+    const onHide = () => {
+      const cur = saveRef.current;
+      if (!cur) return;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...cur, lastSeenAt: Date.now() })); } catch {}
+    };
+    window.addEventListener("beforeunload", onHide);
+    window.addEventListener("visibilitychange", onHide);
+    return () => { clearInterval(iv); window.removeEventListener("beforeunload", onHide); window.removeEventListener("visibilitychange", onHide); };
     const onHide = () => {
       const cur = saveRef.current;
       if (!cur) return;
