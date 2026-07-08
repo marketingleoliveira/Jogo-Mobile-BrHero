@@ -2855,6 +2855,10 @@ function GamePage() {
       {modal === "skins" && (
         <SkinsModal save={save} onClose={() => setModal(null)} onEquip={equipSkin} />
       )}
+      {modal === "achievements" && (
+        <AchievementsModal save={save} onClose={() => setModal(null)} onClaim={claimAchievement} />
+      )}
+
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
