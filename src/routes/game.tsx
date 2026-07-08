@@ -135,6 +135,8 @@ type SaveState = {
   event: EventState;
   // Skins / Cosméticos (Fase 3 — Bloco 8)
   skins: SkinsState;
+  // Conquistas (Fase 3 — Bloco 9)
+  achievements: AchievementsState;
   version: number;
 };
 
