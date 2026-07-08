@@ -3158,14 +3158,15 @@ function computeStats(s: SaveState) {
   const pb = petBonus(s);
   const bb = blessingBonus(s);
   const gb = guildBonus(s);
-  const atkBonus = (1 + (s.globalUp?.atk ?? 0) * GLOBAL_UP_DEFS.atk.perLevel) * pb.atkMul * bb.atkMul * gb.atkMul;
-  const hpBonus = (1 + (s.globalUp?.hp ?? 0) * GLOBAL_UP_DEFS.hp.perLevel) * pb.hpMul * bb.hpMul;
+  const rb = runeBonus(s);
+  const atkBonus = (1 + (s.globalUp?.atk ?? 0) * GLOBAL_UP_DEFS.atk.perLevel) * pb.atkMul * bb.atkMul * gb.atkMul * rb.atkMul;
+  const hpBonus = (1 + (s.globalUp?.hp ?? 0) * GLOBAL_UP_DEFS.hp.perLevel) * pb.hpMul * bb.hpMul * rb.hpMul;
   return {
     atk: Math.floor((attrValue("atk", s.attrs.atk.level) + eq.atk) * atkBonus),
     hp: Math.floor((attrValue("hp", s.attrs.hp.level) + eq.hp) * hpBonus),
     regen: (attrValue("regen", s.attrs.regen.level) + pb.regenAdd) * bb.regenMul,
     critDmg: attrValue("critDmg", s.attrs.critDmg.level),
-    critChance: attrValue("critChance", s.attrs.critChance.level) + (s.globalUp?.crit ?? 0) * GLOBAL_UP_DEFS.crit.perLevel * 100,
+    critChance: attrValue("critChance", s.attrs.critChance.level) + (s.globalUp?.crit ?? 0) * GLOBAL_UP_DEFS.crit.perLevel * 100 + rb.critAdd,
     atkSpeed: attrValue("atkSpeed", s.attrs.atkSpeed.level),
     lifesteal: attrValue("lifesteal", s.attrs.lifesteal.level),
     penetration: attrValue("penetration", s.attrs.penetration.level),
