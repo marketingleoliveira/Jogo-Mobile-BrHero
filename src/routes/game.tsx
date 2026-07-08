@@ -540,6 +540,31 @@ function GamePage() {
   // Init
   useEffect(() => {
     const s = loadSave();
+    // ==== Recompensas Offline ====
+    const now = Date.now();
+    const elapsed = Math.max(0, Math.min(OFFLINE_MAX_MS, now - (s.lastSeenAt ?? now)));
+    if (elapsed > 60_000) {
+      // Aproximação: 1 batalha ~ 2s no estágio atual
+      const battles = Math.floor(elapsed / 2000);
+      const enemy = enemyForStage(s.stage);
+      const goldMul = 1 + (s.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel;
+      const xpMul = 1 + (s.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel;
+      const gold = Math.floor(battles * enemy.gold * 0.4 * goldMul);
+      const xp = Math.floor(battles * enemy.xp * 0.4 * xpMul);
+      const drops = Math.min(20, Math.floor(battles * 0.02));
+      s.gold += gold;
+      s.xp += xp;
+      // Level up
+      while (s.xp >= xpForLevel(s.level)) { s.xp -= xpForLevel(s.level); s.level += 1; }
+      for (let i = 0; i < drops; i++) {
+        const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+        s.inventory = [...s.inventory, rollItem(slot, s.stage)].slice(-60);
+      }
+      s.lastSeenAt = now;
+      setOfflineReport({ ms: elapsed, gold, xp, drops });
+    } else {
+      s.lastSeenAt = now;
+    }
     setSave(s);
     saveRef.current = s;
     const stats = computeStats(s);
@@ -550,6 +575,21 @@ function GamePage() {
     enemyHpRef.current = e.hp;
     setEnemyHp(e.hp);
     prevLevelRef.current = s.level;
+  }, []);
+
+  // Marca "visto agora" a cada 30s e antes de sair
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setSave((p) => (p ? { ...p, lastSeenAt: Date.now() } : p));
+    }, 30_000);
+    const onHide = () => {
+      const cur = saveRef.current;
+      if (!cur) return;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...cur, lastSeenAt: Date.now() })); } catch {}
+    };
+    window.addEventListener("beforeunload", onHide);
+    window.addEventListener("visibilitychange", onHide);
+    return () => { clearInterval(iv); window.removeEventListener("beforeunload", onHide); window.removeEventListener("visibilitychange", onHide); };
   }, []);
 
   // Persist (debounced-ish via effect on save)
