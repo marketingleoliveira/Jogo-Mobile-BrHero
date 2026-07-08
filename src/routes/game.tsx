@@ -361,13 +361,13 @@ function loadSave(): SaveState {
 export const Route = createFileRoute("/game")({
   head: () => ({
     meta: [
-      { title: "Hero Rise Idle — RPG Mobile" },
+      { title: "BRHero — O 1º RPG IDLE Brasileiro" },
       {
         name: "description",
         content:
           "Idle RPG mobile vertical. Batalha automática, evolução constante de atributos e progressão viciante.",
       },
-      { property: "og:title", content: "Hero Rise Idle — RPG Mobile" },
+      { property: "og:title", content: "BRHero — O 1º RPG IDLE Brasileiro" },
       {
         property: "og:description",
         content: "Idle RPG mobile. Suba de nível, colete ouro e derrote chefes.",
@@ -1134,7 +1134,7 @@ const TUTORIAL_KEY = "hero-rise-tutorial-v1";
 const TUTORIAL_STEPS = [
   {
     title: "Bem-vindo, herói! 👋",
-    body: "Hero Rise é um RPG idle: seu personagem batalha sozinho. Você evolui os atributos e observa a força crescer!",
+    body: "BRHero é o primeiro RPG idle brasileiro: seu personagem batalha sozinho. Você evolui os atributos e observa a força crescer!",
   },
   {
     title: "Batalhas automáticas ⚔️",

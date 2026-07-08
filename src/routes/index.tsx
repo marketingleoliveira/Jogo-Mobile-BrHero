@@ -154,7 +154,7 @@ function Landing() {
                 className="mb-2 text-xl text-amber-200"
                 style={{ fontFamily: "'Luckiest Guy', cursive" }}
               >
-                🎮 O que é Hero Rise?
+                🎮 O que é BRHero?
               </h2>
               <p className="text-sm leading-relaxed text-amber-100">
                 Um RPG <b>idle</b> (o herói luta sozinho!) inspirado em Legend of
@@ -246,7 +246,7 @@ function Landing() {
         }} />}
 
         <p className="mt-8 text-center text-[10px] text-amber-200/60">
-          © Hero Rise · Beta MVP · Feito com ❤️ no Brasil
+          © BRHero · Beta MVP · Feito com ❤️ no Brasil
         </p>
       </div>
     </main>
