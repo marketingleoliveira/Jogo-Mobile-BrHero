@@ -1374,6 +1374,12 @@ function GamePage() {
       : null;
     if (drop) flashToast(`📦 ${drop.rarity} ${SLOTS.find(s => s.key === drop.slot)!.label}`);
     const nextStage = cur.stage + 1;
+    // Evento: medalhas + progresso missões
+    let ev = ensureEventStarted(cur);
+    const medalGain = eventActive(ev) ? (enemy.isBoss ? 5 : 1) : 0;
+    ev = addMedals(ev, medalGain);
+    ev = bumpEventMission(ev, "kill", 1);
+    if (enemy.isBoss) ev = bumpEventMission(ev, "boss", 1);
     const next: SaveState = {
       ...cur,
       xp,
@@ -1388,6 +1394,7 @@ function GamePage() {
         enemies: cur.counters.enemies + 1,
         bosses: cur.counters.bosses + (enemy.isBoss ? 1 : 0),
       },
+      event: ev,
     };
     setSave(next);
     saveRef.current = next;
