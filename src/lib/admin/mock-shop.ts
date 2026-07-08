@@ -1,5 +1,8 @@
 // Mock store for Admin CMS - Shop module.
 // Ainda não conectado a Supabase nem a pagamentos reais. Persiste em localStorage.
+import { guard } from "./rbac";
+import { logAction } from "./audit-central";
+
 
 export type ShopItemType =
   | "gems" | "gold" | "chest" | "energy"
@@ -146,6 +149,7 @@ const sanitize = (i: ShopInput): Omit<ShopItem, "id" | "sold" | "createdAt" | "u
 
 export const shopActions = {
   create(input: ShopInput, reason: string) {
+    guard("shop", "create");
     const base = sanitize(input);
     if (!base.name) throw new Error("Nome obrigatório");
     const t = now();
@@ -155,10 +159,12 @@ export const shopActions = {
     };
     store.items = [created, ...store.items];
     pushLog({ action: "create", item: created.name, before: null, after: created, reason });
+    logAction({ module: "shop", action: "create", target: created.name, before: null, after: created, reason });
     emit();
     return created;
   },
   update(id: string, input: ShopInput, reason: string) {
+    guard("shop", "edit");
     const idx = store.items.findIndex((c) => c.id === id);
     if (idx < 0) return;
     const before = store.items[idx];
@@ -167,28 +173,31 @@ export const shopActions = {
     const after: ShopItem = { ...before, ...base, updatedAt: now() };
     store.items = store.items.map((c, i) => (i === idx ? after : c));
     pushLog({ action: "update", item: after.name, before, after, reason });
+    logAction({ module: "shop", action: "update", target: after.name, before, after, reason });
     emit();
   },
   toggle(id: string, reason: string) {
+    guard("shop", "edit");
     const idx = store.items.findIndex((c) => c.id === id);
     if (idx < 0) return;
     const before = store.items[idx];
     const after: ShopItem = { ...before, active: !before.active, updatedAt: now() };
     store.items = store.items.map((c, i) => (i === idx ? after : c));
-    pushLog({
-      action: "toggle", item: after.name,
-      before: { active: before.active }, after: { active: after.active }, reason,
-    });
+    pushLog({ action: "toggle", item: after.name, before: { active: before.active }, after: { active: after.active }, reason });
+    logAction({ module: "shop", action: "toggle", target: after.name, before: { active: before.active }, after: { active: after.active }, reason });
     emit();
   },
   remove(id: string, reason: string) {
+    guard("shop", "delete");
     const target = store.items.find((c) => c.id === id);
     if (!target) return;
     store.items = store.items.filter((c) => c.id !== id);
     pushLog({ action: "delete", item: target.name, before: target, after: null, reason });
+    logAction({ module: "shop", action: "delete", target: target.name, before: target, after: null, reason });
     emit();
   },
 };
+
 
 export type ShopStatus = "active" | "scheduled" | "expired" | "inactive" | "sold_out";
 
