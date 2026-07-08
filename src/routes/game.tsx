@@ -2839,3 +2839,178 @@ function MissionsModal({
     </div>
   );
 }
+
+// -------- Dungeon Modal (Fase 3 — Bloco 1) --------
+function DungeonModal({
+  save,
+  onClose,
+  onEnter,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onEnter: (kind: DungeonKind) => { ok: boolean; rewards?: { gold: number; gems: number; essence: number; items: Item[] } };
+}) {
+  const locked = save.level < DUNGEON_UNLOCK_LEVEL;
+  const [selected, setSelected] = useState<DungeonKind | null>(null);
+  const [phase, setPhase] = useState<"idle" | "running" | "result">("idle");
+  const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState<{ ok: boolean; gold: number; gems: number; essence: number; items: Item[] } | null>(null);
+  const [, force] = useState(0);
+  const norm = useMemo(() => dungeonKeysNow(save.dungeon), [save.dungeon]);
+
+  // tick para timer de recarga
+  useEffect(() => {
+    if (norm.keys >= DUNGEON_MAX_KEYS) return;
+    const t = setInterval(() => force((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, [norm.keys]);
+
+  useEffect(() => {
+    if (phase !== "running") return;
+    setProgress(0);
+    const start = Date.now();
+    const dur = 2500;
+    const t = setInterval(() => {
+      const p = Math.min(100, ((Date.now() - start) / dur) * 100);
+      setProgress(p);
+      if (p >= 100) {
+        clearInterval(t);
+        if (selected) {
+          const r = onEnter(selected);
+          if (r.ok && r.rewards) {
+            setResult({ ok: true, ...r.rewards });
+            setPhase("result");
+          } else {
+            setPhase("idle");
+          }
+        }
+      }
+    }, 60);
+    return () => clearInterval(t);
+  }, [phase, selected, onEnter]);
+
+  const nextKeyLabel = useMemo(() => {
+    if (norm.keys >= DUNGEON_MAX_KEYS) return "Cheio";
+    const s = Math.max(0, Math.floor(norm.nextInMs / 1000));
+    const m = Math.floor(s / 60);
+    return `+1 em ${m}:${String(s % 60).padStart(2, "0")}`;
+  }, [norm]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+            🏰 Masmorra
+          </h2>
+          <div className="text-[10px] opacity-80">
+            🗝️ {norm.keys}/{DUNGEON_MAX_KEYS} · {nextKeyLabel}
+          </div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {DUNGEON_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && phase === "idle" && (
+          <>
+            <p className="mb-2 text-[11px] opacity-80">
+              Explore masmorras temáticas gastando 1 chave. Inimigos mais fortes, recompensas melhores.
+            </p>
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+              {(Object.keys(DUNGEON_DEFS) as DungeonKind[]).map((k) => {
+                const def = DUNGEON_DEFS[k];
+                return (
+                  <button
+                    key={k}
+                    onClick={() => {
+                      if (norm.keys <= 0) return;
+                      setSelected(k);
+                      setPhase("running");
+                    }}
+                    disabled={norm.keys <= 0}
+                    className={`w-full rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-3 text-left shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:grayscale`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="text-2xl">{def.icon}</div>
+                        <div>
+                          <div className="text-sm font-black text-amber-50 drop-shadow">{def.label}</div>
+                          <div className="text-[10px] text-amber-50/90">{def.desc}</div>
+                        </div>
+                      </div>
+                      <div className="rounded-md border-2 border-[#1A0F08] bg-[#1A0F08]/60 px-2 py-1 text-[10px] font-black">
+                        🗝️ 1
+                      </div>
+                    </div>
+                    <div className="mt-2 text-[10px] text-amber-50/90">
+                      Recompensa alvo · stage {save.stage} (+5 nos drops)
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {!locked && phase === "running" && selected && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center">
+            <div className="text-3xl">{DUNGEON_DEFS[selected].icon}</div>
+            <div className="mt-1 text-sm font-black">{DUNGEON_DEFS[selected].label}</div>
+            <div className="mt-1 text-[11px] opacity-80">Enfrentando o chefão...</div>
+            <div className="mt-3 h-3 w-full overflow-hidden rounded-full border-2 border-[#1A0F08] bg-[#1A0F08]">
+              <div
+                className="h-full bg-gradient-to-r from-amber-300 to-orange-500 transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {!locked && phase === "result" && result && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4">
+            <div className="text-center text-sm font-black text-emerald-300">🏆 Vitória!</div>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+              {result.gold > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">🪙 +{fmt(result.gold)} ouro</div>}
+              {result.gems > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">💎 +{result.gems} cristais</div>}
+              {result.essence > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">✨ +{result.essence} essência</div>}
+              {result.items.length > 0 && (
+                <div className="col-span-2 rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">
+                  📦 {result.items.length} equipamento(s): {result.items.map((it) => `${it.rarity} ${SLOTS.find(s => s.key === it.slot)?.label}`).join(", ")}
+                </div>
+              )}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => { setResult(null); setSelected(null); setPhase("idle"); }}
+                className="rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-xs font-black"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={() => {
+                  setResult(null);
+                  if (selected && dungeonKeysNow(save.dungeon).keys > 0) setPhase("running");
+                  else { setSelected(null); setPhase("idle"); }
+                }}
+                className="rounded-lg border-2 border-[#1A0F08] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-2 text-xs font-black text-amber-950"
+              >
+                Repetir
+              </button>
+            </div>
+          </div>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
