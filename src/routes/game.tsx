@@ -2374,6 +2374,9 @@ function GamePage() {
       if (r.petFrags && r.petFragKind) {
         next = { ...next, petFragments: { ...next.petFragments, [r.petFragKind]: next.petFragments[r.petFragKind] + r.petFrags } };
       }
+      if (r.runeFrags) {
+        next = { ...next, runes: { ...next.runes, fragments: next.runes.fragments + r.runeFrags } };
+      }
       flashToast(`🏆 ${def.label} — ${achievementRewardLabel(r)}`);
       return next;
     });
