@@ -119,14 +119,23 @@ type SaveState = {
   missions: MissionsState;
   // Masmorra (Fase 3 — Bloco 1)
   dungeon: DungeonState;
+  // Pets (Fase 3 — Bloco 2)
+  pets: Pet[];
+  equippedPetId: string | null;
+  petFragments: Record<PetKind, number>;
   version: number;
 };
 
 type DungeonState = { keys: number; lastKeyAt: number; runs: number };
 type DungeonKind = "gold" | "gear" | "essence";
 
+// ===== Pets =====
+type PetKind = "wolf" | "fairy" | "owl" | "dragon";
+type PetRarity = "Comum" | "Raro" | "Épico" | "Lendário";
+type Pet = { id: string; kind: PetKind; rarity: PetRarity; level: number };
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 7;
+const SAVE_VERSION = 8;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
@@ -152,6 +161,76 @@ function dungeonKeysNow(d: DungeonState): { keys: number; lastKeyAt: number; nex
 function emptyDungeon(): DungeonState {
   return { keys: DUNGEON_MAX_KEYS, lastKeyAt: Date.now(), runs: 0 };
 }
+
+// ===== Pets =====
+const PETS_UNLOCK_LEVEL = 15;
+const PET_MAX_LEVEL = 10;
+const PET_KINDS: PetKind[] = ["wolf", "fairy", "owl", "dragon"];
+const PET_RARITIES: PetRarity[] = ["Comum", "Raro", "Épico", "Lendário"];
+const PET_DEFS: Record<PetKind, { label: string; icon: string; desc: string; color: string }> = {
+  wolf:   { label: "Lobo",         icon: "🐺", desc: "+ATK",       color: "from-slate-500 to-slate-800" },
+  fairy:  { label: "Fada",         icon: "🧚", desc: "+HP/Regen",  color: "from-pink-400 to-fuchsia-600" },
+  owl:    { label: "Coruja",       icon: "🦉", desc: "+XP",        color: "from-amber-600 to-yellow-800" },
+  dragon: { label: "Dragão Bebê",  icon: "🐉", desc: "+Ouro/Drop", color: "from-emerald-500 to-teal-700" },
+};
+const PET_RARITY_MULT: Record<PetRarity, number> = { "Comum": 1, "Raro": 1.6, "Épico": 2.4, "Lendário": 3.5 };
+// Bônus base (%) por nível 1, escalados por raridade e nível linear
+const PET_BASE_PCT: Record<PetKind, { atkMul?: number; hpMul?: number; regenAdd?: number; xpMul?: number; goldMul?: number; dropAdd?: number }> = {
+  wolf:   { atkMul: 0.02 },
+  fairy:  { hpMul: 0.02, regenAdd: 0.5 },
+  owl:    { xpMul: 0.02 },
+  dragon: { goldMul: 0.02, dropAdd: 0.005 },
+};
+
+function petBonus(save: SaveState) {
+  const acc = { atkMul: 1, hpMul: 1, regenAdd: 0, xpMul: 1, goldMul: 1, dropAdd: 0 };
+  if (!save.equippedPetId) return acc;
+  const p = save.pets.find((x) => x.id === save.equippedPetId);
+  if (!p) return acc;
+  const base = PET_BASE_PCT[p.kind];
+  const mult = PET_RARITY_MULT[p.rarity] * p.level;
+  if (base.atkMul) acc.atkMul += base.atkMul * mult;
+  if (base.hpMul) acc.hpMul += base.hpMul * mult;
+  if (base.regenAdd) acc.regenAdd += base.regenAdd * mult;
+  if (base.xpMul) acc.xpMul += base.xpMul * mult;
+  if (base.goldMul) acc.goldMul += base.goldMul * mult;
+  if (base.dropAdd) acc.dropAdd += base.dropAdd * mult;
+  return acc;
+}
+
+// Custo de evolução do pet (ouro + fragmentos)
+function petUpgradeCost(p: Pet): { gold: number; fragments: number } {
+  const rarityMult = PET_RARITY_MULT[p.rarity];
+  return {
+    gold: Math.floor(500 * Math.pow(1.7, p.level) * rarityMult),
+    fragments: Math.floor(5 + p.level * 3 * rarityMult),
+  };
+}
+
+function craftPetCost(): number { return 50; } // fragmentos para forjar 1 pet Comum daquela espécie
+
+function emptyPetFragments(): Record<PetKind, number> {
+  return { wolf: 0, fairy: 0, owl: 0, dragon: 0 };
+}
+function rollPetRarity(bonus = 0): PetRarity {
+  const r = Math.random() - bonus;
+  if (r < 0.02) return "Lendário";
+  if (r < 0.12) return "Épico";
+  if (r < 0.35) return "Raro";
+  return "Comum";
+}
+function makePet(kind: PetKind, rarity: PetRarity): Pet {
+  return { id: `pet-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, kind, rarity, level: 1 };
+}
+// Retorna { pet? | fragments? } — pequena chance de pet inteiro, resto fragmentos
+function maybePetDrop(petChance: number, fragBonus = 0): { pet?: Pet; fragKind?: PetKind; fragAmt?: number } {
+  const kind = PET_KINDS[Math.floor(Math.random() * PET_KINDS.length)];
+  if (Math.random() < petChance) {
+    return { pet: makePet(kind, rollPetRarity(fragBonus)) };
+  }
+  return { fragKind: kind, fragAmt: 5 + Math.floor(Math.random() * 8) };
+}
+
 
 // ===== Retenção: tempo =====
 const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
@@ -588,6 +667,9 @@ function defaultSave(): SaveState {
     counters: emptyCounters(),
     missions: emptyMissions(),
     dungeon: emptyDungeon(),
+    pets: [],
+    equippedPetId: null,
+    petFragments: emptyPetFragments(),
     version: SAVE_VERSION,
   };
 }
@@ -619,6 +701,9 @@ function loadSave(): SaveState {
         weekly: Array.isArray(parsed.missions?.weekly) ? parsed.missions.weekly : [],
       },
       dungeon: { ...emptyDungeon(), ...(parsed.dungeon ?? {}) },
+      pets: Array.isArray(parsed.pets) ? parsed.pets : [],
+      equippedPetId: typeof parsed.equippedPetId === "string" ? parsed.equippedPetId : null,
+      petFragments: { ...emptyPetFragments(), ...(parsed.petFragments ?? {}) },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
@@ -681,7 +766,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -913,9 +998,10 @@ function GamePage() {
     if (!cur) return;
     const enemy = enemyRef.current;
     if (!enemy) return;
-    // Global prestige bonuses
-    const goldMul = 1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel;
-    const xpMul = 1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel;
+    // Global prestige bonuses + pet
+    const pb = petBonus(cur);
+    const goldMul = (1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * pb.goldMul;
+    const xpMul = (1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * pb.xpMul;
     const gainedGold = Math.floor(enemy.gold * goldMul);
     const gainedXp = Math.floor(enemy.xp * xpMul);
     let level = cur.level;
@@ -925,7 +1011,7 @@ function GamePage() {
       level += 1;
     }
     const canDrop = level >= 3 || cur.level >= 3;
-    const dropBonus = (cur.globalUp?.drop ?? 0) * GLOBAL_UP_DEFS.drop.perLevel;
+    const dropBonus = (cur.globalUp?.drop ?? 0) * GLOBAL_UP_DEFS.drop.perLevel + pb.dropAdd;
     const drop = canDrop && (enemy.isBoss || Math.random() < 0.12 + dropBonus)
       ? rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, cur.stage)
       : null;
@@ -1229,10 +1315,20 @@ function GamePage() {
       const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
       const item = rollItem(slot, prev.stage + bonusStage);
       flashToast(`${tier === "rare" ? "🎁" : "📦"} ${item.rarity} ${SLOTS.find(s => s.key === slot)!.label}`);
+      // Chance de pet no baú raro
+      let pets = prev.pets;
+      let frags = prev.petFragments;
+      if (tier === "rare" && Math.random() < 0.35) {
+        const d = maybePetDrop(0.15);
+        if (d.pet) { pets = [...pets, d.pet]; flashToast(`🐾 Pet ${PET_DEFS[d.pet.kind].label} (${d.pet.rarity})!`); }
+        else if (d.fragKind && d.fragAmt) { frags = { ...frags, [d.fragKind]: frags[d.fragKind] + d.fragAmt }; flashToast(`🧩 +${d.fragAmt} frag. ${PET_DEFS[d.fragKind].label}`); }
+      }
       return {
         ...prev,
         inventory: [...prev.inventory, item].slice(-60),
         counters: { ...prev.counters, chests: prev.counters.chests + 1 },
+        pets,
+        petFragments: frags,
         freeChest: tier === "free"
           ? { ...prev.freeChest, lastFreeAt: now }
           : { ...prev.freeChest, lastRareAt: now },
@@ -1316,6 +1412,14 @@ function GamePage() {
       lastKeyAt: norm.keys >= DUNGEON_MAX_KEYS ? Date.now() : norm.lastKeyAt,
       runs: prev.dungeon.runs + 1,
     };
+    // Chance de pet na masmorra gear
+    let pets = prev.pets;
+    let frags = prev.petFragments;
+    if (kind === "gear" && Math.random() < 0.5) {
+      const d = maybePetDrop(0.2);
+      if (d.pet) { pets = [...pets, d.pet]; flashToast(`🐾 Pet ${PET_DEFS[d.pet.kind].label} (${d.pet.rarity})!`); }
+      else if (d.fragKind && d.fragAmt) { frags = { ...frags, [d.fragKind]: frags[d.fragKind] + d.fragAmt }; }
+    }
     setSave({
       ...prev,
       gold: prev.gold + gold,
@@ -1324,9 +1428,51 @@ function GamePage() {
       inventory: newInv,
       counters: { ...prev.counters, chests: prev.counters.chests + items.length },
       dungeon: nextDungeon,
+      pets,
+      petFragments: frags,
     });
     return { ok: true, rewards: { gold, gems, essence, items } };
   }, [flashToast]);
+
+  // ==== Pets: callbacks ====
+  const equipPet = useCallback((id: string | null) => {
+    setSave((prev) => prev ? { ...prev, equippedPetId: id } : prev);
+  }, []);
+  const upgradePet = useCallback((id: string) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const p = prev.pets.find((x) => x.id === id);
+      if (!p) return prev;
+      if (p.level >= PET_MAX_LEVEL) { flashToast("🌟 Nível máximo"); return prev; }
+      const cost = petUpgradeCost(p);
+      if (prev.gold < cost.gold) { flashToast("💰 Ouro insuficiente"); return prev; }
+      if (prev.petFragments[p.kind] < cost.fragments) { flashToast("🧩 Fragmentos insuficientes"); return prev; }
+      flashToast(`🐾 ${PET_DEFS[p.kind].label} +1`);
+      return {
+        ...prev,
+        gold: prev.gold - cost.gold,
+        petFragments: { ...prev.petFragments, [p.kind]: prev.petFragments[p.kind] - cost.fragments },
+        pets: prev.pets.map((x) => x.id === id ? { ...x, level: x.level + 1 } : x),
+      };
+    });
+  }, [flashToast]);
+  const craftPet = useCallback((kind: PetKind) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const cost = craftPetCost();
+      if (prev.petFragments[kind] < cost) { flashToast("🧩 Fragmentos insuficientes"); return prev; }
+      const rarity = rollPetRarity();
+      const pet = makePet(kind, rarity);
+      flashToast(`🐾 Forjado: ${PET_DEFS[kind].label} (${rarity})`);
+      return {
+        ...prev,
+        petFragments: { ...prev.petFragments, [kind]: prev.petFragments[kind] - cost },
+        pets: [...prev.pets, pet],
+      };
+    });
+  }, [flashToast]);
+
+
 
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
@@ -1444,6 +1590,11 @@ function GamePage() {
               icon={<Lock className="h-3 w-3" />}
               label={save.level >= DUNGEON_UNLOCK_LEVEL ? "MASMORRA" : `🔒Lv${DUNGEON_UNLOCK_LEVEL}`}
               onClick={() => setModal("dungeon")}
+            />
+            <QuickCartoonBtn
+              icon={<Lock className="h-3 w-3" />}
+              label={save.level >= PETS_UNLOCK_LEVEL ? "PETS" : `🔒Lv${PETS_UNLOCK_LEVEL}`}
+              onClick={() => setModal("pets")}
             />
           </div>
         </div>
@@ -1798,6 +1949,15 @@ function GamePage() {
           onEnter={enterDungeon}
         />
       )}
+      {modal === "pets" && (
+        <PetsModal
+          save={save}
+          onClose={() => setModal(null)}
+          onEquip={equipPet}
+          onUpgrade={upgradePet}
+          onCraft={craftPet}
+        />
+      )}
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
@@ -2005,12 +2165,13 @@ function TabBarItem({
 // -------- Derived stats --------
 function computeStats(s: SaveState) {
   const eq = equipmentBonus(s.equipment);
-  const atkBonus = 1 + (s.globalUp?.atk ?? 0) * GLOBAL_UP_DEFS.atk.perLevel;
-  const hpBonus = 1 + (s.globalUp?.hp ?? 0) * GLOBAL_UP_DEFS.hp.perLevel;
+  const pb = petBonus(s);
+  const atkBonus = (1 + (s.globalUp?.atk ?? 0) * GLOBAL_UP_DEFS.atk.perLevel) * pb.atkMul;
+  const hpBonus = (1 + (s.globalUp?.hp ?? 0) * GLOBAL_UP_DEFS.hp.perLevel) * pb.hpMul;
   return {
     atk: Math.floor((attrValue("atk", s.attrs.atk.level) + eq.atk) * atkBonus),
     hp: Math.floor((attrValue("hp", s.attrs.hp.level) + eq.hp) * hpBonus),
-    regen: attrValue("regen", s.attrs.regen.level),
+    regen: attrValue("regen", s.attrs.regen.level) + pb.regenAdd,
     critDmg: attrValue("critDmg", s.attrs.critDmg.level),
     critChance: attrValue("critChance", s.attrs.critChance.level) + (s.globalUp?.crit ?? 0) * GLOBAL_UP_DEFS.crit.perLevel * 100,
     atkSpeed: attrValue("atkSpeed", s.attrs.atkSpeed.level),
@@ -3014,3 +3175,166 @@ function DungeonModal({
   );
 }
 
+
+// -------- Pets Modal (Fase 3 — Bloco 2) --------
+function PetsModal({
+  save,
+  onClose,
+  onEquip,
+  onUpgrade,
+  onCraft,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onEquip: (id: string | null) => void;
+  onUpgrade: (id: string) => void;
+  onCraft: (kind: PetKind) => void;
+}) {
+  const locked = save.level < PETS_UNLOCK_LEVEL;
+  const [tab, setTab] = useState<"collection" | "forge">("collection");
+  const equipped = save.pets.find((p) => p.id === save.equippedPetId) ?? null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🐾 Pets</h2>
+          <div className="text-[10px] opacity-70">1 equipado · bônus passivos</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {PETS_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && (
+          <>
+            {equipped && (
+              <div className={`mb-3 rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${PET_DEFS[equipped.kind].color} p-3`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="text-2xl">{PET_DEFS[equipped.kind].icon}</div>
+                    <div>
+                      <div className="text-sm font-black text-amber-50 drop-shadow">{PET_DEFS[equipped.kind].label}</div>
+                      <div className="text-[10px] text-amber-50/90">{equipped.rarity} · Lv {equipped.level} · {PET_DEFS[equipped.kind].desc}</div>
+                    </div>
+                  </div>
+                  <button onClick={() => onEquip(null)} className="rounded-md border-2 border-[#1A0F08] bg-[#1A0F08]/60 px-2 py-1 text-[10px] font-black">Desequipar</button>
+                </div>
+              </div>
+            )}
+
+            <div className="mb-3 flex gap-2">
+              {(["collection", "forge"] as const).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setTab(k)}
+                  className={`flex-1 rounded-lg border-2 border-[#1A0F08] py-1.5 text-xs font-black ${
+                    tab === k ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+                  }`}
+                >
+                  {k === "collection" ? `📚 Coleção (${save.pets.length})` : "🔨 Forjar"}
+                </button>
+              ))}
+            </div>
+
+            {tab === "collection" && (
+              <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
+                {save.pets.length === 0 && (
+                  <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs opacity-70">
+                    Sem pets ainda. Abra baús raros ou faça masmorra de equipamento.
+                  </div>
+                )}
+                {save.pets.map((p) => {
+                  const def = PET_DEFS[p.kind];
+                  const cost = petUpgradeCost(p);
+                  const isEq = p.id === save.equippedPetId;
+                  const canUp = p.level < PET_MAX_LEVEL && save.gold >= cost.gold && save.petFragments[p.kind] >= cost.fragments;
+                  return (
+                    <div key={p.id} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`grid h-10 w-10 place-items-center rounded-md bg-gradient-to-br ${def.color} text-xl`}>{def.icon}</div>
+                          <div>
+                            <div className="text-xs font-black">{def.label} <span className="opacity-70">({p.rarity})</span></div>
+                            <div className="text-[10px] opacity-80">Lv {p.level}/{PET_MAX_LEVEL} · {def.desc}</div>
+                            {p.level < PET_MAX_LEVEL && (
+                              <div className="text-[10px] opacity-70">🪙{fmt(cost.gold)} · 🧩{cost.fragments}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={() => onEquip(isEq ? null : p.id)}
+                            className={`rounded-md border-2 border-[#1A0F08] px-2 py-1 text-[10px] font-black ${
+                              isEq ? "bg-emerald-700" : "bg-[#5D4037]"
+                            }`}
+                          >
+                            {isEq ? "✓ Equipado" : "Equipar"}
+                          </button>
+                          <button
+                            onClick={() => onUpgrade(p.id)}
+                            disabled={!canUp}
+                            className={`rounded-md border-2 border-[#1A0F08] px-2 py-1 text-[10px] font-black ${
+                              canUp ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#3E2723] opacity-60"
+                            }`}
+                          >
+                            {p.level >= PET_MAX_LEVEL ? "MAX" : "Evoluir"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {tab === "forge" && (
+              <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
+                <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2 text-[11px] opacity-80">
+                  Use fragmentos (obtidos em baús raros e masmorra de equipamento) para forjar um pet novo. Custa <b>{craftPetCost()}🧩</b> do mesmo tipo.
+                </div>
+                {PET_KINDS.map((k) => {
+                  const def = PET_DEFS[k];
+                  const cur = save.petFragments[k];
+                  const cost = craftPetCost();
+                  const ok = cur >= cost;
+                  return (
+                    <div key={k} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`grid h-10 w-10 place-items-center rounded-md bg-gradient-to-br ${def.color} text-xl`}>{def.icon}</div>
+                          <div>
+                            <div className="text-xs font-black">{def.label}</div>
+                            <div className="text-[10px] opacity-80">{def.desc} · 🧩 {cur}/{cost}</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => onCraft(k)}
+                          disabled={!ok}
+                          className={`rounded-md border-2 border-[#1A0F08] px-3 py-1 text-[10px] font-black ${
+                            ok ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#3E2723] opacity-60"
+                          }`}
+                        >
+                          Forjar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
