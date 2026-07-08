@@ -942,6 +942,7 @@ function loadSave(): SaveState {
       tower: { ...emptyTower(), ...(parsed.tower ?? {}) },
       blessings: { ...emptyBlessings(), ...(parsed.blessings ?? {}) },
       guild: { ...emptyGuild(), ...(parsed.guild ?? {}) },
+      arena: { ...emptyArena(), ...(parsed.arena ?? {}) },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
