@@ -1285,6 +1285,23 @@ function GamePage() {
           onBuy={buyStoreItem}
         />
       )}
+      {modal === "rebirth" && (
+        <RebirthModal
+          save={save}
+          onClose={() => setModal(null)}
+          onRebirth={doRebirth}
+          onBuyUp={buyGlobalUp}
+        />
+      )}
+      {modal === "crystals" && (
+        <CrystalsModal
+          save={save}
+          onClose={() => setModal(null)}
+          onBuy={buyCrystalPack}
+        />
+      )}
+
+
 
       {/* Toast */}
       {toast && (
