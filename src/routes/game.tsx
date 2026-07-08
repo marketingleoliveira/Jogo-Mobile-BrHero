@@ -704,6 +704,55 @@ function GamePage() {
     });
   };
 
+  // ==== Store: pay-to-fast (never pay-to-win) ====
+  const buyStoreItem = useCallback((id: string) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const pack = STORE_ITEMS.find((p) => p.id === id);
+      if (!pack) return prev;
+      if (prev.gems < pack.cost) {
+        flashToast("💎 Cristais insuficientes");
+        return prev;
+      }
+      let next: SaveState = { ...prev, gems: prev.gems - pack.cost };
+      switch (pack.kind) {
+        case "gold": {
+          // convert gems → gold based on current stage (scales so it stays useful)
+          const gold = pack.amount * (10 + next.stage * 3);
+          next = { ...next, gold: next.gold + gold };
+          flashToast(`+${fmt(gold)} 🪙`);
+          break;
+        }
+        case "chest": {
+          // random equipment for a random slot at current stage
+          const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+          const item = rollItem(slot, next.stage);
+          next = { ...next, inventory: [...next.inventory, item].slice(-60) };
+          flashToast(`📦 ${item.rarity} ${SLOTS.find((s) => s.key === slot)!.label}`);
+          break;
+        }
+        case "heal": {
+          const stats = computeStats(next);
+          heroHpRef.current = stats.hp;
+          setHeroHp(stats.hp);
+          flashToast("❤️ HP totalmente restaurado");
+          break;
+        }
+        case "fastforward": {
+          // simulate N stages of gold rewards without changing stage (pay-to-fast catch-up)
+          let totalGold = 0;
+          for (let i = 0; i < pack.amount; i++) {
+            const e = enemyForStage(next.stage + i);
+            totalGold += e.gold;
+          }
+          next = { ...next, gold: next.gold + totalGold };
+          flashToast(`⏩ Recompensas equivalentes a ${pack.amount} batalhas: +${fmt(totalGold)} 🪙`);
+          break;
+        }
+      }
+      return next;
+    });
+  }, [flashToast]);
 
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
