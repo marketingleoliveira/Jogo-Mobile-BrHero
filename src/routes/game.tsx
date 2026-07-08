@@ -384,6 +384,84 @@ function guildBonus(save: SaveState) {
   };
 }
 
+// ===== Arena PvP Assíncrona =====
+const ARENA_UNLOCK_LEVEL = 30;
+const ARENA_DAILY_TICKETS = 5;
+const ARENA_EXTRA_TICKET_COST_GEMS = 20;
+const ARENA_DAILY_REWARD_GOLD = 3000;
+const ARENA_DAILY_REWARD_GEMS = 10;
+
+type ArenaTier = { key: string; name: string; icon: string; min: number; color: string };
+const ARENA_TIERS: ArenaTier[] = [
+  { key: "bronze",   name: "Bronze",   icon: "🥉", min: 0,    color: "from-amber-700 to-amber-900" },
+  { key: "prata",    name: "Prata",    icon: "🥈", min: 500,  color: "from-slate-400 to-slate-600" },
+  { key: "ouro",     name: "Ouro",     icon: "🥇", min: 1500, color: "from-yellow-400 to-amber-600" },
+  { key: "diamante", name: "Diamante", icon: "💎", min: 3000, color: "from-cyan-400 to-blue-700" },
+  { key: "lenda",    name: "Lenda",    icon: "👑", min: 5000, color: "from-fuchsia-500 to-purple-800" },
+];
+function arenaTier(points: number): ArenaTier {
+  let t = ARENA_TIERS[0]!;
+  for (const x of ARENA_TIERS) if (points >= x.min) t = x;
+  return t;
+}
+
+type ArenaOpponent = {
+  name: string; level: number; power: number; guild: string; pet: string; rank: number; rewardGold: number; rewardGems: number; seed: number;
+};
+
+const ARENA_NAMES = ["Kael", "Vora", "Ryze", "Nyx", "Thara", "Bel", "Cirus", "Draka", "Elyn", "Fenn", "Garro", "Hilda", "Ivar", "Juno", "Krix", "Luma", "Mord", "Nex", "Ora", "Pyra"];
+const ARENA_GUILDS = ["Leões", "Corvos", "Dragões", "Independente"];
+const ARENA_PETS = ["🐺 Lobo", "🧚 Fada", "🦉 Coruja", "🐲 Dragão"];
+
+function rngFromSeed(seed: number) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 0xffffffff;
+  };
+}
+
+function generateArenaOpponents(save: SaveState): ArenaOpponent[] {
+  const heroP = heroPower(computeStats(save));
+  const dayNum = Number(todayKey().replace(/-/g, ""));
+  const seed = dayNum + (save.arena?.wins ?? 0) * 31 + (save.arena?.losses ?? 0) * 17;
+  const rng = rngFromSeed(seed);
+  const opps: ArenaOpponent[] = [];
+  for (let i = 0; i < 5; i++) {
+    const factor = 0.7 + rng() * 0.7; // 0.7x .. 1.4x hero power
+    const power = Math.max(50, Math.floor(heroP * factor));
+    const level = Math.max(1, Math.floor(save.level * (0.8 + rng() * 0.5)));
+    const name = ARENA_NAMES[Math.floor(rng() * ARENA_NAMES.length)]!;
+    const guild = ARENA_GUILDS[Math.floor(rng() * ARENA_GUILDS.length)]!;
+    const pet = ARENA_PETS[Math.floor(rng() * ARENA_PETS.length)]!;
+    const rank = 100 + Math.floor(rng() * 9000);
+    const rewardGold = Math.floor(400 * level * factor);
+    const rewardGems = 3 + Math.floor(rng() * 5);
+    opps.push({ name, level, power, guild, pet, rank, rewardGold, rewardGems, seed: seed + i * 101 });
+  }
+  return opps;
+}
+
+function simulateArenaFight(save: SaveState, opp: ArenaOpponent): { win: boolean; heroPower: number } {
+  const p = heroPower(computeStats(save));
+  const winChance = Math.max(0.1, Math.min(0.92, p / (p + opp.power)));
+  const rng = rngFromSeed(opp.seed + Date.now());
+  return { win: rng() < winChance, heroPower: p };
+}
+
+function emptyArena(): ArenaState {
+  return { points: 0, wins: 0, losses: 0, ticketsToday: 0, lastTicketDay: null, extraTickets: 0, lastDailyClaim: null };
+}
+
+function arenaTicketsLeft(a: ArenaState): number {
+  const today = todayKey();
+  const used = a.lastTicketDay === today ? a.ticketsToday : 0;
+  return Math.max(0, ARENA_DAILY_TICKETS - used) + a.extraTickets;
+}
+
+
+
+
 
 // ===== Retenção: tempo =====
 const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
