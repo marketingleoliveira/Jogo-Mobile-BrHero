@@ -1054,6 +1054,11 @@ function loadSave(): SaveState {
       blessings: { ...emptyBlessings(), ...(parsed.blessings ?? {}) },
       guild: { ...emptyGuild(), ...(parsed.guild ?? {}) },
       arena: { ...emptyArena(), ...(parsed.arena ?? {}) },
+      event: {
+        ...emptyEvent(),
+        ...(parsed.event ?? {}),
+        missions: Array.isArray(parsed.event?.missions) ? parsed.event.missions : [],
+      },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
