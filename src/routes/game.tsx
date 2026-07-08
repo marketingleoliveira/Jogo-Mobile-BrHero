@@ -667,6 +667,9 @@ function defaultSave(): SaveState {
     counters: emptyCounters(),
     missions: emptyMissions(),
     dungeon: emptyDungeon(),
+    pets: [],
+    equippedPetId: null,
+    petFragments: emptyPetFragments(),
     version: SAVE_VERSION,
   };
 }
