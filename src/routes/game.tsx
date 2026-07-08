@@ -342,16 +342,25 @@ function loadSave(): SaveState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultSave();
     const parsed = JSON.parse(raw);
-    if (parsed?.version !== 3) return defaultSave();
     const base = defaultSave();
+    // Non-destructive migration: keep old progress, fill missing fields
+    const merged: SaveState = {
+      ...base,
+      ...parsed,
+      attrs: {
+        ...base.attrs,
+        ...(parsed.attrs ?? {}),
+      } as Record<AttrKey, Attr>,
+      equipment: { ...emptyEquipment(), ...(parsed.equipment ?? {}) },
+      inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
+      pvpWins: typeof parsed.pvpWins === "number" ? parsed.pvpWins : 0,
+      gems: typeof parsed.gems === "number" ? parsed.gems : base.gems,
+      version: 3,
+    };
     for (const k of ATTR_ORDER) {
-      if (!parsed.attrs?.[k]) parsed.attrs[k] = { level: 0 };
+      if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
     }
-    if (!parsed.equipment) parsed.equipment = emptyEquipment();
-    if (!Array.isArray(parsed.inventory)) parsed.inventory = [];
-    if (typeof parsed.pvpWins !== "number") parsed.pvpWins = 0;
-    return { ...base, ...parsed, attrs: parsed.attrs };
-
+    return merged;
   } catch {
     return defaultSave();
   }
@@ -409,7 +418,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | null>(null);
   const prevLevelRef = useRef(1);
 
 
@@ -1092,9 +1101,7 @@ function GamePage() {
         <TabBarItem
           icon="🛒"
           label="Loja"
-          locked={save.level < 50}
-          unlockLv={50}
-          onClick={() => setModal("arena")}
+          onClick={() => setModal("store")}
         />
       </nav>
 
@@ -1110,6 +1117,13 @@ function GamePage() {
       )}
       {modal === "arena" && (
         <ArenaModal save={save} onClose={() => setModal(null)} onFight={doPvp} />
+      )}
+      {modal === "store" && (
+        <StoreModal
+          save={save}
+          onClose={() => setModal(null)}
+          onBuy={buyStoreItem}
+        />
       )}
 
       {/* Toast */}
