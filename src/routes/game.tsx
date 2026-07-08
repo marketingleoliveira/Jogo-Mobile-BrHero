@@ -127,6 +127,8 @@ type SaveState = {
   tower: TowerState;
   // Bênçãos (Fase 3 — Bloco 4)
   blessings: Record<BlessingKind, number>; // expiresAt (ms) — 0 = inativa
+  // Guilda (Fase 3 — Bloco 5)
+  guild: GuildState;
   version: number;
 };
 
