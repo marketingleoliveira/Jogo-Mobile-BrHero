@@ -572,6 +572,12 @@ function GamePage() {
       xp -= xpForLevel(level);
       level += 1;
     }
+    // loot: bosses always drop, normal enemies 12% chance (once equipment is unlocked)
+    const canDrop = level >= 3 || cur.level >= 3;
+    const drop = canDrop && (enemy.isBoss || Math.random() < 0.12)
+      ? rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, cur.stage)
+      : null;
+    if (drop) flashToast(`📦 ${drop.rarity} ${SLOTS.find(s => s.key === drop.slot)!.label}`);
     const next: SaveState = {
       ...cur,
       xp,
@@ -579,9 +585,11 @@ function GamePage() {
       gold: cur.gold + enemy.gold,
       gems: cur.gems + enemy.gems,
       stage: cur.stage + 1,
+      inventory: drop ? [...cur.inventory, drop].slice(-60) : cur.inventory,
     };
     setSave(next);
     saveRef.current = next;
+
     // new enemy
     const e = enemyForStage(next.stage);
     enemyRef.current = e;
