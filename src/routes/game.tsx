@@ -1839,6 +1839,75 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Arena PvP Assíncrona (Fase 3 — Bloco 6) ====
+  const fightArenaOpponent = useCallback((opp: ArenaOpponent): { win: boolean } => {
+    let result: { win: boolean } = { win: false };
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.level < ARENA_UNLOCK_LEVEL) { flashToast(`🔒 Libera no Lv ${ARENA_UNLOCK_LEVEL}`); return prev; }
+      const today = todayKey();
+      const usedToday = prev.arena.lastTicketDay === today ? prev.arena.ticketsToday : 0;
+      const freeLeft = Math.max(0, ARENA_DAILY_TICKETS - usedToday);
+      if (freeLeft <= 0 && prev.arena.extraTickets <= 0) { flashToast("Sem ingressos de arena"); return prev; }
+      const sim = simulateArenaFight(prev, opp);
+      result = { win: sim.win };
+      const useExtra = freeLeft <= 0;
+      const pointsGain = sim.win ? 25 : -8;
+      const nextPoints = Math.max(0, prev.arena.points + pointsGain);
+      const gold = sim.win ? opp.rewardGold : Math.floor(opp.rewardGold * 0.2);
+      const gems = sim.win ? opp.rewardGems : 1;
+      const essence = sim.win && opp.power >= heroPower(computeStats(prev)) ? 1 : 0;
+      flashToast(sim.win ? `🏆 Vitória vs ${opp.name} +${pointsGain}pts` : `😞 Derrota vs ${opp.name} ${pointsGain}pts`);
+      return {
+        ...prev,
+        gold: prev.gold + gold,
+        gems: prev.gems + gems,
+        essence: prev.essence + essence,
+        pvpWins: prev.pvpWins + (sim.win ? 1 : 0),
+        arena: {
+          ...prev.arena,
+          points: nextPoints,
+          wins: prev.arena.wins + (sim.win ? 1 : 0),
+          losses: prev.arena.losses + (sim.win ? 0 : 1),
+          ticketsToday: useExtra ? usedToday : usedToday + 1,
+          lastTicketDay: today,
+          extraTickets: useExtra ? prev.arena.extraTickets - 1 : prev.arena.extraTickets,
+        },
+      };
+    });
+    return result;
+  }, [flashToast]);
+
+  const buyArenaTicket = useCallback(() => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.gems < ARENA_EXTRA_TICKET_COST_GEMS) { flashToast("💎 Cristais insuficientes"); return prev; }
+      flashToast(`+1 ingresso de arena`);
+      return {
+        ...prev,
+        gems: prev.gems - ARENA_EXTRA_TICKET_COST_GEMS,
+        arena: { ...prev.arena, extraTickets: prev.arena.extraTickets + 1 },
+      };
+    });
+  }, [flashToast]);
+
+  const claimArenaDaily = useCallback(() => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const today = todayKey();
+      if (prev.arena.lastDailyClaim === today) { flashToast("Já coletado hoje"); return prev; }
+      flashToast(`🎁 +${fmt(ARENA_DAILY_REWARD_GOLD)}🪙 +${ARENA_DAILY_REWARD_GEMS}💎`);
+      return {
+        ...prev,
+        gold: prev.gold + ARENA_DAILY_REWARD_GOLD,
+        gems: prev.gems + ARENA_DAILY_REWARD_GEMS,
+        arena: { ...prev.arena, lastDailyClaim: today },
+      };
+    });
+  }, [flashToast]);
+
+
+
 
 
 
