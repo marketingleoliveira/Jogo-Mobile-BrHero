@@ -1054,6 +1054,7 @@ function defaultSave(): SaveState {
     guild: emptyGuild(),
     arena: emptyArena(),
     event: emptyEvent(),
+    skins: emptySkins(),
     version: SAVE_VERSION,
   };
 }
