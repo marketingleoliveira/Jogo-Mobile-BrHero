@@ -137,6 +137,8 @@ type SaveState = {
   skins: SkinsState;
   // Conquistas (Fase 3 — Bloco 9)
   achievements: AchievementsState;
+  // Runas / Encantamentos (Fase 3 — Bloco 10)
+  runes: RunesState;
   version: number;
 };
 
@@ -198,7 +200,7 @@ type AchievementId = string;
 type AchievementsState = { claimed: AchievementId[] };
 
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 15;
+const SAVE_VERSION = 16;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
@@ -537,6 +539,7 @@ const EVENT_SHOP: EventShopItem[] = [
   { id: "chest",   label: "Baú Épico",       icon: "📦", cost: 40, limitPerEvent: 5, desc: "Equipamento raro+" },
   { id: "frag",    label: "10 Fragmentos Pet", icon: "🐾", cost: 30, limitPerEvent: 10, desc: "Fragmento aleatório" },
   { id: "essence", label: "1 Essência",      icon: "✨", cost: 60, limitPerEvent: 3, desc: "Rebirth mais rápido" },
+  { id: "rune_frag", label: "5 Fragmentos de Runa", icon: "🔮", cost: 40, limitPerEvent: 10, desc: "Evolua suas runas" },
   { id: "skin_brasil", label: "Skin: Guardião do Brasil", icon: "🦸", cost: 120, limitPerEvent: 1, desc: "Cosmético do evento" },
 ];
 
@@ -617,7 +620,7 @@ function equippedSkinDef(save: SaveState): SkinDef {
 
 // ===== Conquistas / Achievements (Fase 3 — Bloco 9) =====
 type AchievementCategory = "combate" | "progressao" | "colecao" | "social";
-type AchievementReward = { gold?: number; gems?: number; essence?: number; chest?: 0 | 1 | 2; petFragKind?: PetKind; petFrags?: number };
+type AchievementReward = { gold?: number; gems?: number; essence?: number; chest?: 0 | 1 | 2; petFragKind?: PetKind; petFrags?: number; runeFrags?: number };
 type AchievementDef = {
   id: AchievementId;
   category: AchievementCategory;
@@ -686,8 +689,87 @@ function achievementRewardLabel(r: AchievementReward): string {
   if (r.essence) parts.push(`${r.essence}✨`);
   if (r.chest) parts.push(r.chest === 2 ? "🎁 Baú Raro" : "🎁 Baú");
   if (r.petFrags && r.petFragKind) parts.push(`${r.petFrags}🧩 ${r.petFragKind}`);
+  if (r.runeFrags) parts.push(`${r.runeFrags}🔮 runa`);
   return parts.join(" · ");
 }
+
+// ===== Runas / Encantamentos (Fase 3 — Bloco 10) =====
+const RUNE_UNLOCK_LEVEL = 35;
+const RUNE_MAX_LEVEL = 10;
+const RUNE_MAX_EQUIPPED = 3;
+
+type RuneKind = "atk" | "hp" | "gold" | "xp" | "drop" | "crit";
+
+type RunesState = {
+  fragments: number;
+  levels: Record<RuneKind, number>;
+  equipped: RuneKind[];
+};
+
+type RuneDef = {
+  id: RuneKind;
+  label: string;
+  icon: string;
+  color: string;
+  perLevel: number;   // fração (0.02 = +2% ou +0.02 flat)
+  kind: "pct" | "flat"; // pct multiplicativo, flat somado
+  desc: (v: number) => string;
+};
+
+const RUNE_DEFS: Record<RuneKind, RuneDef> = {
+  atk:  { id: "atk",  label: "Runa do Ataque",     icon: "🗡️", color: "from-red-500 to-red-800",         perLevel: 0.02,  kind: "pct",  desc: (v) => `+${(v*100).toFixed(0)}% ATK` },
+  hp:   { id: "hp",   label: "Runa da Vida",       icon: "❤️", color: "from-rose-500 to-rose-800",       perLevel: 0.02,  kind: "pct",  desc: (v) => `+${(v*100).toFixed(0)}% HP` },
+  gold: { id: "gold", label: "Runa da Fortuna",    icon: "🪙", color: "from-amber-400 to-yellow-700",    perLevel: 0.015, kind: "pct",  desc: (v) => `+${(v*100).toFixed(1)}% Ouro` },
+  xp:   { id: "xp",   label: "Runa do Aprendizado",icon: "📘", color: "from-sky-500 to-indigo-700",      perLevel: 0.015, kind: "pct",  desc: (v) => `+${(v*100).toFixed(1)}% XP` },
+  drop: { id: "drop", label: "Runa do Caçador",    icon: "🎯", color: "from-emerald-500 to-emerald-800", perLevel: 0.005, kind: "flat", desc: (v) => `+${(v*100).toFixed(1)}% Drop` },
+  crit: { id: "crit", label: "Runa Crítica",       icon: "💥", color: "from-fuchsia-500 to-purple-800",  perLevel: 0.5,   kind: "flat", desc: (v) => `+${v.toFixed(1)}% Crítico` },
+};
+
+const RUNE_ORDER: RuneKind[] = ["atk", "hp", "gold", "xp", "drop", "crit"];
+
+function emptyRunes(): RunesState {
+  return {
+    fragments: 0,
+    levels: { atk: 0, hp: 0, gold: 0, xp: 0, drop: 0, crit: 0 },
+    equipped: [],
+  };
+}
+
+function runeUpgradeCost(currentLv: number): { gold: number; fragments: number } {
+  const next = currentLv + 1;
+  return {
+    gold: Math.floor(500 * Math.pow(next, 1.7)),
+    fragments: 2 + next * 2,
+  };
+}
+
+type RuneBonus = { atkMul: number; hpMul: number; goldMul: number; xpMul: number; dropAdd: number; critAdd: number };
+
+function runeBonus(s: SaveState): RuneBonus {
+  const acc: RuneBonus = { atkMul: 1, hpMul: 1, goldMul: 1, xpMul: 1, dropAdd: 0, critAdd: 0 };
+  const r = s.runes;
+  if (!r || s.level < RUNE_UNLOCK_LEVEL) return acc;
+  for (const k of r.equipped) {
+    const lv = Math.min(RUNE_MAX_LEVEL, r.levels[k] ?? 0);
+    if (lv <= 0) continue;
+    const def = RUNE_DEFS[k];
+    const v = def.perLevel * lv;
+    if (k === "atk")  acc.atkMul  += v;
+    if (k === "hp")   acc.hpMul   += v;
+    if (k === "gold") acc.goldMul += v;
+    if (k === "xp")   acc.xpMul   += v;
+    if (k === "drop") acc.dropAdd += v;
+    if (k === "crit") acc.critAdd += v;
+  }
+  return acc;
+}
+
+function runeCurrentValue(kind: RuneKind, lv: number): number {
+  return RUNE_DEFS[kind].perLevel * Math.min(RUNE_MAX_LEVEL, Math.max(0, lv));
+}
+
+
+
 
 
 
@@ -1139,6 +1221,7 @@ function defaultSave(): SaveState {
     event: emptyEvent(),
     skins: emptySkins(),
     achievements: emptyAchievements(),
+    runes: emptyRunes(),
     version: SAVE_VERSION,
   };
 }
@@ -1190,6 +1273,13 @@ function loadSave(): SaveState {
       },
       achievements: {
         claimed: Array.isArray(parsed.achievements?.claimed) ? parsed.achievements.claimed : [],
+      },
+      runes: {
+        fragments: typeof parsed.runes?.fragments === "number" ? parsed.runes.fragments : 0,
+        levels: { ...emptyRunes().levels, ...(parsed.runes?.levels ?? {}) },
+        equipped: Array.isArray(parsed.runes?.equipped)
+          ? (parsed.runes.equipped.filter((k: string) => (RUNE_ORDER as string[]).includes(k)) as RuneKind[]).slice(0, RUNE_MAX_EQUIPPED)
+          : [],
       },
     };
     for (const k of ATTR_ORDER) {
@@ -1253,7 +1343,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | "runes" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -1491,8 +1581,9 @@ function GamePage() {
     const pb = petBonus(cur);
     const bb = blessingBonus(cur);
     const gb = guildBonus(cur);
-    const goldMul = (1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * pb.goldMul * bb.goldMul * gb.goldMul;
-    const xpMul = (1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * pb.xpMul * bb.xpMul * gb.xpMul;
+    const rb = runeBonus(cur);
+    const goldMul = (1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * pb.goldMul * bb.goldMul * gb.goldMul * rb.goldMul;
+    const xpMul = (1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * pb.xpMul * bb.xpMul * gb.xpMul * rb.xpMul;
     const gainedGold = Math.floor(enemy.gold * goldMul);
     const gainedXp = Math.floor(enemy.xp * xpMul);
     let level = cur.level;
@@ -1502,7 +1593,7 @@ function GamePage() {
       level += 1;
     }
     const canDrop = level >= 3 || cur.level >= 3;
-    const dropBonus = (cur.globalUp?.drop ?? 0) * GLOBAL_UP_DEFS.drop.perLevel + pb.dropAdd + bb.dropAdd;
+    const dropBonus = (cur.globalUp?.drop ?? 0) * GLOBAL_UP_DEFS.drop.perLevel + pb.dropAdd + bb.dropAdd + rb.dropAdd;
     const drop = canDrop && (enemy.isBoss || Math.random() < 0.12 + dropBonus)
       ? rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, cur.stage)
       : null;
@@ -1943,6 +2034,9 @@ function GamePage() {
       pets,
       petFragments: frags,
       event: ev,
+      runes: prev.level >= RUNE_UNLOCK_LEVEL
+        ? { ...prev.runes, fragments: prev.runes.fragments + 3 }
+        : prev.runes,
     });
     return { ok: true, rewards: { gold, gems, essence, items } };
   }, [flashToast]);
@@ -2012,6 +2106,8 @@ function GamePage() {
     let ev = ensureEventStarted(prev);
     ev = addMedals(ev, 10 + Math.floor(floor / 5));
     if (floorsClimbed > 0) ev = bumpEventMission(ev, "tower", floorsClimbed);
+    // Runas: fragmentos por escalada (2 + floor/10)
+    const runeFragGain = prev.level >= RUNE_UNLOCK_LEVEL ? 2 + Math.floor(floor / 10) : 0;
     setSave({
       ...prev,
       gold: prev.gold + gold,
@@ -2022,6 +2118,7 @@ function GamePage() {
       counters: { ...prev.counters, chests: prev.counters.chests + chests },
       tower: { bestFloor: best, runs: prev.tower.runs + 1, lastRunAt: Date.now() },
       event: ev,
+      runes: { ...prev.runes, fragments: prev.runes.fragments + runeFragGain },
     });
     return { floor, best, newRecord, rewards: { gold, gems, essence, chests, frag: rw.frag } };
   }, [flashToast]);
@@ -2229,6 +2326,7 @@ function GamePage() {
           break;
         }
         case "essence": next = { ...next, essence: next.essence + 1 }; break;
+        case "rune_frag": next = { ...next, runes: { ...next.runes, fragments: next.runes.fragments + 5 } }; break;
         case "skin_brasil": {
           if (next.skins.owned.includes("brasil")) { flashToast("🦸 Já possui essa skin"); return prev; }
           next = { ...next, skins: { ...next.skins, owned: [...next.skins.owned, "brasil"] } };
@@ -2276,10 +2374,54 @@ function GamePage() {
       if (r.petFrags && r.petFragKind) {
         next = { ...next, petFragments: { ...next.petFragments, [r.petFragKind]: next.petFragments[r.petFragKind] + r.petFrags } };
       }
+      if (r.runeFrags) {
+        next = { ...next, runes: { ...next.runes, fragments: next.runes.fragments + r.runeFrags } };
+      }
       flashToast(`🏆 ${def.label} — ${achievementRewardLabel(r)}`);
       return next;
     });
   }, [flashToast]);
+
+  // ==== Runas / Encantamentos (Fase 3 — Bloco 10) ====
+  const upgradeRune = useCallback((kind: RuneKind) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.level < RUNE_UNLOCK_LEVEL) { flashToast(`🔒 Libera no Lv ${RUNE_UNLOCK_LEVEL}`); return prev; }
+      const lv = prev.runes.levels[kind] ?? 0;
+      if (lv >= RUNE_MAX_LEVEL) { flashToast("🌟 Nível máximo"); return prev; }
+      const cost = runeUpgradeCost(lv);
+      if (prev.gold < cost.gold) { flashToast("💰 Ouro insuficiente"); return prev; }
+      if (prev.runes.fragments < cost.fragments) { flashToast("🔮 Fragmentos insuficientes"); return prev; }
+      flashToast(`🔮 ${RUNE_DEFS[kind].label} Lv${lv + 1}`);
+      return {
+        ...prev,
+        gold: prev.gold - cost.gold,
+        runes: {
+          ...prev.runes,
+          fragments: prev.runes.fragments - cost.fragments,
+          levels: { ...prev.runes.levels, [kind]: lv + 1 },
+        },
+      };
+    });
+  }, [flashToast]);
+
+  const toggleRune = useCallback((kind: RuneKind) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.level < RUNE_UNLOCK_LEVEL) return prev;
+      const lv = prev.runes.levels[kind] ?? 0;
+      if (lv <= 0) { flashToast("🔒 Runa ainda em Lv0"); return prev; }
+      const eq = prev.runes.equipped;
+      if (eq.includes(kind)) {
+        return { ...prev, runes: { ...prev.runes, equipped: eq.filter((k) => k !== kind) } };
+      }
+      if (eq.length >= RUNE_MAX_EQUIPPED) { flashToast(`Máx ${RUNE_MAX_EQUIPPED} runas equipadas`); return prev; }
+      return { ...prev, runes: { ...prev.runes, equipped: [...eq, kind] } };
+    });
+  }, [flashToast]);
+
+
+
 
 
 
@@ -2450,6 +2592,12 @@ function GamePage() {
               label="CONQUISTAS"
               onClick={() => setModal("achievements")}
             />
+            <QuickCartoonBtn
+              icon={<Sparkles className="h-3 w-3" />}
+              label={save.level >= RUNE_UNLOCK_LEVEL ? "RUNAS" : `🔒Lv${RUNE_UNLOCK_LEVEL}`}
+              onClick={() => setModal("runes")}
+            />
+
 
           </div>
         </div>
@@ -2858,6 +3006,11 @@ function GamePage() {
       {modal === "achievements" && (
         <AchievementsModal save={save} onClose={() => setModal(null)} onClaim={claimAchievement} />
       )}
+      {modal === "runes" && (
+        <RunesModal save={save} onClose={() => setModal(null)} onUpgrade={upgradeRune} onToggle={toggleRune} />
+      )}
+
+
 
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
@@ -3069,14 +3222,15 @@ function computeStats(s: SaveState) {
   const pb = petBonus(s);
   const bb = blessingBonus(s);
   const gb = guildBonus(s);
-  const atkBonus = (1 + (s.globalUp?.atk ?? 0) * GLOBAL_UP_DEFS.atk.perLevel) * pb.atkMul * bb.atkMul * gb.atkMul;
-  const hpBonus = (1 + (s.globalUp?.hp ?? 0) * GLOBAL_UP_DEFS.hp.perLevel) * pb.hpMul * bb.hpMul;
+  const rb = runeBonus(s);
+  const atkBonus = (1 + (s.globalUp?.atk ?? 0) * GLOBAL_UP_DEFS.atk.perLevel) * pb.atkMul * bb.atkMul * gb.atkMul * rb.atkMul;
+  const hpBonus = (1 + (s.globalUp?.hp ?? 0) * GLOBAL_UP_DEFS.hp.perLevel) * pb.hpMul * bb.hpMul * rb.hpMul;
   return {
     atk: Math.floor((attrValue("atk", s.attrs.atk.level) + eq.atk) * atkBonus),
     hp: Math.floor((attrValue("hp", s.attrs.hp.level) + eq.hp) * hpBonus),
     regen: (attrValue("regen", s.attrs.regen.level) + pb.regenAdd) * bb.regenMul,
     critDmg: attrValue("critDmg", s.attrs.critDmg.level),
-    critChance: attrValue("critChance", s.attrs.critChance.level) + (s.globalUp?.crit ?? 0) * GLOBAL_UP_DEFS.crit.perLevel * 100,
+    critChance: attrValue("critChance", s.attrs.critChance.level) + (s.globalUp?.crit ?? 0) * GLOBAL_UP_DEFS.crit.perLevel * 100 + rb.critAdd,
     atkSpeed: attrValue("atkSpeed", s.attrs.atkSpeed.level),
     lifesteal: attrValue("lifesteal", s.attrs.lifesteal.level),
     penetration: attrValue("penetration", s.attrs.penetration.level),
@@ -5079,4 +5233,101 @@ function AchievementsModal({
     </div>
   );
 }
+
+// -------- Runes Modal (Fase 3 — Bloco 10) --------
+function RunesModal({
+  save,
+  onClose,
+  onUpgrade,
+  onToggle,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onUpgrade: (kind: RuneKind) => void;
+  onToggle: (kind: RuneKind) => void;
+}) {
+  const locked = save.level < RUNE_UNLOCK_LEVEL;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🔮 Runas</h2>
+          <div className="text-[10px] opacity-70">
+            🔮 {save.runes.fragments} · Equipadas {save.runes.equipped.length}/{RUNE_MAX_EQUIPPED}
+          </div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {RUNE_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && (
+          <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+            {RUNE_ORDER.map((k) => {
+              const def = RUNE_DEFS[k];
+              const lv = save.runes.levels[k] ?? 0;
+              const equipped = save.runes.equipped.includes(k);
+              const isMax = lv >= RUNE_MAX_LEVEL;
+              const cost = runeUpgradeCost(lv);
+              const curVal = runeCurrentValue(k, lv);
+              const nextVal = runeCurrentValue(k, Math.min(RUNE_MAX_LEVEL, lv + 1));
+              return (
+                <div key={k} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-2`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="text-2xl">{def.icon}</div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-black text-amber-50 drop-shadow flex items-center gap-1">
+                          {def.label} <span className="text-[10px] opacity-80">Lv{lv}/{RUNE_MAX_LEVEL}</span>
+                        </div>
+                        <div className="text-[10px] text-amber-50/90">
+                          Atual: {lv > 0 ? def.desc(curVal) : "—"}
+                          {!isMax && lv >= 0 && <> · Próx: {def.desc(nextVal)}</>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <button
+                        onClick={() => onToggle(k)}
+                        disabled={lv <= 0}
+                        className={`rounded-md border-2 border-[#1A0F08] px-2 py-1 text-[10px] font-black ${
+                          equipped
+                            ? "bg-gradient-to-b from-emerald-500 to-emerald-700 text-white"
+                            : "bg-black/40 text-amber-100 disabled:opacity-40"
+                        }`}
+                      >
+                        {equipped ? "✓ Equipada" : "Equipar"}
+                      </button>
+                      <button
+                        onClick={() => onUpgrade(k)}
+                        disabled={isMax || save.gold < cost.gold || save.runes.fragments < cost.fragments}
+                        className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2 py-1 text-[10px] font-black text-amber-100 disabled:opacity-40"
+                      >
+                        {isMax ? "MAX" : `🪙${fmt(cost.gold)} · 🔮${cost.fragments}`}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2 text-[10px] opacity-80">
+              💡 Fragmentos vêm de <b>Torre</b>, <b>Masmorra</b>, <b>Conquistas</b> e <b>Loja do Evento</b>.
+              Bônus máximos por runa: ATK/HP +20% · Ouro/XP +15% · Drop +5% · Crítico +5%.
+            </div>
+          </div>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
 
