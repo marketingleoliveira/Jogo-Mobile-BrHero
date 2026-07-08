@@ -133,6 +133,8 @@ type SaveState = {
   arena: ArenaState;
   // Eventos Sazonais (Fase 3 — Bloco 7)
   event: EventState;
+  // Skins / Cosméticos (Fase 3 — Bloco 8)
+  skins: SkinsState;
   version: number;
 };
 
@@ -185,8 +187,12 @@ type EventState = {
   missions: EventMissionProgress[];
 };
 
+// ===== Skins / Cosméticos =====
+type SkinId = "classic" | "green" | "gold" | "brasil" | "shadow";
+type SkinsState = { owned: SkinId[]; equipped: SkinId };
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 13;
+const SAVE_VERSION = 14;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
@@ -525,6 +531,7 @@ const EVENT_SHOP: EventShopItem[] = [
   { id: "chest",   label: "Baú Épico",       icon: "📦", cost: 40, limitPerEvent: 5, desc: "Equipamento raro+" },
   { id: "frag",    label: "10 Fragmentos Pet", icon: "🐾", cost: 30, limitPerEvent: 10, desc: "Fragmento aleatório" },
   { id: "essence", label: "1 Essência",      icon: "✨", cost: 60, limitPerEvent: 3, desc: "Rebirth mais rápido" },
+  { id: "skin_brasil", label: "Skin: Guardião do Brasil", icon: "🦸", cost: 120, limitPerEvent: 1, desc: "Cosmético do evento" },
 ];
 
 function emptyEvent(): EventState {
@@ -572,6 +579,38 @@ function addMedals(ev: EventState, amount: number): EventState {
   if (!eventActive(ev) || amount <= 0) return ev;
   return { ...ev, medals: ev.medals + amount };
 }
+
+// ===== Skins / Cosméticos =====
+const SKIN_UNLOCK_LEVEL = 10;
+
+type SkinDef = {
+  id: SkinId;
+  label: string;
+  icon: string;
+  rarity: "Comum" | "Raro" | "Épico" | "Lendário";
+  color: string;
+  desc: string;
+};
+
+const SKIN_DEFS: Record<SkinId, SkinDef> = {
+  classic: { id: "classic", label: "Herói Clássico",     icon: "🧙", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "O visual original — todos começam aqui." },
+  green:   { id: "green",   label: "Guerreiro Verde",    icon: "🥷", rarity: "Raro",     color: "from-emerald-500 to-green-700",   desc: "Furtivo e ágil, camuflado na floresta." },
+  gold:    { id: "gold",    label: "Cavaleiro Dourado",  icon: "🤴", rarity: "Épico",    color: "from-amber-400 to-yellow-700",    desc: "Armadura reluzente forjada em ouro." },
+  brasil:  { id: "brasil",  label: "Guardião do Brasil", icon: "🦸", rarity: "Épico",    color: "from-green-500 to-yellow-500",    desc: "Herói tupiniquim das terras tropicais." },
+  shadow:  { id: "shadow",  label: "Sombra Lendária",    icon: "🥷", rarity: "Lendário", color: "from-purple-700 to-black",        desc: "Rumores dizem que ele nunca é visto." },
+};
+
+function emptySkins(): SkinsState {
+  return { owned: ["classic"], equipped: "classic" };
+}
+
+function equippedSkinDef(save: SaveState): SkinDef {
+  const id = save.skins?.equipped ?? "classic";
+  return SKIN_DEFS[id] ?? SKIN_DEFS.classic;
+}
+
+
+
 
 // ===== Retenção: tempo =====
 const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
@@ -1016,6 +1055,7 @@ function defaultSave(): SaveState {
     guild: emptyGuild(),
     arena: emptyArena(),
     event: emptyEvent(),
+    skins: emptySkins(),
     version: SAVE_VERSION,
   };
 }
@@ -1058,6 +1098,12 @@ function loadSave(): SaveState {
         ...emptyEvent(),
         ...(parsed.event ?? {}),
         missions: Array.isArray(parsed.event?.missions) ? parsed.event.missions : [],
+      },
+      skins: {
+        owned: Array.isArray(parsed.skins?.owned) && parsed.skins.owned.length > 0
+          ? (parsed.skins.owned.filter((x: string) => (x as SkinId) in SKIN_DEFS) as SkinId[])
+          : ["classic"],
+        equipped: (parsed.skins?.equipped as SkinId) in SKIN_DEFS ? parsed.skins.equipped : "classic",
       },
     };
     for (const k of ATTR_ORDER) {
@@ -1121,7 +1167,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -1689,12 +1735,23 @@ function GamePage() {
         if (d.pet) { pets = [...pets, d.pet]; flashToast(`🐾 Pet ${PET_DEFS[d.pet.kind].label} (${d.pet.rarity})!`); }
         else if (d.fragKind && d.fragAmt) { frags = { ...frags, [d.fragKind]: frags[d.fragKind] + d.fragAmt }; flashToast(`🧩 +${d.fragAmt} frag. ${PET_DEFS[d.fragKind].label}`); }
       }
+      // Chance pequena de skin cosmética no baú raro
+      let skins = prev.skins;
+      if (tier === "rare" && Math.random() < 0.05) {
+        const pool: SkinId[] = (["green", "gold", "shadow"] as SkinId[]).filter((s) => !skins.owned.includes(s));
+        if (pool.length > 0) {
+          const drop = pool[Math.floor(Math.random() * pool.length)]!;
+          skins = { ...skins, owned: [...skins.owned, drop] };
+          flashToast(`✨ Skin desbloqueada: ${SKIN_DEFS[drop].label}!`);
+        }
+      }
       return {
         ...prev,
         inventory: [...prev.inventory, item].slice(-60),
         counters: { ...prev.counters, chests: prev.counters.chests + 1 },
         pets,
         petFragments: frags,
+        skins,
         freeChest: tier === "free"
           ? { ...prev.freeChest, lastFreeAt: now }
           : { ...prev.freeChest, lastRareAt: now },
@@ -2086,12 +2143,30 @@ function GamePage() {
           break;
         }
         case "essence": next = { ...next, essence: next.essence + 1 }; break;
+        case "skin_brasil": {
+          if (next.skins.owned.includes("brasil")) { flashToast("🦸 Já possui essa skin"); return prev; }
+          next = { ...next, skins: { ...next.skins, owned: [...next.skins.owned, "brasil"] } };
+          break;
+        }
       }
       flashToast(`${item.icon} ${item.label}`);
       ev = { ...ev, medals: ev.medals - item.cost };
       return { ...next, event: ev };
     });
   }, [flashToast]);
+
+  // ==== Skins / Cosméticos (Fase 3 — Bloco 8) ====
+  const equipSkin = useCallback((id: SkinId) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (!prev.skins.owned.includes(id)) { flashToast("Skin não desbloqueada"); return prev; }
+      flashToast(`${SKIN_DEFS[id].icon} ${SKIN_DEFS[id].label} equipada`);
+      return { ...prev, skins: { ...prev.skins, equipped: id } };
+    });
+  }, [flashToast]);
+
+
+
 
 
 
@@ -2246,6 +2321,11 @@ function GamePage() {
               icon={<Sparkles className="h-3 w-3" />}
               label={save.level >= EVENT_UNLOCK_LEVEL ? `${ACTIVE_EVENT.icon} EVENTO` : `🔒Lv${EVENT_UNLOCK_LEVEL}`}
               onClick={() => setModal("event")}
+            />
+            <QuickCartoonBtn
+              icon={<Lock className="h-3 w-3" />}
+              label={save.level >= SKIN_UNLOCK_LEVEL ? `${equippedSkinDef(save).icon} SKINS` : `🔒Lv${SKIN_UNLOCK_LEVEL}`}
+              onClick={() => setModal("skins")}
             />
           </div>
         </div>
@@ -2647,6 +2727,9 @@ function GamePage() {
           onClaimMission={claimEventMission}
           onBuy={buyEventShop}
         />
+      )}
+      {modal === "skins" && (
+        <SkinsModal save={save} onClose={() => setModal(null)} onEquip={equipSkin} />
       )}
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
@@ -4697,6 +4780,79 @@ function EventModal({
               </div>
             )}
           </>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
+// -------- Skins Modal (Fase 3 — Bloco 8) --------
+function SkinsModal({
+  save,
+  onClose,
+  onEquip,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onEquip: (id: SkinId) => void;
+}) {
+  const locked = save.level < SKIN_UNLOCK_LEVEL;
+  const allIds = Object.keys(SKIN_DEFS) as SkinId[];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>👗 Skins</h2>
+          <div className="text-[10px] opacity-70">Apenas cosmético · sem bônus</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {SKIN_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && (
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+            {allIds.map((id) => {
+              const def = SKIN_DEFS[id];
+              const owned = save.skins.owned.includes(id);
+              const equipped = save.skins.equipped === id;
+              return (
+                <div key={id} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-2 ${owned ? "" : "opacity-60"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="text-3xl">{owned ? def.icon : "🔒"}</div>
+                      <div>
+                        <div className="text-xs font-black text-amber-50 drop-shadow">{def.label}</div>
+                        <div className="text-[10px] text-amber-50/90">{def.rarity} · {def.desc}</div>
+                        {!owned && (
+                          <div className="mt-0.5 text-[10px] font-black text-amber-50/80">
+                            Obtenha em baús raros ou na loja do evento.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onEquip(id)}
+                      disabled={!owned || equipped}
+                      className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2.5 py-1.5 text-[11px] font-black text-amber-100 disabled:opacity-50"
+                    >
+                      {equipped ? "Equipada" : owned ? "Equipar" : "Bloqueada"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
 
         <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
