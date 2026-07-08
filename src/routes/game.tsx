@@ -323,7 +323,10 @@ function defaultSave(): SaveState {
     gems: 10,
     stage: 1,
     attrs: Object.fromEntries(ATTR_ORDER.map((k) => [k, { level: 0 }])) as Record<AttrKey, Attr>,
-    version: 2,
+    equipment: emptyEquipment(),
+    inventory: [],
+    pvpWins: 0,
+    version: 3,
   };
 }
 
@@ -333,11 +336,11 @@ function loadSave(): SaveState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultSave();
     const parsed = JSON.parse(raw);
-    if (parsed?.version !== 2) return defaultSave();
-    // ensure all attrs present
+    if (parsed?.version !== 3) return defaultSave();
     const base = defaultSave();
     for (const k of ATTR_ORDER) {
       if (!parsed.attrs?.[k]) parsed.attrs[k] = { level: 0 };
+
     }
     return { ...base, ...parsed, attrs: parsed.attrs };
   } catch {
