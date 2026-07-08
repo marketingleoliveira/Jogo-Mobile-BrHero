@@ -4988,3 +4988,95 @@ function SkinsModal({
     </div>
   );
 }
+
+// -------- Achievements Modal (Fase 3 — Bloco 9) --------
+function AchievementsModal({
+  save,
+  onClose,
+  onClaim,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onClaim: (id: AchievementId) => void;
+}) {
+  const [cat, setCat] = useState<AchievementCategory>("combate");
+  const claimedSet = new Set(save.achievements.claimed);
+  const list = ACHIEVEMENTS.filter((a) => a.category === cat);
+  const totalDone = save.achievements.claimed.length;
+  const totalAll = ACHIEVEMENTS.length;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🏆 Conquistas</h2>
+          <div className="text-[10px] opacity-70">{totalDone}/{totalAll} coletadas</div>
+        </div>
+
+        <div className="mb-3 grid grid-cols-4 gap-1">
+          {ACHIEVEMENT_CATEGORIES.map((c) => (
+            <button
+              key={c.key}
+              onClick={() => setCat(c.key)}
+              className={`rounded-lg border-2 border-[#1A0F08] py-1.5 text-[10px] font-black ${
+                cat === c.key ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+              }`}
+            >
+              {c.icon} {c.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+          {list.map((a) => {
+            const cur = Math.min(a.metric(save), a.goal);
+            const pct = Math.min(100, Math.floor((cur / a.goal) * 100));
+            const done = cur >= a.goal;
+            const claimed = claimedSet.has(a.id);
+            return (
+              <div key={a.id} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <div className="text-2xl leading-none">{a.icon}</div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-black">{a.label}</div>
+                      <div className="text-[10px] opacity-80">{a.desc}</div>
+                      <div className="text-[10px] mt-0.5 text-amber-300">🎁 {achievementRewardLabel(a.reward)}</div>
+                    </div>
+                  </div>
+                  <button
+                    disabled={!done || claimed}
+                    onClick={() => onClaim(a.id)}
+                    className={`shrink-0 rounded-md border-2 border-[#1A0F08] px-2 py-1 text-[10px] font-black ${
+                      claimed
+                        ? "bg-[#4A2F1A] text-amber-100/50"
+                        : done
+                        ? "bg-gradient-to-b from-emerald-500 to-emerald-700 text-white"
+                        : "bg-black/40 text-amber-100/50"
+                    }`}
+                  >
+                    {claimed ? "✓ Coletada" : done ? "Coletar" : "🔒"}
+                  </button>
+                </div>
+                <div className="mt-1.5 h-1.5 w-full rounded-full bg-black/40 overflow-hidden">
+                  <div
+                    className={`h-full ${done ? "bg-emerald-400" : "bg-amber-400"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <div className="mt-0.5 text-right text-[9px] opacity-70">{fmt(cur)} / {fmt(a.goal)}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
