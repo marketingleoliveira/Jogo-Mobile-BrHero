@@ -1412,6 +1412,14 @@ function GamePage() {
       lastKeyAt: norm.keys >= DUNGEON_MAX_KEYS ? Date.now() : norm.lastKeyAt,
       runs: prev.dungeon.runs + 1,
     };
+    // Chance de pet na masmorra gear
+    let pets = prev.pets;
+    let frags = prev.petFragments;
+    if (kind === "gear" && Math.random() < 0.5) {
+      const d = maybePetDrop(0.2);
+      if (d.pet) { pets = [...pets, d.pet]; flashToast(`🐾 Pet ${PET_DEFS[d.pet.kind].label} (${d.pet.rarity})!`); }
+      else if (d.fragKind && d.fragAmt) { frags = { ...frags, [d.fragKind]: frags[d.fragKind] + d.fragAmt }; }
+    }
     setSave({
       ...prev,
       gold: prev.gold + gold,
@@ -1420,9 +1428,51 @@ function GamePage() {
       inventory: newInv,
       counters: { ...prev.counters, chests: prev.counters.chests + items.length },
       dungeon: nextDungeon,
+      pets,
+      petFragments: frags,
     });
     return { ok: true, rewards: { gold, gems, essence, items } };
   }, [flashToast]);
+
+  // ==== Pets: callbacks ====
+  const equipPet = useCallback((id: string | null) => {
+    setSave((prev) => prev ? { ...prev, equippedPetId: id } : prev);
+  }, []);
+  const upgradePet = useCallback((id: string) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const p = prev.pets.find((x) => x.id === id);
+      if (!p) return prev;
+      if (p.level >= PET_MAX_LEVEL) { flashToast("🌟 Nível máximo"); return prev; }
+      const cost = petUpgradeCost(p);
+      if (prev.gold < cost.gold) { flashToast("💰 Ouro insuficiente"); return prev; }
+      if (prev.petFragments[p.kind] < cost.fragments) { flashToast("🧩 Fragmentos insuficientes"); return prev; }
+      flashToast(`🐾 ${PET_DEFS[p.kind].label} +1`);
+      return {
+        ...prev,
+        gold: prev.gold - cost.gold,
+        petFragments: { ...prev.petFragments, [p.kind]: prev.petFragments[p.kind] - cost.fragments },
+        pets: prev.pets.map((x) => x.id === id ? { ...x, level: x.level + 1 } : x),
+      };
+    });
+  }, [flashToast]);
+  const craftPet = useCallback((kind: PetKind) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const cost = craftPetCost();
+      if (prev.petFragments[kind] < cost) { flashToast("🧩 Fragmentos insuficientes"); return prev; }
+      const rarity = rollPetRarity();
+      const pet = makePet(kind, rarity);
+      flashToast(`🐾 Forjado: ${PET_DEFS[kind].label} (${rarity})`);
+      return {
+        ...prev,
+        petFragments: { ...prev.petFragments, [kind]: prev.petFragments[kind] - cost },
+        pets: [...prev.pets, pet],
+      };
+    });
+  }, [flashToast]);
+
+
 
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
