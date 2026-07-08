@@ -58,7 +58,7 @@ type Item = {
   bonus: { atk: number; hp: number; def: number };
 };
 
-type GlobalUpKey = "gold" | "atk" | "hp" | "xp" | "startStage";
+type GlobalUpKey = "gold" | "atk" | "hp" | "xp" | "startStage" | "drop" | "crit";
 
 type SaveState = {
   level: number;
