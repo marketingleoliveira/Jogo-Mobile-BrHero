@@ -3155,6 +3155,13 @@ function GamePage() {
       {modal === "codes" && (
         <CodesModal save={save} onClose={() => setModal(null)} onRedeem={redeemCode} />
       )}
+      {modal === "menu" && (
+        <GameMenuModal
+          save={save}
+          onClose={() => setModal(null)}
+          onPick={(m) => setModal(m)}
+        />
+      )}
 
 
 
