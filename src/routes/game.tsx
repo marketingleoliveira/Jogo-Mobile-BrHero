@@ -2473,6 +2473,9 @@ function GamePage() {
       if (r.runeFrags) {
         next = { ...next, runes: { ...next.runes, fragments: next.runes.fragments + r.runeFrags } };
       }
+      if (r.cosmetic && COSMETIC_DEFS[r.cosmetic] && !next.cosmetics.owned.includes(r.cosmetic)) {
+        next = { ...next, cosmetics: { ...next.cosmetics, owned: [...next.cosmetics.owned, r.cosmetic] } };
+      }
       flashToast(`🏆 ${def.label} — ${achievementRewardLabel(r)}`);
       return next;
     });
