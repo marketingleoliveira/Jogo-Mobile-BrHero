@@ -24,6 +24,12 @@ import {
   Package,
   Users,
 } from "lucide-react";
+import heroSprite from "@/assets/sprite-hero.png";
+import goblinSprite from "@/assets/sprite-goblin.png";
+import slimeSprite from "@/assets/sprite-slime.png";
+import skeletonSprite from "@/assets/sprite-skeleton.png";
+import bossDragonSprite from "@/assets/sprite-boss-dragon.png";
+import woodTexture from "@/assets/wood-texture.jpg";
 
 // -------- Types --------
 type AttrKey =
