@@ -1147,8 +1147,9 @@ function GamePage() {
     // Global prestige bonuses + pet + bênçãos
     const pb = petBonus(cur);
     const bb = blessingBonus(cur);
-    const goldMul = (1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * pb.goldMul * bb.goldMul;
-    const xpMul = (1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * pb.xpMul * bb.xpMul;
+    const gb = guildBonus(cur);
+    const goldMul = (1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * pb.goldMul * bb.goldMul * gb.goldMul;
+    const xpMul = (1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * pb.xpMul * bb.xpMul * gb.xpMul;
     const gainedGold = Math.floor(enemy.gold * goldMul);
     const gainedXp = Math.floor(enemy.xp * xpMul);
     let level = cur.level;
