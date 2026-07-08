@@ -1994,6 +1994,16 @@ function GamePage() {
           flashToast(`✨ Skin desbloqueada: ${SKIN_DEFS[drop].label}!`);
         }
       }
+      // Chance pequena de cosmético no baú raro
+      let cosm = prev.cosmetics;
+      if (tier === "rare" && Math.random() < 0.08) {
+        const pool: CosmeticId[] = (["sword_green", "aura_legend"] as CosmeticId[]).filter((id) => !cosm.owned.includes(id));
+        if (pool.length > 0) {
+          const drop = pool[Math.floor(Math.random() * pool.length)]!;
+          cosm = { ...cosm, owned: [...cosm.owned, drop] };
+          flashToast(`🎭 Cosmético: ${COSMETIC_DEFS[drop].label}!`);
+        }
+      }
       return {
         ...prev,
         inventory: [...prev.inventory, item].slice(-60),
@@ -2001,6 +2011,7 @@ function GamePage() {
         pets,
         petFragments: frags,
         skins,
+        cosmetics: cosm,
         freeChest: tier === "free"
           ? { ...prev.freeChest, lastFreeAt: now }
           : { ...prev.freeChest, lastRareAt: now },
