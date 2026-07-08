@@ -3436,3 +3436,117 @@ function PetsModal({
     </div>
   );
 }
+
+// -------- Tower Modal (Fase 3 — Bloco 3) --------
+function TowerModal({
+  save,
+  onClose,
+  onRun,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onRun: () => { floor: number; best: number; newRecord: boolean; rewards: { gold: number; gems: number; essence: number; chests: number; frag?: { kind: PetKind; amt: number } } } | null;
+}) {
+  const locked = save.level < TOWER_UNLOCK_LEVEL;
+  const [phase, setPhase] = useState<"idle" | "running" | "result">("idle");
+  const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState<ReturnType<typeof onRun> | null>(null);
+
+  useEffect(() => {
+    if (phase !== "running") return;
+    setProgress(0);
+    const start = Date.now();
+    const dur = 2200;
+    const t = setInterval(() => {
+      const p = Math.min(100, ((Date.now() - start) / dur) * 100);
+      setProgress(p);
+      if (p >= 100) {
+        clearInterval(t);
+        const r = onRun();
+        if (r) { setResult(r); setPhase("result"); }
+        else setPhase("idle");
+      }
+    }, 60);
+    return () => clearInterval(t);
+  }, [phase, onRun]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🗼 Torre Infinita</h2>
+          <div className="text-[10px] opacity-80">🏆 Recorde: {save.tower.bestFloor}</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {TOWER_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && phase === "idle" && (
+          <>
+            <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-3 text-[11px] leading-relaxed">
+              Enfrente andares cada vez mais fortes. A cada <b>{TOWER_BOSS_EVERY}</b> andares, um chefão. A derrota encerra a tentativa. Recompensas escalam por andar, com <b>+50%</b> em novo recorde.
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+              <div className="rounded border-2 border-[#1A0F08] bg-[#2A1810] p-2">🏆 Recorde: <b>{save.tower.bestFloor}</b></div>
+              <div className="rounded border-2 border-[#1A0F08] bg-[#2A1810] p-2">🔁 Tentativas: <b>{save.tower.runs}</b></div>
+            </div>
+            <button
+              onClick={() => setPhase("running")}
+              className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-2 text-sm font-black text-amber-950"
+            >
+              🗡️ Iniciar Tentativa
+            </button>
+          </>
+        )}
+
+        {!locked && phase === "running" && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center">
+            <div className="text-3xl">🗼</div>
+            <div className="mt-1 text-sm font-black">Escalando a torre...</div>
+            <div className="mt-3 h-3 w-full overflow-hidden rounded-full border-2 border-[#1A0F08] bg-[#1A0F08]">
+              <div className="h-full bg-gradient-to-r from-fuchsia-400 to-purple-600 transition-all" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+        )}
+
+        {!locked && phase === "result" && result && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4">
+            <div className="text-center">
+              <div className="text-xs opacity-80">Andar alcançado</div>
+              <div className="text-3xl font-black text-amber-300">{result.floor}</div>
+              {result.newRecord && (
+                <div className="mt-1 text-xs font-black text-emerald-300">🏆 Novo recorde! (+50% recompensa)</div>
+              )}
+              {result.floor === 0 && (
+                <div className="mt-1 text-[11px] opacity-80">Muito difícil — fortaleça o herói e tente novamente.</div>
+              )}
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+              {result.rewards.gold > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">🪙 +{fmt(result.rewards.gold)}</div>}
+              {result.rewards.gems > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">💎 +{result.rewards.gems}</div>}
+              {result.rewards.essence > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">✨ +{result.rewards.essence}</div>}
+              {result.rewards.chests > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">📦 +{result.rewards.chests} baús</div>}
+              {result.rewards.frag && (
+                <div className="col-span-2 rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">🧩 +{result.rewards.frag.amt} frag. {PET_DEFS[result.rewards.frag.kind].label}</div>
+              )}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button onClick={() => { setResult(null); setPhase("idle"); }} className="rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-xs font-black">Voltar</button>
+              <button onClick={() => { setResult(null); setPhase("running"); }} className="rounded-lg border-2 border-[#1A0F08] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-2 text-xs font-black text-amber-950">Tentar de novo</button>
+            </div>
+          </div>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
