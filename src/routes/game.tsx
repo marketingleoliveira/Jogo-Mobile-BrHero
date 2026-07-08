@@ -402,7 +402,9 @@ function GamePage() {
   const [enemyDying, setEnemyDying] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
+  const [modal, setModal] = useState<"equip" | "arena" | null>(null);
   const prevLevelRef = useRef(1);
+
 
   // Init
   useEffect(() => {
