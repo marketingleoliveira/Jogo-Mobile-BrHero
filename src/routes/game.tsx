@@ -119,14 +119,23 @@ type SaveState = {
   missions: MissionsState;
   // Masmorra (Fase 3 — Bloco 1)
   dungeon: DungeonState;
+  // Pets (Fase 3 — Bloco 2)
+  pets: Pet[];
+  equippedPetId: string | null;
+  petFragments: Record<PetKind, number>;
   version: number;
 };
 
 type DungeonState = { keys: number; lastKeyAt: number; runs: number };
 type DungeonKind = "gold" | "gear" | "essence";
 
+// ===== Pets =====
+type PetKind = "wolf" | "fairy" | "owl" | "dragon";
+type PetRarity = "Comum" | "Raro" | "Épico" | "Lendário";
+type Pet = { id: string; kind: PetKind; rarity: PetRarity; level: number };
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 7;
+const SAVE_VERSION = 8;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
