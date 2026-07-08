@@ -5234,3 +5234,100 @@ function AchievementsModal({
   );
 }
 
+// -------- Runes Modal (Fase 3 — Bloco 10) --------
+function RunesModal({
+  save,
+  onClose,
+  onUpgrade,
+  onToggle,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onUpgrade: (kind: RuneKind) => void;
+  onToggle: (kind: RuneKind) => void;
+}) {
+  const locked = save.level < RUNE_UNLOCK_LEVEL;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🔮 Runas</h2>
+          <div className="text-[10px] opacity-70">
+            🔮 {save.runes.fragments} · Equipadas {save.runes.equipped.length}/{RUNE_MAX_EQUIPPED}
+          </div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {RUNE_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && (
+          <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+            {RUNE_ORDER.map((k) => {
+              const def = RUNE_DEFS[k];
+              const lv = save.runes.levels[k] ?? 0;
+              const equipped = save.runes.equipped.includes(k);
+              const isMax = lv >= RUNE_MAX_LEVEL;
+              const cost = runeUpgradeCost(lv);
+              const curVal = runeCurrentValue(k, lv);
+              const nextVal = runeCurrentValue(k, Math.min(RUNE_MAX_LEVEL, lv + 1));
+              return (
+                <div key={k} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-2`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="text-2xl">{def.icon}</div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-black text-amber-50 drop-shadow flex items-center gap-1">
+                          {def.label} <span className="text-[10px] opacity-80">Lv{lv}/{RUNE_MAX_LEVEL}</span>
+                        </div>
+                        <div className="text-[10px] text-amber-50/90">
+                          Atual: {lv > 0 ? def.desc(curVal) : "—"}
+                          {!isMax && lv >= 0 && <> · Próx: {def.desc(nextVal)}</>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <button
+                        onClick={() => onToggle(k)}
+                        disabled={lv <= 0}
+                        className={`rounded-md border-2 border-[#1A0F08] px-2 py-1 text-[10px] font-black ${
+                          equipped
+                            ? "bg-gradient-to-b from-emerald-500 to-emerald-700 text-white"
+                            : "bg-black/40 text-amber-100 disabled:opacity-40"
+                        }`}
+                      >
+                        {equipped ? "✓ Equipada" : "Equipar"}
+                      </button>
+                      <button
+                        onClick={() => onUpgrade(k)}
+                        disabled={isMax || save.gold < cost.gold || save.runes.fragments < cost.fragments}
+                        className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2 py-1 text-[10px] font-black text-amber-100 disabled:opacity-40"
+                      >
+                        {isMax ? "MAX" : `🪙${fmt(cost.gold)} · 🔮${cost.fragments}`}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2 text-[10px] opacity-80">
+              💡 Fragmentos vêm de <b>Torre</b>, <b>Masmorra</b>, <b>Conquistas</b> e <b>Loja do Evento</b>.
+              Bônus máximos por runa: ATK/HP +20% · Ouro/XP +15% · Drop +5% · Crítico +5%.
+            </div>
+          </div>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
+
