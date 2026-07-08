@@ -335,6 +335,42 @@ function blessingBonus(save: SaveState) {
   };
 }
 
+// ===== Guilda =====
+const GUILD_UNLOCK_LEVEL = 25;
+const GUILD_MAX_LEVEL = 20;
+const GUILD_DAILY_DONATIONS = 5;
+const GUILD_BOSS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // semanal
+const GUILD_DEFS: Record<GuildId, { name: string; icon: string; bias: "atk" | "gold" | "xp"; desc: string; color: string }> = {
+  leao:   { name: "Leões da Aurora",  icon: "🦁", bias: "atk",  desc: "Bônus extra de ATK.",  color: "from-amber-500 to-orange-700" },
+  corvo:  { name: "Corvos da Névoa",  icon: "🐦‍⬛", bias: "xp",   desc: "Bônus extra de XP.",   color: "from-slate-500 to-slate-800" },
+  dragao: { name: "Dragões de Rubi",  icon: "🐉", bias: "gold", desc: "Bônus extra de ouro.", color: "from-rose-500 to-red-800" },
+};
+function emptyGuild(): GuildState {
+  return { id: null, joinedAt: 0, xp: 0, donationsToday: 0, lastDonateDay: null, bossLastAt: 0, bossKills: 0, contribWeek: 0, weekKey: "" };
+}
+function guildLevel(xp: number): number {
+  return Math.min(GUILD_MAX_LEVEL, Math.floor(Math.sqrt(Math.max(0, xp) / 500)));
+}
+function guildXpForLevel(lvl: number): number {
+  return lvl * lvl * 500;
+}
+function guildDonationCost(playerLevel: number, donationsToday: number): number {
+  return Math.floor(500 * (playerLevel + 1) * (1 + donationsToday * 0.5));
+}
+function guildBonus(save: SaveState) {
+  const g = save.guild;
+  if (!g?.id) return { atkMul: 1, goldMul: 1, xpMul: 1 };
+  const lvl = guildLevel(g.xp);
+  const base = lvl * 0.005; // 0.5% por nível
+  const bias = 0.05 * (lvl / GUILD_MAX_LEVEL); // até +5% no bias
+  const def = GUILD_DEFS[g.id];
+  return {
+    atkMul:  1 + base + (def.bias === "atk"  ? bias : 0),
+    goldMul: 1 + base + (def.bias === "gold" ? bias : 0),
+    xpMul:   1 + base + (def.bias === "xp"   ? bias : 0),
+  };
+}
+
 
 // ===== Retenção: tempo =====
 const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
