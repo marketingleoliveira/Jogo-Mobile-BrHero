@@ -1287,6 +1287,7 @@ function defaultSave(): SaveState {
     achievements: emptyAchievements(),
     runes: emptyRunes(),
     cosmetics: emptyCosmetics(),
+    redeem: { used: [] },
     version: SAVE_VERSION,
   };
 }
