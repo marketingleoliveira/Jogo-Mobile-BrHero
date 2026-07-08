@@ -1037,7 +1037,7 @@ function GamePage() {
           // random equipment for a random slot at current stage
           const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
           const item = rollItem(slot, next.stage);
-          next = { ...next, inventory: [...next.inventory, item].slice(-60) };
+          next = { ...next, inventory: [...next.inventory, item].slice(-60), counters: { ...next.counters, chests: next.counters.chests + 1 } };
           flashToast(`📦 ${item.rarity} ${SLOTS.find((s) => s.key === slot)!.label}`);
           break;
         }
