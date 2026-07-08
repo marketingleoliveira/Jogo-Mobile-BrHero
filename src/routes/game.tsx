@@ -2047,6 +2047,11 @@ function GamePage() {
               label={save.level >= GUILD_UNLOCK_LEVEL ? "GUILDA" : `🔒Lv${GUILD_UNLOCK_LEVEL}`}
               onClick={() => setModal("guild")}
             />
+            <QuickCartoonBtn
+              icon={<Lock className="h-3 w-3" />}
+              label={save.level >= ARENA_UNLOCK_LEVEL ? "ARENA" : `🔒Lv${ARENA_UNLOCK_LEVEL}`}
+              onClick={() => setModal("arena")}
+            />
           </div>
         </div>
       </header>
