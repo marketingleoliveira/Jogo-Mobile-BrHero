@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   Swords,
-  Play,
   Sparkles,
   Trophy,
   Shield,
