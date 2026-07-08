@@ -2042,6 +2042,58 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Eventos Sazonais (Fase 3 — Bloco 7) ====
+  const claimEventMission = useCallback((id: string) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      let ev = ensureEventStarted(prev);
+      const def = EVENT_MISSIONS.find((m) => m.id === id);
+      if (!def) return prev;
+      const m = ev.missions.find((x) => x.id === id);
+      if (!m || m.claimed || m.progress < def.target) { flashToast("Missão incompleta"); return prev; }
+      ev = {
+        ...ev,
+        medals: ev.medals + def.medalReward,
+        missions: ev.missions.map((x) => (x.id === id ? { ...x, claimed: true } : x)),
+      };
+      flashToast(`${ACTIVE_EVENT.medalIcon} +${def.medalReward} ${ACTIVE_EVENT.medalName}`);
+      return { ...prev, event: ev };
+    });
+  }, [flashToast]);
+
+  const buyEventShop = useCallback((id: string) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const item = EVENT_SHOP.find((x) => x.id === id);
+      if (!item) return prev;
+      let ev = ensureEventStarted(prev);
+      if (!eventActive(ev)) { flashToast("Evento encerrado"); return prev; }
+      if (ev.medals < item.cost) { flashToast(`${ACTIVE_EVENT.medalIcon} Medalhas insuficientes`); return prev; }
+      let next: SaveState = { ...prev };
+      switch (item.id) {
+        case "gold_s":  next = { ...next, gold: next.gold + 5000 }; break;
+        case "gems_s":  next = { ...next, gems: next.gems + 20 }; break;
+        case "chest":  {
+          const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+          next = { ...next, inventory: [...next.inventory, rollItem(slot, next.stage + 3)].slice(-60) };
+          break;
+        }
+        case "frag": {
+          const kind = PET_KINDS[Math.floor(Math.random() * PET_KINDS.length)]!;
+          next = { ...next, petFragments: { ...next.petFragments, [kind]: next.petFragments[kind] + 10 } };
+          break;
+        }
+        case "essence": next = { ...next, essence: next.essence + 1 }; break;
+      }
+      flashToast(`${item.icon} ${item.label}`);
+      ev = { ...ev, medals: ev.medals - item.cost };
+      return { ...next, event: ev };
+    });
+  }, [flashToast]);
+
+
+
+
 
 
 
