@@ -117,12 +117,41 @@ type SaveState = {
   // Missões (Fase 2 — Bloco 2)
   counters: Counters;
   missions: MissionsState;
+  // Masmorra (Fase 3 — Bloco 1)
+  dungeon: DungeonState;
   version: number;
 };
 
+type DungeonState = { keys: number; lastKeyAt: number; runs: number };
+type DungeonKind = "gold" | "gear" | "essence";
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 6;
+const SAVE_VERSION = 7;
 const PRESTIGE_UNLOCK_STAGE = 75;
+const DUNGEON_UNLOCK_LEVEL = 10;
+const DUNGEON_MAX_KEYS = 3;
+const DUNGEON_KEY_MS = 30 * 60 * 1000; // 1 chave / 30min
+
+const DUNGEON_DEFS: Record<DungeonKind, { label: string; icon: string; desc: string; color: string }> = {
+  gold:    { label: "Masmorra de Ouro",        icon: "🪙", desc: "Ouro em massa + baú comum.",        color: "from-amber-500 to-yellow-600" },
+  gear:    { label: "Masmorra de Equipamento", icon: "⚔️", desc: "2 equipamentos com bônus de stage.", color: "from-sky-500 to-indigo-600" },
+  essence: { label: "Masmorra de Essência",    icon: "✨", desc: "Essência garantida + baú épico.",    color: "from-fuchsia-500 to-purple-700" },
+};
+
+function dungeonKeysNow(d: DungeonState): { keys: number; lastKeyAt: number; nextInMs: number } {
+  const now = Date.now();
+  const elapsed = now - d.lastKeyAt;
+  if (d.keys >= DUNGEON_MAX_KEYS) return { keys: DUNGEON_MAX_KEYS, lastKeyAt: now, nextInMs: 0 };
+  const gained = Math.floor(elapsed / DUNGEON_KEY_MS);
+  const keys = Math.min(DUNGEON_MAX_KEYS, d.keys + gained);
+  const lastKeyAt = gained > 0 ? d.lastKeyAt + gained * DUNGEON_KEY_MS : d.lastKeyAt;
+  const nextInMs = keys >= DUNGEON_MAX_KEYS ? 0 : DUNGEON_KEY_MS - (now - lastKeyAt);
+  return { keys, lastKeyAt, nextInMs };
+}
+
+function emptyDungeon(): DungeonState {
+  return { keys: DUNGEON_MAX_KEYS, lastKeyAt: Date.now(), runs: 0 };
+}
 
 // ===== Retenção: tempo =====
 const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
@@ -558,6 +587,7 @@ function defaultSave(): SaveState {
     lastSeenAt: Date.now(),
     counters: emptyCounters(),
     missions: emptyMissions(),
+    dungeon: emptyDungeon(),
     version: SAVE_VERSION,
   };
 }
@@ -588,6 +618,7 @@ function loadSave(): SaveState {
         daily: Array.isArray(parsed.missions?.daily) ? parsed.missions.daily : [],
         weekly: Array.isArray(parsed.missions?.weekly) ? parsed.missions.weekly : [],
       },
+      dungeon: { ...emptyDungeon(), ...(parsed.dungeon ?? {}) },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
@@ -650,7 +681,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -1250,6 +1281,52 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Masmorra: entrar (consome 1 chave, entrega recompensas) ====
+  const enterDungeon = useCallback((kind: DungeonKind): { ok: boolean; rewards?: { gold: number; gems: number; essence: number; items: Item[] } } => {
+    const prev = saveRef.current;
+    if (!prev) return { ok: false };
+    if (prev.level < DUNGEON_UNLOCK_LEVEL) { flashToast(`🔒 Libera no Lv ${DUNGEON_UNLOCK_LEVEL}`); return { ok: false }; }
+    const norm = dungeonKeysNow(prev.dungeon);
+    if (norm.keys <= 0) { flashToast("🗝️ Sem chaves"); return { ok: false }; }
+
+    // scaling — inimigos "mais fortes" traduzidos em recompensa maior
+    const stage = prev.stage;
+    const stagePlus = stage + 5;
+    let gold = 0, gems = 0, essence = 0;
+    const items: Item[] = [];
+
+    if (kind === "gold") {
+      gold = Math.floor(200 * Math.pow(1.12, stage) + stage * 40);
+      if (Math.random() < 0.5) items.push(rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, stagePlus));
+      if (Math.random() < 0.05) essence = 1;
+    } else if (kind === "gear") {
+      gold = Math.floor(80 * Math.pow(1.1, stage) + stage * 15);
+      for (let i = 0; i < 2; i++) items.push(rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, stagePlus + 2));
+      if (Math.random() < 0.1) essence = 1;
+    } else {
+      gold = Math.floor(60 * Math.pow(1.08, stage) + stage * 10);
+      essence = 1 + Math.floor(stage / 40);
+      items.push(rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, stagePlus + 3));
+      if (Math.random() < 0.3) gems = 2;
+    }
+
+    const newInv = [...prev.inventory, ...items].slice(-60);
+    const nextDungeon: DungeonState = {
+      keys: norm.keys - 1,
+      lastKeyAt: norm.keys >= DUNGEON_MAX_KEYS ? Date.now() : norm.lastKeyAt,
+      runs: prev.dungeon.runs + 1,
+    };
+    setSave({
+      ...prev,
+      gold: prev.gold + gold,
+      gems: prev.gems + gems,
+      essence: prev.essence + essence,
+      inventory: newInv,
+      counters: { ...prev.counters, chests: prev.counters.chests + items.length },
+      dungeon: nextDungeon,
+    });
+    return { ok: true, rewards: { gold, gems, essence, items } };
+  }, [flashToast]);
 
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
@@ -1363,6 +1440,11 @@ function GamePage() {
             />
             <QuickCartoonBtn icon={<Calendar className="h-3 w-3" />} label="DIÁRIO" onClick={() => setModal("daily")} />
             <QuickCartoonBtn icon={<Target className="h-3 w-3" />} label="MISSÕES" onClick={() => setModal("missions")} />
+            <QuickCartoonBtn
+              icon={<Lock className="h-3 w-3" />}
+              label={save.level >= DUNGEON_UNLOCK_LEVEL ? "MASMORRA" : `🔒Lv${DUNGEON_UNLOCK_LEVEL}`}
+              onClick={() => setModal("dungeon")}
+            />
           </div>
         </div>
       </header>
@@ -1707,6 +1789,13 @@ function GamePage() {
           save={save}
           onClose={() => setModal(null)}
           onClaim={claimMission}
+        />
+      )}
+      {modal === "dungeon" && (
+        <DungeonModal
+          save={save}
+          onClose={() => setModal(null)}
+          onEnter={enterDungeon}
         />
       )}
       {offlineReport && (
@@ -2750,3 +2839,178 @@ function MissionsModal({
     </div>
   );
 }
+
+// -------- Dungeon Modal (Fase 3 — Bloco 1) --------
+function DungeonModal({
+  save,
+  onClose,
+  onEnter,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onEnter: (kind: DungeonKind) => { ok: boolean; rewards?: { gold: number; gems: number; essence: number; items: Item[] } };
+}) {
+  const locked = save.level < DUNGEON_UNLOCK_LEVEL;
+  const [selected, setSelected] = useState<DungeonKind | null>(null);
+  const [phase, setPhase] = useState<"idle" | "running" | "result">("idle");
+  const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState<{ ok: boolean; gold: number; gems: number; essence: number; items: Item[] } | null>(null);
+  const [, force] = useState(0);
+  const norm = useMemo(() => dungeonKeysNow(save.dungeon), [save.dungeon]);
+
+  // tick para timer de recarga
+  useEffect(() => {
+    if (norm.keys >= DUNGEON_MAX_KEYS) return;
+    const t = setInterval(() => force((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, [norm.keys]);
+
+  useEffect(() => {
+    if (phase !== "running") return;
+    setProgress(0);
+    const start = Date.now();
+    const dur = 2500;
+    const t = setInterval(() => {
+      const p = Math.min(100, ((Date.now() - start) / dur) * 100);
+      setProgress(p);
+      if (p >= 100) {
+        clearInterval(t);
+        if (selected) {
+          const r = onEnter(selected);
+          if (r.ok && r.rewards) {
+            setResult({ ok: true, ...r.rewards });
+            setPhase("result");
+          } else {
+            setPhase("idle");
+          }
+        }
+      }
+    }, 60);
+    return () => clearInterval(t);
+  }, [phase, selected, onEnter]);
+
+  const nextKeyLabel = useMemo(() => {
+    if (norm.keys >= DUNGEON_MAX_KEYS) return "Cheio";
+    const s = Math.max(0, Math.floor(norm.nextInMs / 1000));
+    const m = Math.floor(s / 60);
+    return `+1 em ${m}:${String(s % 60).padStart(2, "0")}`;
+  }, [norm]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+            🏰 Masmorra
+          </h2>
+          <div className="text-[10px] opacity-80">
+            🗝️ {norm.keys}/{DUNGEON_MAX_KEYS} · {nextKeyLabel}
+          </div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {DUNGEON_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && phase === "idle" && (
+          <>
+            <p className="mb-2 text-[11px] opacity-80">
+              Explore masmorras temáticas gastando 1 chave. Inimigos mais fortes, recompensas melhores.
+            </p>
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+              {(Object.keys(DUNGEON_DEFS) as DungeonKind[]).map((k) => {
+                const def = DUNGEON_DEFS[k];
+                return (
+                  <button
+                    key={k}
+                    onClick={() => {
+                      if (norm.keys <= 0) return;
+                      setSelected(k);
+                      setPhase("running");
+                    }}
+                    disabled={norm.keys <= 0}
+                    className={`w-full rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-3 text-left shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:grayscale`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="text-2xl">{def.icon}</div>
+                        <div>
+                          <div className="text-sm font-black text-amber-50 drop-shadow">{def.label}</div>
+                          <div className="text-[10px] text-amber-50/90">{def.desc}</div>
+                        </div>
+                      </div>
+                      <div className="rounded-md border-2 border-[#1A0F08] bg-[#1A0F08]/60 px-2 py-1 text-[10px] font-black">
+                        🗝️ 1
+                      </div>
+                    </div>
+                    <div className="mt-2 text-[10px] text-amber-50/90">
+                      Recompensa alvo · stage {save.stage} (+5 nos drops)
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {!locked && phase === "running" && selected && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center">
+            <div className="text-3xl">{DUNGEON_DEFS[selected].icon}</div>
+            <div className="mt-1 text-sm font-black">{DUNGEON_DEFS[selected].label}</div>
+            <div className="mt-1 text-[11px] opacity-80">Enfrentando o chefão...</div>
+            <div className="mt-3 h-3 w-full overflow-hidden rounded-full border-2 border-[#1A0F08] bg-[#1A0F08]">
+              <div
+                className="h-full bg-gradient-to-r from-amber-300 to-orange-500 transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {!locked && phase === "result" && result && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4">
+            <div className="text-center text-sm font-black text-emerald-300">🏆 Vitória!</div>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+              {result.gold > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">🪙 +{fmt(result.gold)} ouro</div>}
+              {result.gems > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">💎 +{result.gems} cristais</div>}
+              {result.essence > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">✨ +{result.essence} essência</div>}
+              {result.items.length > 0 && (
+                <div className="col-span-2 rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">
+                  📦 {result.items.length} equipamento(s): {result.items.map((it) => `${it.rarity} ${SLOTS.find(s => s.key === it.slot)?.label}`).join(", ")}
+                </div>
+              )}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => { setResult(null); setSelected(null); setPhase("idle"); }}
+                className="rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-xs font-black"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={() => {
+                  setResult(null);
+                  if (selected && dungeonKeysNow(save.dungeon).keys > 0) setPhase("running");
+                  else { setSelected(null); setPhase("idle"); }
+                }}
+                className="rounded-lg border-2 border-[#1A0F08] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-2 text-xs font-black text-amber-950"
+              >
+                Repetir
+              </button>
+            </div>
+          </div>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
