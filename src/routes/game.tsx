@@ -623,32 +623,36 @@ function GamePage() {
     if (!cur) return;
     const enemy = enemyRef.current;
     if (!enemy) return;
-    // rewards
+    // Global prestige bonuses
+    const goldMul = 1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel;
+    const xpMul = 1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel;
+    const gainedGold = Math.floor(enemy.gold * goldMul);
+    const gainedXp = Math.floor(enemy.xp * xpMul);
     let level = cur.level;
-    let xp = cur.xp + enemy.xp;
+    let xp = cur.xp + gainedXp;
     while (xp >= xpForLevel(level)) {
       xp -= xpForLevel(level);
       level += 1;
     }
-    // loot: bosses always drop, normal enemies 12% chance (once equipment is unlocked)
     const canDrop = level >= 3 || cur.level >= 3;
     const drop = canDrop && (enemy.isBoss || Math.random() < 0.12)
       ? rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, cur.stage)
       : null;
     if (drop) flashToast(`📦 ${drop.rarity} ${SLOTS.find(s => s.key === drop.slot)!.label}`);
+    const nextStage = cur.stage + 1;
     const next: SaveState = {
       ...cur,
       xp,
       level,
-      gold: cur.gold + enemy.gold,
+      gold: cur.gold + gainedGold,
       gems: cur.gems + enemy.gems,
-      stage: cur.stage + 1,
+      stage: nextStage,
+      maxStage: Math.max(cur.maxStage ?? 1, nextStage),
       inventory: drop ? [...cur.inventory, drop].slice(-60) : cur.inventory,
     };
     setSave(next);
     saveRef.current = next;
 
-    // new enemy
     const e = enemyForStage(next.stage);
     enemyRef.current = e;
     enemyHpRef.current = e.hp;
