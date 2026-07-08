@@ -2728,6 +2728,9 @@ function GamePage() {
           onBuy={buyEventShop}
         />
       )}
+      {modal === "skins" && (
+        <SkinsModal save={save} onClose={() => setModal(null)} onEquip={equipSkin} />
+      )}
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
