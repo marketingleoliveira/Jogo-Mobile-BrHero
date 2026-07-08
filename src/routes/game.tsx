@@ -683,6 +683,15 @@ function GamePage() {
     } else {
       s.lastSeenAt = now;
     }
+    // ==== Rotação de missões ====
+    const dk = todayKey();
+    const wk = weekKey();
+    if (s.missions.dailyKey !== dk || s.missions.daily.length === 0) {
+      s.missions = { ...s.missions, daily: generateDaily(s.stage, s.counters), dailyKey: dk };
+    }
+    if (s.missions.weeklyKey !== wk || s.missions.weekly.length === 0) {
+      s.missions = { ...s.missions, weekly: generateWeekly(s.stage, s.counters), weeklyKey: wk };
+    }
     setSave(s);
     saveRef.current = s;
     const stats = computeStats(s);
