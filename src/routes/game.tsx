@@ -5609,3 +5609,91 @@ function CosmeticsModal({
 
 
 
+
+// ============= Códigos / Redeem Modal (Fase 3 — Bloco 12) =============
+function CodesModal({
+  save,
+  onClose,
+  onRedeem,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onRedeem: (code: string) => { ok: boolean; msg: string };
+}) {
+  const [code, setCode] = useState("");
+  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  const used = save.redeem.used;
+
+  const submit = () => {
+    const res = onRedeem(code);
+    setFeedback(res);
+    if (res.ok) setCode("");
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-2xl border-4 border-[#1A0F08] bg-gradient-to-b from-amber-100 to-amber-200 p-4 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black text-[#1A0F08]">🎟️ Códigos Promocionais</h2>
+          <button onClick={onClose} className="rounded-lg bg-red-600 px-2 py-1 text-xs font-bold text-white">
+            Fechar
+          </button>
+        </div>
+
+        <p className="mb-2 text-xs text-[#3A2415]">
+          Insira códigos beta para resgatar recompensas. Cada código pode ser usado apenas uma vez por save.
+        </p>
+
+        <div className="mb-2 flex gap-2">
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 24))}
+            placeholder="DIGITE O CÓDIGO"
+            className="flex-1 rounded-lg border-2 border-[#1A0F08] bg-white px-3 py-2 text-sm font-bold uppercase tracking-wider text-[#1A0F08]"
+            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            maxLength={24}
+          />
+          <button
+            onClick={submit}
+            className="rounded-lg border-2 border-[#1A0F08] bg-emerald-500 px-3 py-2 text-sm font-black text-white active:scale-95"
+          >
+            RESGATAR
+          </button>
+        </div>
+
+        {feedback && (
+          <div
+            className={`mb-3 rounded-lg border-2 border-[#1A0F08] px-3 py-2 text-xs font-bold ${
+              feedback.ok ? "bg-emerald-200 text-emerald-900" : "bg-red-200 text-red-900"
+            }`}
+          >
+            {feedback.ok ? "✅ " : "⚠️ "} {feedback.msg}
+          </div>
+        )}
+
+        <div className="rounded-lg border-2 border-[#1A0F08] bg-amber-50 p-2">
+          <div className="mb-1 text-xs font-black text-[#1A0F08]">📜 Códigos beta disponíveis</div>
+          <ul className="space-y-1 text-[11px] text-[#3A2415]">
+            {Object.entries(REDEEM_CODES).map(([k, def]) => {
+              const isUsed = used.includes(k);
+              return (
+                <li key={k} className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-mono font-black">{k}</span>
+                    <span className="ml-1">— {def.desc}</span>
+                  </div>
+                  <span className={`shrink-0 rounded px-1 text-[10px] font-bold ${isUsed ? "bg-gray-400 text-white" : "bg-emerald-500 text-white"}`}>
+                    {isUsed ? "USADO" : "NOVO"}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
