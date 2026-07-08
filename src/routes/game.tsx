@@ -1019,7 +1019,7 @@ function GamePage() {
         />
         <TabBarItem
           icon="✨"
-          label="Skill"
+          label="Skills"
           onClick={() => flashToast("Skills — auto")}
         />
         {/* Center Battle */}
@@ -1032,19 +1032,19 @@ function GamePage() {
             className="text-xs tracking-widest text-amber-950"
             style={{ fontFamily: "'Luckiest Guy', cursive" }}
           >
-            BATTLE
+            BATALHA
           </span>
         </button>
         <TabBarItem
           icon="🏰"
-          label="Dungeon"
+          label="Masmorra"
           locked={save.level < 10}
           unlockLv={10}
-          onClick={() => flashToast("Dungeon em breve")}
+          onClick={() => flashToast("Masmorra em breve")}
         />
         <TabBarItem
           icon="🛒"
-          label="Store"
+          label="Loja"
           locked={save.level < 50}
           unlockLv={50}
           onClick={() => setModal("arena")}
