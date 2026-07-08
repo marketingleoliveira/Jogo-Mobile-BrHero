@@ -1123,9 +1123,88 @@ function GamePage() {
           </div>
         </div>
       )}
+
+      <TutorialOverlay />
     </div>
   );
 }
+
+// -------- Tutorial --------
+const TUTORIAL_KEY = "hero-rise-tutorial-v1";
+const TUTORIAL_STEPS = [
+  {
+    title: "Bem-vindo, herói! 👋",
+    body: "Hero Rise é um RPG idle: seu personagem batalha sozinho. Você evolui os atributos e observa a força crescer!",
+  },
+  {
+    title: "Batalhas automáticas ⚔️",
+    body: "Seu herói ataca inimigos sem parar. A cada vitória você ganha ouro e XP. A cada 10 estágios, enfrenta um chefão.",
+  },
+  {
+    title: "Evolua atributos 💪",
+    body: "Use o ouro para melhorar ATK, HP, Crítico e mais. Cada ponto deixa você mais forte para avançar de estágio.",
+  },
+  {
+    title: "Desbloqueios 🔓",
+    body: "Novas funções abrem conforme você sobe de nível: Equipamentos (Lv 3), Habilidades (Lv 5), Masmorra (Lv 10), PvP (Lv 30) e Multiplayer (Lv 50).",
+  },
+  {
+    title: "Tudo pronto! 🚀",
+    body: "Toque em BATALHA para começar. Boa sorte na sua jornada!",
+  },
+];
+
+function TutorialOverlay() {
+  const [step, setStep] = useState<number | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!localStorage.getItem(TUTORIAL_KEY)) setStep(0);
+  }, []);
+  if (step === null) return null;
+  const s = TUTORIAL_STEPS[step];
+  const finish = () => {
+    localStorage.setItem(TUTORIAL_KEY, "1");
+    setStep(null);
+  };
+  const next = () => {
+    if (step >= TUTORIAL_STEPS.length - 1) finish();
+    else setStep(step + 1);
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6">
+      <div
+        className="w-full max-w-sm rounded-3xl border-4 border-[#8B4513] bg-gradient-to-b from-[#FFF3E0] to-[#FFE0B2] p-6 text-center text-[#3E2723] shadow-2xl"
+      >
+        <div className="mb-1 text-xs font-bold tracking-widest text-[#8B4513]">
+          TUTORIAL {step + 1}/{TUTORIAL_STEPS.length}
+        </div>
+        <h2
+          className="mb-3 text-2xl"
+          style={{ fontFamily: "'Luckiest Guy', cursive" }}
+        >
+          {s.title}
+        </h2>
+        <p className="mb-5 text-sm leading-relaxed">{s.body}</p>
+        <div className="flex gap-2">
+          <button
+            onClick={finish}
+            className="flex-1 rounded-xl border-2 border-[#8B4513] bg-white/60 py-2 text-sm font-bold text-[#5D4037]"
+          >
+            Pular
+          </button>
+          <button
+            onClick={next}
+            className="flex-[2] rounded-xl border-4 border-[#B34700] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-2 text-sm font-black text-amber-950 shadow-[0_4px_0_#B34700] active:translate-y-1 active:shadow-[0_1px_0_#B34700]"
+            style={{ fontFamily: "'Luckiest Guy', cursive" }}
+          >
+            {step >= TUTORIAL_STEPS.length - 1 ? "COMEÇAR!" : "PRÓXIMO"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 
 // -------- Sub-components --------
