@@ -14,16 +14,144 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_audit_logs: {
+        Row: {
+          action: string
+          admin_id: string | null
+          admin_role: Database["public"]["Enums"]["admin_role"] | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          id: string
+          module: string
+          reason: string | null
+          target: string | null
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          admin_role?: Database["public"]["Enums"]["admin_role"] | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          id?: string
+          module: string
+          reason?: string | null
+          target?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          admin_role?: Database["public"]["Enums"]["admin_role"] | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          id?: string
+          module?: string
+          reason?: string | null
+          target?: string | null
+        }
+        Relationships: []
+      }
+      admin_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      admin_user_roles: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["admin_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["admin_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["admin_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_super_admin: { Args: { _display_name?: string }; Returns: string }
+      get_admin_role: {
+        Args: { _user_id?: string }
+        Returns: Database["public"]["Enums"]["admin_role"]
+      }
+      has_admin_permission: {
+        Args: { _action: string; _module: string; _user_id?: string }
+        Returns: boolean
+      }
+      has_admin_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["admin_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id?: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      admin_role:
+        | "super_admin"
+        | "game_master"
+        | "support"
+        | "moderator"
+        | "financial"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +278,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      admin_role: [
+        "super_admin",
+        "game_master",
+        "support",
+        "moderator",
+        "financial",
+      ],
+    },
   },
 } as const
