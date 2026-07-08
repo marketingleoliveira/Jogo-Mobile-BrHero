@@ -798,6 +798,64 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Prestige / Rebirth ====
+  const doRebirth = useCallback(() => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.stage < PRESTIGE_UNLOCK_STAGE) {
+        flashToast(`🔒 Rebirth libera no estágio ${PRESTIGE_UNLOCK_STAGE}`);
+        return prev;
+      }
+      const gained = essenceForRebirth(prev.stage);
+      const startStage = 1 + (prev.globalUp?.startStage ?? 0) * GLOBAL_UP_DEFS.startStage.perLevel;
+      const fresh = defaultSave();
+      const next: SaveState = {
+        ...fresh,
+        // Preservado entre prestígios
+        gems: prev.gems,
+        essence: prev.essence + gained,
+        prestigeLevel: prev.prestigeLevel + 1,
+        maxStage: prev.maxStage,
+        globalUp: prev.globalUp,
+        stage: startStage,
+      };
+      flashToast(`🌟 Renasceu! +${gained} Essência (Prestígio ${next.prestigeLevel})`);
+      // reset combat
+      const stats = computeStats(next);
+      heroHpRef.current = stats.hp;
+      setHeroHp(stats.hp);
+      const e = enemyForStage(next.stage);
+      enemyRef.current = e;
+      enemyHpRef.current = e.hp;
+      setEnemyHp(e.hp);
+      prevLevelRef.current = 1;
+      return next;
+    });
+  }, [flashToast]);
+
+  const buyGlobalUp = useCallback((key: GlobalUpKey) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const lvl = prev.globalUp[key] ?? 0;
+      const def = GLOBAL_UP_DEFS[key];
+      if (lvl >= def.max) { flashToast("🌟 Nível máximo"); return prev; }
+      const cost = globalUpCost(key, lvl);
+      if (prev.essence < cost) { flashToast("✨ Essência insuficiente"); return prev; }
+      flashToast(`🌟 ${def.label} +1`);
+      return { ...prev, essence: prev.essence - cost, globalUp: { ...prev.globalUp, [key]: lvl + 1 } };
+    });
+  }, [flashToast]);
+
+  // ==== Crystal packs (MOCK — sem cobrança real) ====
+  const buyCrystalPack = useCallback((id: string) => {
+    const pack = CRYSTAL_PACKS.find((p) => p.id === id);
+    if (!pack) return;
+    setSave((prev) => prev ? { ...prev, gems: prev.gems + pack.gems + pack.bonus } : prev);
+    flashToast(`💎 +${pack.gems + pack.bonus} cristais (mock — Stripe em breve)`);
+  }, [flashToast]);
+
+
+
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
   const biome = useMemo(() => biomeFor(save?.stage ?? 1), [save?.stage]);
