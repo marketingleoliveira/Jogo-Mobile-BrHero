@@ -615,6 +615,82 @@ function equippedSkinDef(save: SaveState): SkinDef {
   return SKIN_DEFS[id] ?? SKIN_DEFS.classic;
 }
 
+// ===== Conquistas / Achievements (Fase 3 — Bloco 9) =====
+type AchievementCategory = "combate" | "progressao" | "colecao" | "social";
+type AchievementReward = { gold?: number; gems?: number; essence?: number; chest?: 0 | 1 | 2; petFragKind?: PetKind; petFrags?: number };
+type AchievementDef = {
+  id: AchievementId;
+  category: AchievementCategory;
+  icon: string;
+  label: string;
+  desc: string;
+  goal: number;
+  metric: (s: SaveState) => number;
+  reward: AchievementReward;
+};
+
+const ACHIEVEMENTS: AchievementDef[] = [
+  // Combate — inimigos
+  { id: "kill_100",   category: "combate",    icon: "⚔️", label: "Aprendiz das Batalhas",   desc: "Derrote 100 inimigos",       goal: 100,   metric: (s) => s.counters.enemies,          reward: { gold: 2000 } },
+  { id: "kill_1k",    category: "combate",    icon: "⚔️", label: "Veterano de Guerra",      desc: "Derrote 1.000 inimigos",     goal: 1000,  metric: (s) => s.counters.enemies,          reward: { gold: 20000, gems: 20 } },
+  { id: "kill_10k",   category: "combate",    icon: "⚔️", label: "Ceifador Implacável",     desc: "Derrote 10.000 inimigos",    goal: 10000, metric: (s) => s.counters.enemies,          reward: { gold: 250000, gems: 100, chest: 1 } },
+  // Combate — chefes
+  { id: "boss_10",    category: "combate",    icon: "🐲", label: "Caçador de Chefes I",     desc: "Derrote 10 chefes",          goal: 10,    metric: (s) => s.counters.bosses,           reward: { gold: 3000, gems: 10 } },
+  { id: "boss_50",    category: "combate",    icon: "🐲", label: "Caçador de Chefes II",    desc: "Derrote 50 chefes",          goal: 50,    metric: (s) => s.counters.bosses,           reward: { gems: 40, chest: 1 } },
+  { id: "boss_200",   category: "combate",    icon: "🐲", label: "Slayer Lendário",         desc: "Derrote 200 chefes",         goal: 200,   metric: (s) => s.counters.bosses,           reward: { gems: 150, essence: 20, chest: 2 } },
+  // Progressão — Rebirth
+  { id: "reb_1",      category: "progressao", icon: "🌟", label: "Renascido",               desc: "Faça 1 Rebirth",             goal: 1,     metric: (s) => s.prestigeLevel,             reward: { essence: 5, gems: 30 } },
+  { id: "reb_5",      category: "progressao", icon: "🌟", label: "Ciclo Eterno",            desc: "Faça 5 Rebirths",            goal: 5,     metric: (s) => s.prestigeLevel,             reward: { essence: 25, gems: 100 } },
+  { id: "reb_25",     category: "progressao", icon: "🌟", label: "Ascendido",               desc: "Faça 25 Rebirths",           goal: 25,    metric: (s) => s.prestigeLevel,             reward: { essence: 150, gems: 500, chest: 2 } },
+  // Progressão — estágios
+  { id: "stg_50",     category: "progressao", icon: "🗺️", label: "Explorador",              desc: "Alcance o estágio 50",       goal: 50,    metric: (s) => s.maxStage,                  reward: { gold: 5000, gems: 15 } },
+  { id: "stg_200",    category: "progressao", icon: "🗺️", label: "Desbravador",             desc: "Alcance o estágio 200",      goal: 200,   metric: (s) => s.maxStage,                  reward: { gold: 50000, gems: 60, chest: 1 } },
+  { id: "stg_1000",   category: "progressao", icon: "🗺️", label: "Andarilho Infinito",      desc: "Alcance o estágio 1000",     goal: 1000,  metric: (s) => s.maxStage,                  reward: { gems: 300, essence: 50, chest: 2 } },
+  // Progressão — Torre
+  { id: "twr_10",     category: "progressao", icon: "🗼", label: "Escalador",               desc: "Suba ao andar 10 da Torre",  goal: 10,    metric: (s) => s.tower.bestFloor,           reward: { gold: 4000, gems: 15 } },
+  { id: "twr_50",     category: "progressao", icon: "🗼", label: "Alpinista Bravio",        desc: "Suba ao andar 50 da Torre",  goal: 50,    metric: (s) => s.tower.bestFloor,           reward: { gems: 80, essence: 5 } },
+  { id: "twr_150",    category: "progressao", icon: "🗼", label: "Rei da Torre",            desc: "Suba ao andar 150 da Torre", goal: 150,   metric: (s) => s.tower.bestFloor,           reward: { gems: 250, essence: 30, chest: 2 } },
+  // Social — Arena
+  { id: "arn_5",      category: "social",     icon: "🏟️", label: "Estreante da Arena",      desc: "Vença 5 batalhas na Arena",  goal: 5,     metric: (s) => s.arena.wins,                reward: { gold: 3000, gems: 15 } },
+  { id: "arn_25",     category: "social",     icon: "🏟️", label: "Gladiador",               desc: "Vença 25 batalhas na Arena", goal: 25,    metric: (s) => s.arena.wins,                reward: { gems: 60, essence: 5 } },
+  { id: "arn_100",    category: "social",     icon: "🏟️", label: "Campeão da Arena",        desc: "Vença 100 batalhas na Arena", goal: 100,  metric: (s) => s.arena.wins,                reward: { gems: 200, essence: 30, chest: 2 } },
+  // Social — Guilda (proxy: guild.xp acumulado por doações)
+  { id: "gld_100",    category: "social",     icon: "🏰", label: "Membro Contribuinte",     desc: "Acumule 100 XP de Guilda",   goal: 100,   metric: (s) => s.guild.xp,                  reward: { gold: 2000, gems: 10 } },
+  { id: "gld_1000",   category: "social",     icon: "🏰", label: "Pilar da Guilda",         desc: "Acumule 1.000 XP de Guilda", goal: 1000,  metric: (s) => s.guild.xp,                  reward: { gems: 60, essence: 5 } },
+  { id: "gld_10000",  category: "social",     icon: "🏰", label: "Lenda da Guilda",         desc: "Acumule 10.000 XP de Guilda",goal: 10000, metric: (s) => s.guild.xp,                  reward: { gems: 250, essence: 30, chest: 2 } },
+  // Coleção — Pets
+  { id: "pet_1",      category: "colecao",    icon: "🐾", label: "Primeiro Companheiro",    desc: "Colete 1 pet",               goal: 1,     metric: (s) => s.pets.length,               reward: { gold: 2000, gems: 10 } },
+  { id: "pet_3",      category: "colecao",    icon: "🐾", label: "Amigo dos Animais",       desc: "Colete 3 pets",              goal: 3,     metric: (s) => s.pets.length,               reward: { gems: 40, petFragKind: "wolf", petFrags: 5 } },
+  { id: "pet_8",      category: "colecao",    icon: "🐾", label: "Mestre dos Pets",         desc: "Colete 8 pets",              goal: 8,     metric: (s) => s.pets.length,               reward: { gems: 150, essence: 10, chest: 2 } },
+  // Coleção — Skins
+  { id: "skn_2",      category: "colecao",    icon: "🎭", label: "Estilo Novo",             desc: "Desbloqueie 2 skins",        goal: 2,     metric: (s) => s.skins.owned.length,        reward: { gold: 2500, gems: 10 } },
+  { id: "skn_4",      category: "colecao",    icon: "🎭", label: "Fashionista",             desc: "Desbloqueie 4 skins",        goal: 4,     metric: (s) => s.skins.owned.length,        reward: { gems: 50, essence: 5 } },
+  { id: "skn_5",      category: "colecao",    icon: "🎭", label: "Colecionador Total",      desc: "Desbloqueie todas as skins", goal: 5,     metric: (s) => s.skins.owned.length,        reward: { gems: 200, essence: 20, chest: 2 } },
+];
+
+const ACHIEVEMENT_CATEGORIES: { key: AchievementCategory; label: string; icon: string }[] = [
+  { key: "combate",    label: "Combate",    icon: "⚔️" },
+  { key: "progressao", label: "Progressão", icon: "🌟" },
+  { key: "colecao",    label: "Coleção",    icon: "🎭" },
+  { key: "social",     label: "Social",     icon: "🏰" },
+];
+
+function emptyAchievements(): AchievementsState {
+  return { claimed: [] };
+}
+
+function achievementRewardLabel(r: AchievementReward): string {
+  const parts: string[] = [];
+  if (r.gold) parts.push(`${fmt(r.gold)}🪙`);
+  if (r.gems) parts.push(`${r.gems}💎`);
+  if (r.essence) parts.push(`${r.essence}✨`);
+  if (r.chest) parts.push(r.chest === 2 ? "🎁 Baú Raro" : "🎁 Baú");
+  if (r.petFrags && r.petFragKind) parts.push(`${r.petFrags}🧩 ${r.petFragKind}`);
+  return parts.join(" · ");
+}
+
+
+
 
 
 
