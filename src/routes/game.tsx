@@ -131,6 +131,8 @@ type SaveState = {
   guild: GuildState;
   // Arena PvP Assíncrona (Fase 3 — Bloco 6)
   arena: ArenaState;
+  // Eventos Sazonais (Fase 3 — Bloco 7)
+  event: EventState;
   version: number;
 };
 
@@ -173,8 +175,18 @@ type ArenaState = {
   lastDailyClaim: string | null;
 };
 
+// ===== Eventos Sazonais =====
+type EventKey = "festival_heroes";
+type EventMissionProgress = { id: string; progress: number; claimed: boolean };
+type EventState = {
+  key: EventKey | null;
+  startedAt: number;         // 0 = ainda não iniciado
+  medals: number;
+  missions: EventMissionProgress[];
+};
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 12;
+const SAVE_VERSION = 13;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
