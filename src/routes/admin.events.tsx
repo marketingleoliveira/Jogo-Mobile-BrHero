@@ -12,7 +12,7 @@ function Page() {
       kpis={[
         { label: "Ativos",     value: "1",  hint: "Festival dos Heróis" },
         { label: "Agendados",  value: "2",  hint: "próximos 30d" },
-        { label: "Participantes","value": "3.140", hint: "72% do DAU" } as { label: string; value: string; hint: string },
+        { label: "Participantes", value: "3.140", hint: "72% do DAU" },
         { label: "Medalhas emit.", value: "1,2M", hint: "hoje" },
       ]}
       columns={["Evento", "Status", "Início", "Fim", "Recompensa top"]}

@@ -16,6 +16,15 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ApiGenerateBgRouteImport } from './routes/api/generate-bg'
+import { Route as AdminShopRouteImport } from './routes/admin.shop'
+import { Route as AdminPlayersRouteImport } from './routes/admin.players'
+import { Route as AdminLogsRouteImport } from './routes/admin.logs'
+import { Route as AdminLiveopsRouteImport } from './routes/admin.liveops'
+import { Route as AdminItemsRouteImport } from './routes/admin.items'
+import { Route as AdminEventsRouteImport } from './routes/admin.events'
+import { Route as AdminEconomyRouteImport } from './routes/admin.economy'
+import { Route as AdminCodesRouteImport } from './routes/admin.codes'
+import { Route as AdminBalancingRouteImport } from './routes/admin.balancing'
 
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
@@ -52,6 +61,51 @@ const ApiGenerateBgRoute = ApiGenerateBgRouteImport.update({
   path: '/api/generate-bg',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminShopRoute = AdminShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPlayersRoute = AdminPlayersRouteImport.update({
+  id: '/players',
+  path: '/players',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLogsRoute = AdminLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLiveopsRoute = AdminLiveopsRouteImport.update({
+  id: '/liveops',
+  path: '/liveops',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminItemsRoute = AdminItemsRouteImport.update({
+  id: '/items',
+  path: '/items',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEventsRoute = AdminEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEconomyRoute = AdminEconomyRouteImport.update({
+  id: '/economy',
+  path: '/economy',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCodesRoute = AdminCodesRouteImport.update({
+  id: '/codes',
+  path: '/codes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBalancingRoute = AdminBalancingRouteImport.update({
+  id: '/balancing',
+  path: '/balancing',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,6 +113,15 @@ export interface FileRoutesByFullPath {
   '/game': typeof GameRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/admin/balancing': typeof AdminBalancingRoute
+  '/admin/codes': typeof AdminCodesRoute
+  '/admin/economy': typeof AdminEconomyRoute
+  '/admin/events': typeof AdminEventsRoute
+  '/admin/items': typeof AdminItemsRoute
+  '/admin/liveops': typeof AdminLiveopsRoute
+  '/admin/logs': typeof AdminLogsRoute
+  '/admin/players': typeof AdminPlayersRoute
+  '/admin/shop': typeof AdminShopRoute
   '/api/generate-bg': typeof ApiGenerateBgRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -67,6 +130,15 @@ export interface FileRoutesByTo {
   '/game': typeof GameRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/admin/balancing': typeof AdminBalancingRoute
+  '/admin/codes': typeof AdminCodesRoute
+  '/admin/economy': typeof AdminEconomyRoute
+  '/admin/events': typeof AdminEventsRoute
+  '/admin/items': typeof AdminItemsRoute
+  '/admin/liveops': typeof AdminLiveopsRoute
+  '/admin/logs': typeof AdminLogsRoute
+  '/admin/players': typeof AdminPlayersRoute
+  '/admin/shop': typeof AdminShopRoute
   '/api/generate-bg': typeof ApiGenerateBgRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -77,6 +149,15 @@ export interface FileRoutesById {
   '/game': typeof GameRoute
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
+  '/admin/balancing': typeof AdminBalancingRoute
+  '/admin/codes': typeof AdminCodesRoute
+  '/admin/economy': typeof AdminEconomyRoute
+  '/admin/events': typeof AdminEventsRoute
+  '/admin/items': typeof AdminItemsRoute
+  '/admin/liveops': typeof AdminLiveopsRoute
+  '/admin/logs': typeof AdminLogsRoute
+  '/admin/players': typeof AdminPlayersRoute
+  '/admin/shop': typeof AdminShopRoute
   '/api/generate-bg': typeof ApiGenerateBgRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -88,10 +169,34 @@ export interface FileRouteTypes {
     | '/game'
     | '/privacidade'
     | '/termos'
+    | '/admin/balancing'
+    | '/admin/codes'
+    | '/admin/economy'
+    | '/admin/events'
+    | '/admin/items'
+    | '/admin/liveops'
+    | '/admin/logs'
+    | '/admin/players'
+    | '/admin/shop'
     | '/api/generate-bg'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/game' | '/privacidade' | '/termos' | '/api/generate-bg' | '/admin'
+  to:
+    | '/'
+    | '/game'
+    | '/privacidade'
+    | '/termos'
+    | '/admin/balancing'
+    | '/admin/codes'
+    | '/admin/economy'
+    | '/admin/events'
+    | '/admin/items'
+    | '/admin/liveops'
+    | '/admin/logs'
+    | '/admin/players'
+    | '/admin/shop'
+    | '/api/generate-bg'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -99,6 +204,15 @@ export interface FileRouteTypes {
     | '/game'
     | '/privacidade'
     | '/termos'
+    | '/admin/balancing'
+    | '/admin/codes'
+    | '/admin/economy'
+    | '/admin/events'
+    | '/admin/items'
+    | '/admin/liveops'
+    | '/admin/logs'
+    | '/admin/players'
+    | '/admin/shop'
     | '/api/generate-bg'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -163,14 +277,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerateBgRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/shop': {
+      id: '/admin/shop'
+      path: '/shop'
+      fullPath: '/admin/shop'
+      preLoaderRoute: typeof AdminShopRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/players': {
+      id: '/admin/players'
+      path: '/players'
+      fullPath: '/admin/players'
+      preLoaderRoute: typeof AdminPlayersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/logs': {
+      id: '/admin/logs'
+      path: '/logs'
+      fullPath: '/admin/logs'
+      preLoaderRoute: typeof AdminLogsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/liveops': {
+      id: '/admin/liveops'
+      path: '/liveops'
+      fullPath: '/admin/liveops'
+      preLoaderRoute: typeof AdminLiveopsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/items': {
+      id: '/admin/items'
+      path: '/items'
+      fullPath: '/admin/items'
+      preLoaderRoute: typeof AdminItemsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/events': {
+      id: '/admin/events'
+      path: '/events'
+      fullPath: '/admin/events'
+      preLoaderRoute: typeof AdminEventsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/economy': {
+      id: '/admin/economy'
+      path: '/economy'
+      fullPath: '/admin/economy'
+      preLoaderRoute: typeof AdminEconomyRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/codes': {
+      id: '/admin/codes'
+      path: '/codes'
+      fullPath: '/admin/codes'
+      preLoaderRoute: typeof AdminCodesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/balancing': {
+      id: '/admin/balancing'
+      path: '/balancing'
+      fullPath: '/admin/balancing'
+      preLoaderRoute: typeof AdminBalancingRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminBalancingRoute: typeof AdminBalancingRoute
+  AdminCodesRoute: typeof AdminCodesRoute
+  AdminEconomyRoute: typeof AdminEconomyRoute
+  AdminEventsRoute: typeof AdminEventsRoute
+  AdminItemsRoute: typeof AdminItemsRoute
+  AdminLiveopsRoute: typeof AdminLiveopsRoute
+  AdminLogsRoute: typeof AdminLogsRoute
+  AdminPlayersRoute: typeof AdminPlayersRoute
+  AdminShopRoute: typeof AdminShopRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBalancingRoute: AdminBalancingRoute,
+  AdminCodesRoute: AdminCodesRoute,
+  AdminEconomyRoute: AdminEconomyRoute,
+  AdminEventsRoute: AdminEventsRoute,
+  AdminItemsRoute: AdminItemsRoute,
+  AdminLiveopsRoute: AdminLiveopsRoute,
+  AdminLogsRoute: AdminLogsRoute,
+  AdminPlayersRoute: AdminPlayersRoute,
+  AdminShopRoute: AdminShopRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
