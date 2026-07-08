@@ -125,6 +125,8 @@ type SaveState = {
   petFragments: Record<PetKind, number>;
   // Torre Infinita (Fase 3 — Bloco 3)
   tower: TowerState;
+  // Bênçãos (Fase 3 — Bloco 4)
+  blessings: Record<BlessingKind, number>; // expiresAt (ms) — 0 = inativa
   version: number;
 };
 
@@ -139,8 +141,11 @@ type Pet = { id: string; kind: PetKind; rarity: PetRarity; level: number };
 // ===== Torre Infinita =====
 type TowerState = { bestFloor: number; runs: number; lastRunAt: number };
 
+// ===== Bênçãos =====
+type BlessingKind = "gold" | "xp" | "drop" | "atk" | "hp";
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 9;
+const SAVE_VERSION = 10;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
@@ -279,6 +284,39 @@ function towerRewards(floor: number, stage: number, save: SaveState): { gold: nu
     : undefined;
   void save;
   return { gold, gems, essence, chests, frag };
+}
+
+// ===== Bênçãos =====
+const BLESSING_UNLOCK_LEVEL = 20;
+const BLESSING_DURATIONS = [
+  { hours: 2, label: "2h", ms: 2 * 60 * 60 * 1000, goldMul: 1, gemMul: 1 },
+  { hours: 4, label: "4h", ms: 4 * 60 * 60 * 1000, goldMul: 1.8, gemMul: 1.8 },
+  { hours: 8, label: "8h", ms: 8 * 60 * 60 * 1000, goldMul: 3, gemMul: 3 },
+] as const;
+const BLESSING_DEFS: Record<BlessingKind, { label: string; icon: string; desc: string; color: string; effectPct: number; baseGold: number; baseGems: number }> = {
+  gold: { label: "Bênção do Ouro",       icon: "🪙", desc: "+50% ouro por batalha",      color: "from-amber-500 to-yellow-700",  effectPct: 50, baseGold: 5000, baseGems: 20 },
+  xp:   { label: "Bênção da Experiência", icon: "📖", desc: "+50% XP por batalha",       color: "from-sky-500 to-blue-700",      effectPct: 50, baseGold: 5000, baseGems: 20 },
+  drop: { label: "Bênção da Forja",       icon: "🔨", desc: "+5% chance de drop",        color: "from-orange-500 to-red-700",    effectPct: 5,  baseGold: 8000, baseGems: 30 },
+  atk:  { label: "Bênção do Guerreiro",   icon: "⚔️", desc: "+30% ATK temporário",       color: "from-rose-500 to-pink-700",     effectPct: 30, baseGold: 8000, baseGems: 30 },
+  hp:   { label: "Bênção da Vida",        icon: "❤️", desc: "+30% HP e regen temp.",     color: "from-emerald-500 to-green-700", effectPct: 30, baseGold: 8000, baseGems: 30 },
+};
+
+function emptyBlessings(): Record<BlessingKind, number> {
+  return { gold: 0, xp: 0, drop: 0, atk: 0, hp: 0 };
+}
+function blessingActive(save: SaveState, kind: BlessingKind, now = Date.now()): boolean {
+  return (save.blessings?.[kind] ?? 0) > now;
+}
+function blessingBonus(save: SaveState) {
+  const now = Date.now();
+  return {
+    goldMul: blessingActive(save, "gold", now) ? 1 + BLESSING_DEFS.gold.effectPct / 100 : 1,
+    xpMul:   blessingActive(save, "xp",   now) ? 1 + BLESSING_DEFS.xp.effectPct   / 100 : 1,
+    dropAdd: blessingActive(save, "drop", now) ? BLESSING_DEFS.drop.effectPct / 100 : 0,
+    atkMul:  blessingActive(save, "atk",  now) ? 1 + BLESSING_DEFS.atk.effectPct  / 100 : 1,
+    hpMul:   blessingActive(save, "hp",   now) ? 1 + BLESSING_DEFS.hp.effectPct   / 100 : 1,
+    regenMul:blessingActive(save, "hp",   now) ? 1 + BLESSING_DEFS.hp.effectPct   / 100 : 1,
+  };
 }
 
 
@@ -721,6 +759,7 @@ function defaultSave(): SaveState {
     equippedPetId: null,
     petFragments: emptyPetFragments(),
     tower: emptyTower(),
+    blessings: emptyBlessings(),
     version: SAVE_VERSION,
   };
 }
@@ -756,6 +795,7 @@ function loadSave(): SaveState {
       equippedPetId: typeof parsed.equippedPetId === "string" ? parsed.equippedPetId : null,
       petFragments: { ...emptyPetFragments(), ...(parsed.petFragments ?? {}) },
       tower: { ...emptyTower(), ...(parsed.tower ?? {}) },
+      blessings: { ...emptyBlessings(), ...(parsed.blessings ?? {}) },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
@@ -818,7 +858,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -1050,10 +1090,11 @@ function GamePage() {
     if (!cur) return;
     const enemy = enemyRef.current;
     if (!enemy) return;
-    // Global prestige bonuses + pet
+    // Global prestige bonuses + pet + bênçãos
     const pb = petBonus(cur);
-    const goldMul = (1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * pb.goldMul;
-    const xpMul = (1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * pb.xpMul;
+    const bb = blessingBonus(cur);
+    const goldMul = (1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * pb.goldMul * bb.goldMul;
+    const xpMul = (1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * pb.xpMul * bb.xpMul;
     const gainedGold = Math.floor(enemy.gold * goldMul);
     const gainedXp = Math.floor(enemy.xp * xpMul);
     let level = cur.level;
@@ -1063,7 +1104,7 @@ function GamePage() {
       level += 1;
     }
     const canDrop = level >= 3 || cur.level >= 3;
-    const dropBonus = (cur.globalUp?.drop ?? 0) * GLOBAL_UP_DEFS.drop.perLevel + pb.dropAdd;
+    const dropBonus = (cur.globalUp?.drop ?? 0) * GLOBAL_UP_DEFS.drop.perLevel + pb.dropAdd + bb.dropAdd;
     const drop = canDrop && (enemy.isBoss || Math.random() < 0.12 + dropBonus)
       ? rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, cur.stage)
       : null;
@@ -1560,6 +1601,32 @@ function GamePage() {
     return { floor, best, newRecord, rewards: { gold, gems, essence, chests, frag: rw.frag } };
   }, [flashToast]);
 
+  // ==== Bênçãos: ativar (paga com ouro OU cristais e adiciona ao expiresAt) ====
+  const activateBlessing = useCallback((kind: BlessingKind, durationIdx: number, pay: "gold" | "gems") => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.level < BLESSING_UNLOCK_LEVEL) { flashToast(`🔒 Libera no Lv ${BLESSING_UNLOCK_LEVEL}`); return prev; }
+      const def = BLESSING_DEFS[kind];
+      const dur = BLESSING_DURATIONS[durationIdx];
+      if (!dur) return prev;
+      const goldCost = Math.floor(def.baseGold * dur.goldMul);
+      const gemCost = Math.floor(def.baseGems * dur.gemMul);
+      if (pay === "gold" && prev.gold < goldCost) { flashToast("💰 Ouro insuficiente"); return prev; }
+      if (pay === "gems" && prev.gems < gemCost) { flashToast("💎 Cristais insuficientes"); return prev; }
+      const now = Date.now();
+      const cur = prev.blessings[kind] ?? 0;
+      const from = cur > now ? cur : now;
+      const next = from + dur.ms;
+      flashToast(`${def.icon} ${def.label} +${dur.label}`);
+      return {
+        ...prev,
+        gold: pay === "gold" ? prev.gold - goldCost : prev.gold,
+        gems: pay === "gems" ? prev.gems - gemCost : prev.gems,
+        blessings: { ...prev.blessings, [kind]: next },
+      };
+    });
+  }, [flashToast]);
+
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
   const biome = useMemo(() => biomeFor(save?.stage ?? 1), [save?.stage]);
@@ -1687,9 +1754,16 @@ function GamePage() {
               label={save.level >= TOWER_UNLOCK_LEVEL ? "TORRE" : `🔒Lv${TOWER_UNLOCK_LEVEL}`}
               onClick={() => setModal("tower")}
             />
+            <QuickCartoonBtn
+              icon={<Sparkles className="h-3 w-3" />}
+              label={save.level >= BLESSING_UNLOCK_LEVEL ? "BÊNÇÃOS" : `🔒Lv${BLESSING_UNLOCK_LEVEL}`}
+              onClick={() => setModal("blessings")}
+            />
           </div>
         </div>
       </header>
+
+      <ActiveBlessingsBar save={save} onOpen={() => setModal("blessings")} />
 
       {/* ===== Battle arena ===== */}
       <section
@@ -2056,6 +2130,13 @@ function GamePage() {
           onRun={runTower}
         />
       )}
+      {modal === "blessings" && (
+        <BlessingsModal
+          save={save}
+          onClose={() => setModal(null)}
+          onActivate={activateBlessing}
+        />
+      )}
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
@@ -2264,12 +2345,13 @@ function TabBarItem({
 function computeStats(s: SaveState) {
   const eq = equipmentBonus(s.equipment);
   const pb = petBonus(s);
-  const atkBonus = (1 + (s.globalUp?.atk ?? 0) * GLOBAL_UP_DEFS.atk.perLevel) * pb.atkMul;
-  const hpBonus = (1 + (s.globalUp?.hp ?? 0) * GLOBAL_UP_DEFS.hp.perLevel) * pb.hpMul;
+  const bb = blessingBonus(s);
+  const atkBonus = (1 + (s.globalUp?.atk ?? 0) * GLOBAL_UP_DEFS.atk.perLevel) * pb.atkMul * bb.atkMul;
+  const hpBonus = (1 + (s.globalUp?.hp ?? 0) * GLOBAL_UP_DEFS.hp.perLevel) * pb.hpMul * bb.hpMul;
   return {
     atk: Math.floor((attrValue("atk", s.attrs.atk.level) + eq.atk) * atkBonus),
     hp: Math.floor((attrValue("hp", s.attrs.hp.level) + eq.hp) * hpBonus),
-    regen: attrValue("regen", s.attrs.regen.level) + pb.regenAdd,
+    regen: (attrValue("regen", s.attrs.regen.level) + pb.regenAdd) * bb.regenMul,
     critDmg: attrValue("critDmg", s.attrs.critDmg.level),
     critChance: attrValue("critChance", s.attrs.critChance.level) + (s.globalUp?.crit ?? 0) * GLOBAL_UP_DEFS.crit.perLevel * 100,
     atkSpeed: attrValue("atkSpeed", s.attrs.atkSpeed.level),
@@ -3543,6 +3625,146 @@ function TowerModal({
               <button onClick={() => { setResult(null); setPhase("running"); }} className="rounded-lg border-2 border-[#1A0F08] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-2 text-xs font-black text-amber-950">Tentar de novo</button>
             </div>
           </div>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
+// -------- Active Blessings Bar (Fase 3 — Bloco 4) --------
+function ActiveBlessingsBar({ save, onOpen }: { save: SaveState; onOpen: () => void }) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const now = Date.now();
+  const active = (Object.keys(BLESSING_DEFS) as BlessingKind[]).filter((k) => (save.blessings?.[k] ?? 0) > now);
+  if (active.length === 0) return null;
+  return (
+    <button
+      onClick={onOpen}
+      className="flex w-full items-center justify-center gap-1.5 border-b-2 border-[#1A0F08] bg-gradient-to-r from-[#3E2723] via-[#5D4037] to-[#3E2723] px-2 py-1 text-[10px]"
+    >
+      {active.map((k) => {
+        const ms = (save.blessings?.[k] ?? 0) - now;
+        const mins = Math.max(0, Math.ceil(ms / 60000));
+        const label = mins >= 60 ? `${Math.floor(mins / 60)}h${mins % 60}m` : `${mins}m`;
+        return (
+          <span key={k} className="rounded border border-[#1A0F08] bg-black/40 px-1.5 py-0.5 font-black text-amber-100">
+            {BLESSING_DEFS[k].icon} {label}
+          </span>
+        );
+      })}
+    </button>
+  );
+}
+
+// -------- Blessings Modal (Fase 3 — Bloco 4) --------
+function BlessingsModal({
+  save,
+  onClose,
+  onActivate,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onActivate: (kind: BlessingKind, durationIdx: number, pay: "gold" | "gems") => void;
+}) {
+  const locked = save.level < BLESSING_UNLOCK_LEVEL;
+  const [selectedDur, setSelectedDur] = useState(0);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const now = Date.now();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>✨ Bênçãos</h2>
+          <div className="text-[10px] opacity-70">Bônus temporários — não pay-to-win</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {BLESSING_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && (
+          <>
+            <div className="mb-3 flex gap-2">
+              {BLESSING_DURATIONS.map((d, i) => (
+                <button
+                  key={d.label}
+                  onClick={() => setSelectedDur(i)}
+                  className={`flex-1 rounded-lg border-2 border-[#1A0F08] py-1.5 text-xs font-black ${
+                    selectedDur === i ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+              {(Object.keys(BLESSING_DEFS) as BlessingKind[]).map((k) => {
+                const def = BLESSING_DEFS[k];
+                const dur = BLESSING_DURATIONS[selectedDur];
+                const goldCost = Math.floor(def.baseGold * dur.goldMul);
+                const gemCost = Math.floor(def.baseGems * dur.gemMul);
+                const exp = save.blessings?.[k] ?? 0;
+                const active = exp > now;
+                const remMs = active ? exp - now : 0;
+                const remMin = Math.ceil(remMs / 60000);
+                const remLabel = remMin >= 60 ? `${Math.floor(remMin / 60)}h${remMin % 60}m` : `${remMin}m`;
+                return (
+                  <div key={k} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-2`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="text-2xl">{def.icon}</div>
+                        <div>
+                          <div className="text-xs font-black text-amber-50 drop-shadow">{def.label}</div>
+                          <div className="text-[10px] text-amber-50/90">{def.desc}</div>
+                          {active && (
+                            <div className="mt-0.5 text-[10px] font-black text-emerald-200">⏳ Ativa · {remLabel}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => onActivate(k, selectedDur, "gold")}
+                          disabled={save.gold < goldCost}
+                          className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2 py-1 text-[10px] font-black text-amber-100 disabled:opacity-50"
+                        >
+                          🪙 {fmt(goldCost)}
+                        </button>
+                        <button
+                          onClick={() => onActivate(k, selectedDur, "gems")}
+                          disabled={save.gems < gemCost}
+                          className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2 py-1 text-[10px] font-black text-amber-100 disabled:opacity-50"
+                        >
+                          💎 {gemCost}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-2 text-center text-[10px] opacity-70">
+              Ativar novamente empilha o tempo restante.
+            </div>
+          </>
         )}
 
         <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
