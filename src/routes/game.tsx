@@ -141,8 +141,12 @@ type SaveState = {
   runes: RunesState;
   // Cosméticos avançados (Fase 3 — Bloco 11)
   cosmetics: CosmeticsState;
+  // Códigos / Redeem (Fase 3 — Bloco 12)
+  redeem: RedeemState;
   version: number;
 };
+
+type RedeemState = { used: string[] };
 
 type DungeonState = { keys: number; lastKeyAt: number; runs: number };
 type DungeonKind = "gold" | "gear" | "essence";
