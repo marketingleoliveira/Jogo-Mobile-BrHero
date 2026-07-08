@@ -2032,6 +2032,9 @@ function GamePage() {
       pets,
       petFragments: frags,
       event: ev,
+      runes: prev.level >= RUNE_UNLOCK_LEVEL
+        ? { ...prev.runes, fragments: prev.runes.fragments + 3 }
+        : prev.runes,
     });
     return { ok: true, rewards: { gold, gems, essence, items } };
   }, [flashToast]);
