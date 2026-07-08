@@ -1949,6 +1949,15 @@ function GamePage() {
           onEnter={enterDungeon}
         />
       )}
+      {modal === "pets" && (
+        <PetsModal
+          save={save}
+          onClose={() => setModal(null)}
+          onEquip={equipPet}
+          onUpgrade={upgradePet}
+          onCraft={craftPet}
+        />
+      )}
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
