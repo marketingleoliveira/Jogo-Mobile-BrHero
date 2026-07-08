@@ -60,6 +60,16 @@ type Item = {
 
 type GlobalUpKey = "gold" | "atk" | "hp" | "xp" | "startStage" | "drop" | "crit";
 
+type DailyState = {
+  lastClaimDay: string | null; // "YYYY-MM-DD"
+  cycleDay: number;            // 0..6 (próximo dia a reivindicar)
+  streak: number;              // dias seguidos
+  bestStreak: number;
+  streakClaimed: number[];     // marcos já reivindicados
+};
+
+type FreeChestState = { lastFreeAt: number; lastRareAt: number };
+
 type SaveState = {
   level: number;
   xp: number;
@@ -75,12 +85,59 @@ type SaveState = {
   prestigeLevel: number;
   maxStage: number;
   globalUp: Record<GlobalUpKey, number>;
+  // Retenção (Fase 2)
+  daily: DailyState;
+  freeChest: FreeChestState;
+  lastSeenAt: number;
   version: number;
 };
 
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 5;
+const SAVE_VERSION = 6;
 const PRESTIGE_UNLOCK_STAGE = 75;
+
+// ===== Retenção: tempo =====
+const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
+const RARE_CHEST_MS = 24 * 60 * 60 * 1000;  // 24h
+const OFFLINE_MAX_MS = 8 * 60 * 60 * 1000;  // 8h
+const STREAK_MILESTONES = [7, 14, 30, 60, 100] as const;
+
+function todayKey(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function daysBetween(a: string, b: string) {
+  const [ay, am, ad] = a.split("-").map(Number);
+  const [by, bm, bd] = b.split("-").map(Number);
+  const da = Date.UTC(ay, am - 1, ad);
+  const db = Date.UTC(by, bm - 1, bd);
+  return Math.round((db - da) / 86400000);
+}
+
+// Recompensas do ciclo diário (7 dias). Escalam com stage/prestige.
+type DailyReward =
+  | { kind: "gold"; label: string; icon: string; amount: (s: SaveState) => number }
+  | { kind: "gems"; label: string; icon: string; amount: (s: SaveState) => number }
+  | { kind: "chest"; label: string; icon: string; tier: "common" | "epic" | "legendary" }
+  | { kind: "essence"; label: string; icon: string; amount: (s: SaveState) => number };
+
+const DAILY_CYCLE: DailyReward[] = [
+  { kind: "gold",    label: "Ouro",           icon: "🪙", amount: (s) => 200 + s.stage * 30 },
+  { kind: "gems",    label: "Cristais",       icon: "💎", amount: () => 15 },
+  { kind: "chest",   label: "Baú Comum",      icon: "📦", tier: "common" },
+  { kind: "gold",    label: "Ouro em Dobro",  icon: "🪙", amount: (s) => 500 + s.stage * 60 },
+  { kind: "chest",   label: "Baú Épico",      icon: "🎁", tier: "epic" },
+  { kind: "gems",    label: "Cristais+",      icon: "💎", amount: () => 40 },
+  { kind: "chest",   label: "Baú Lendário",   icon: "👑", tier: "legendary" },
+];
+
+function streakRewardFor(day: number) {
+  // Escalonamento: gold + gems + (essência a partir de 30)
+  return {
+    gold: 500 * day,
+    gems: 20 + day * 2,
+    essence: day >= 30 ? Math.floor(day / 10) : 0,
+  };
+}
 
 const SLOTS: Array<{ key: SlotKey; label: string; emoji: string }> = [
   { key: "sword", label: "Espada", emoji: "⚔️" },
@@ -387,6 +444,9 @@ function defaultSave(): SaveState {
     prestigeLevel: 0,
     maxStage: 1,
     globalUp: emptyGlobalUp(),
+    daily: { lastClaimDay: null, cycleDay: 0, streak: 0, bestStreak: 0, streakClaimed: [] },
+    freeChest: { lastFreeAt: 0, lastRareAt: 0 },
+    lastSeenAt: Date.now(),
     version: SAVE_VERSION,
   };
 }
@@ -407,6 +467,9 @@ function loadSave(): SaveState {
       equipment: { ...emptyEquipment(), ...(parsed.equipment ?? {}) },
       inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
       globalUp: { ...emptyGlobalUp(), ...(parsed.globalUp ?? {}) },
+      daily: { ...base.daily, ...(parsed.daily ?? {}), streakClaimed: Array.isArray(parsed.daily?.streakClaimed) ? parsed.daily.streakClaimed : [] },
+      freeChest: { ...base.freeChest, ...(parsed.freeChest ?? {}) },
+      lastSeenAt: typeof parsed.lastSeenAt === "number" ? parsed.lastSeenAt : Date.now(),
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
@@ -469,13 +532,39 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | null>(null);
+  const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
 
   // Init
   useEffect(() => {
     const s = loadSave();
+    // ==== Recompensas Offline ====
+    const now = Date.now();
+    const elapsed = Math.max(0, Math.min(OFFLINE_MAX_MS, now - (s.lastSeenAt ?? now)));
+    if (elapsed > 60_000) {
+      // Aproximação: 1 batalha ~ 2s no estágio atual
+      const battles = Math.floor(elapsed / 2000);
+      const enemy = enemyForStage(s.stage);
+      const goldMul = 1 + (s.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel;
+      const xpMul = 1 + (s.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel;
+      const gold = Math.floor(battles * enemy.gold * 0.4 * goldMul);
+      const xp = Math.floor(battles * enemy.xp * 0.4 * xpMul);
+      const drops = Math.min(20, Math.floor(battles * 0.02));
+      s.gold += gold;
+      s.xp += xp;
+      // Level up
+      while (s.xp >= xpForLevel(s.level)) { s.xp -= xpForLevel(s.level); s.level += 1; }
+      for (let i = 0; i < drops; i++) {
+        const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+        s.inventory = [...s.inventory, rollItem(slot, s.stage)].slice(-60);
+      }
+      s.lastSeenAt = now;
+      setOfflineReport({ ms: elapsed, gold, xp, drops });
+    } else {
+      s.lastSeenAt = now;
+    }
     setSave(s);
     saveRef.current = s;
     const stats = computeStats(s);
@@ -486,6 +575,21 @@ function GamePage() {
     enemyHpRef.current = e.hp;
     setEnemyHp(e.hp);
     prevLevelRef.current = s.level;
+  }, []);
+
+  // Marca "visto agora" a cada 30s e antes de sair
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setSave((p) => (p ? { ...p, lastSeenAt: Date.now() } : p));
+    }, 30_000);
+    const onHide = () => {
+      const cur = saveRef.current;
+      if (!cur) return;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...cur, lastSeenAt: Date.now() })); } catch {}
+    };
+    window.addEventListener("beforeunload", onHide);
+    window.addEventListener("visibilitychange", onHide);
+    return () => { clearInterval(iv); window.removeEventListener("beforeunload", onHide); window.removeEventListener("visibilitychange", onHide); };
   }, []);
 
   // Persist (debounced-ish via effect on save)
@@ -867,6 +971,94 @@ function GamePage() {
   }, [flashToast]);
 
 
+  // ==== Retenção: helpers de reivindicação ====
+  const applyReward = useCallback((next: SaveState, r: DailyReward): { next: SaveState; msg: string } => {
+    if (r.kind === "gold") {
+      const amt = r.amount(next);
+      return { next: { ...next, gold: next.gold + amt }, msg: `🪙 +${fmt(amt)} ouro` };
+    }
+    if (r.kind === "gems") {
+      const amt = r.amount(next);
+      return { next: { ...next, gems: next.gems + amt }, msg: `💎 +${amt} cristais` };
+    }
+    if (r.kind === "essence") {
+      const amt = r.amount(next);
+      return { next: { ...next, essence: next.essence + amt }, msg: `✨ +${amt} essência` };
+    }
+    // chest
+    const bonusStage = r.tier === "common" ? 0 : r.tier === "epic" ? 2 : 5;
+    const count = r.tier === "legendary" ? 2 : 1;
+    let inv = next.inventory;
+    for (let i = 0; i < count; i++) {
+      const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+      inv = [...inv, rollItem(slot, next.stage + bonusStage)].slice(-60);
+    }
+    return { next: { ...next, inventory: inv }, msg: `${r.icon} ${r.label} aberto!` };
+  }, []);
+
+  const claimDaily = useCallback(() => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const today = todayKey();
+      if (prev.daily.lastClaimDay === today) { flashToast("✅ Já reivindicado hoje"); return prev; }
+      const gap = prev.daily.lastClaimDay ? daysBetween(prev.daily.lastClaimDay, today) : 999;
+      const streak = gap === 1 ? prev.daily.streak + 1 : 1;
+      const cycleDay = prev.daily.cycleDay % DAILY_CYCLE.length;
+      const reward = DAILY_CYCLE[cycleDay];
+      const { next, msg } = applyReward(prev, reward);
+      flashToast(msg);
+      return {
+        ...next,
+        daily: {
+          ...prev.daily,
+          lastClaimDay: today,
+          cycleDay: (cycleDay + 1) % DAILY_CYCLE.length,
+          streak,
+          bestStreak: Math.max(prev.daily.bestStreak, streak),
+        },
+      };
+    });
+  }, [applyReward, flashToast]);
+
+  const claimStreak = useCallback((milestone: number) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      if (prev.daily.streak < milestone) { flashToast(`🔥 Precisa de ${milestone} dias seguidos`); return prev; }
+      if (prev.daily.streakClaimed.includes(milestone)) { flashToast("✅ Já reivindicado"); return prev; }
+      const r = streakRewardFor(milestone);
+      flashToast(`🏆 Marco ${milestone}d! +${fmt(r.gold)} 🪙 +${r.gems} 💎${r.essence ? ` +${r.essence} ✨` : ""}`);
+      return {
+        ...prev,
+        gold: prev.gold + r.gold,
+        gems: prev.gems + r.gems,
+        essence: prev.essence + r.essence,
+        daily: { ...prev.daily, streakClaimed: [...prev.daily.streakClaimed, milestone] },
+      };
+    });
+  }, [flashToast]);
+
+  const claimFreeChest = useCallback((tier: "free" | "rare") => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const now = Date.now();
+      const cd = tier === "free" ? FREE_CHEST_MS : RARE_CHEST_MS;
+      const last = tier === "free" ? prev.freeChest.lastFreeAt : prev.freeChest.lastRareAt;
+      if (now - last < cd) { flashToast("⏳ Ainda em recarga"); return prev; }
+      const bonusStage = tier === "rare" ? 3 : 0;
+      const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+      const item = rollItem(slot, prev.stage + bonusStage);
+      flashToast(`${tier === "rare" ? "🎁" : "📦"} ${item.rarity} ${SLOTS.find(s => s.key === slot)!.label}`);
+      return {
+        ...prev,
+        inventory: [...prev.inventory, item].slice(-60),
+        freeChest: tier === "free"
+          ? { ...prev.freeChest, lastFreeAt: now }
+          : { ...prev.freeChest, lastRareAt: now },
+      };
+    });
+  }, [flashToast]);
+
+  const closeOfflineReport = useCallback(() => setOfflineReport(null), []);
 
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
@@ -978,6 +1170,7 @@ function GamePage() {
               label={save.stage >= PRESTIGE_UNLOCK_STAGE ? "REBIRTH" : "🔒"}
               onClick={() => setModal("rebirth")}
             />
+            <QuickCartoonBtn icon={<Calendar className="h-3 w-3" />} label="DIÁRIO" onClick={() => setModal("daily")} />
             <QuickCartoonBtn icon={<Ticket className="h-3 w-3" />} label="PASSE" onClick={() => flashToast("Passe em breve")} />
           </div>
         </div>
@@ -1309,6 +1502,20 @@ function GamePage() {
           onBuy={buyCrystalPack}
         />
       )}
+      {modal === "daily" && (
+        <DailyModal
+          save={save}
+          onClose={() => setModal(null)}
+          onClaimDaily={claimDaily}
+          onClaimStreak={claimStreak}
+          onClaimChest={claimFreeChest}
+        />
+      )}
+      {offlineReport && (
+        <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
+      )}
+
+
 
 
 
@@ -2081,6 +2288,173 @@ function CrystalsModal({
         <p className="mt-4 text-center text-[10px] opacity-50">
           Filosofia: <b>Pay-to-Fast</b>. Todo jogador free tem acesso ao mesmo teto de poder.
         </p>
+      </div>
+    </div>
+  );
+}
+
+// -------- Daily / Streak / Free Chests Modal --------
+function DailyModal({
+  save,
+  onClose,
+  onClaimDaily,
+  onClaimStreak,
+  onClaimChest,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onClaimDaily: () => void;
+  onClaimStreak: (m: number) => void;
+  onClaimChest: (tier: "free" | "rare") => void;
+}) {
+  const today = todayKey();
+  const claimedToday = save.daily.lastClaimDay === today;
+  const now = Date.now();
+  const freeLeft = Math.max(0, FREE_CHEST_MS - (now - save.freeChest.lastFreeAt));
+  const rareLeft = Math.max(0, RARE_CHEST_MS - (now - save.freeChest.lastRareAt));
+  const fmtCd = (ms: number) => {
+    if (ms <= 0) return "PRONTO";
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>📅 Diário</h2>
+          <div className="text-xs opacity-70">🔥 Streak: <b className="text-[#f5c542]">{save.daily.streak}d</b> · Melhor: {save.daily.bestStreak}d</div>
+        </div>
+
+        {/* Ciclo de 7 dias */}
+        <div className="mb-3 rounded-xl border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+          <div className="mb-2 text-[11px] opacity-80">Login diário (7 dias) — próximo: <b>Dia {save.daily.cycleDay + 1}</b></div>
+          <div className="grid grid-cols-7 gap-1">
+            {DAILY_CYCLE.map((r, i) => {
+              const isNext = i === save.daily.cycleDay && !claimedToday;
+              const isDone = i < save.daily.cycleDay || (i === save.daily.cycleDay && claimedToday);
+              return (
+                <div
+                  key={i}
+                  className={`flex flex-col items-center rounded-lg border-2 p-1 text-center text-[9px] ${
+                    isNext ? "border-[#f5c542] bg-[#5D4037] animate-pulse" : isDone ? "border-emerald-700 bg-emerald-950/50 opacity-60" : "border-[#1A0F08] bg-[#3E2723]"
+                  }`}
+                >
+                  <div className="text-lg">{r.icon}</div>
+                  <div className="opacity-70">D{i + 1}</div>
+                  {isDone && <div className="text-emerald-400">✓</div>}
+                </div>
+              );
+            })}
+          </div>
+          <button
+            onClick={onClaimDaily}
+            disabled={claimedToday}
+            className={`mt-2 w-full rounded-lg border-2 border-[#1A0F08] py-2 text-sm font-black ${
+              claimedToday ? "bg-[#3E2723] opacity-50" : "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950 active:translate-y-0.5"
+            }`}
+          >
+            {claimedToday ? "✅ Reivindicado hoje" : `Reivindicar ${DAILY_CYCLE[save.daily.cycleDay].label}`}
+          </button>
+        </div>
+
+        {/* Streak marcos */}
+        <div className="mb-3 rounded-xl border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+          <div className="mb-2 text-[11px] opacity-80">🔥 Marcos de Streak</div>
+          <div className="grid grid-cols-5 gap-1">
+            {STREAK_MILESTONES.map((m) => {
+              const claimed = save.daily.streakClaimed.includes(m);
+              const ready = save.daily.streak >= m && !claimed;
+              const r = streakRewardFor(m);
+              return (
+                <button
+                  key={m}
+                  onClick={() => onClaimStreak(m)}
+                  disabled={!ready}
+                  className={`flex flex-col items-center rounded-lg border-2 p-1 text-[9px] ${
+                    claimed ? "border-emerald-700 bg-emerald-950/50 opacity-50"
+                      : ready ? "border-[#f5c542] bg-[#5D4037] animate-pulse"
+                      : "border-[#1A0F08] bg-[#3E2723] opacity-60"
+                  }`}
+                >
+                  <div className="text-sm font-black">{m}d</div>
+                  <div className="opacity-80">🪙{fmt(r.gold)}</div>
+                  <div className="opacity-80">💎{r.gems}{r.essence ? ` ✨${r.essence}` : ""}</div>
+                  {claimed && <div className="text-emerald-400">✓</div>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Baús grátis */}
+        <div className="mb-3 rounded-xl border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+          <div className="mb-2 text-[11px] opacity-80">🎁 Baús gratuitos</div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => onClaimChest("free")}
+              disabled={freeLeft > 0}
+              className={`rounded-lg border-2 border-[#1A0F08] p-2 text-xs ${freeLeft <= 0 ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#3E2723] opacity-60"}`}
+            >
+              <div className="text-2xl">📦</div>
+              <div className="font-black">Baú Grátis</div>
+              <div className="opacity-80">{fmtCd(freeLeft)}</div>
+              <div className="opacity-60">a cada 4h</div>
+            </button>
+            <button
+              onClick={() => onClaimChest("rare")}
+              disabled={rareLeft > 0}
+              className={`rounded-lg border-2 border-[#1A0F08] p-2 text-xs ${rareLeft <= 0 ? "bg-gradient-to-b from-purple-400 to-purple-600 text-white" : "bg-[#3E2723] opacity-60"}`}
+            >
+              <div className="text-2xl">🎁</div>
+              <div className="font-black">Baú Raro</div>
+              <div className="opacity-80">{fmtCd(rareLeft)}</div>
+              <div className="opacity-60">a cada 24h</div>
+            </button>
+          </div>
+        </div>
+
+        <button onClick={onClose} className="w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
+// -------- Offline Rewards Modal --------
+function OfflineModal({
+  report,
+  onClose,
+}: {
+  report: { ms: number; gold: number; xp: number; drops: number };
+  onClose: () => void;
+}) {
+  const h = Math.floor(report.ms / 3600000);
+  const m = Math.floor((report.ms % 3600000) / 60000);
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 px-4" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm rounded-2xl border-4 border-[#8B4513] bg-gradient-to-b from-[#5D4037] to-[#3E2723] p-5 text-center text-amber-100"
+      >
+        <div className="text-4xl">🌙</div>
+        <h2 className="mt-1 text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>Bem-vindo de volta!</h2>
+        <p className="mt-1 text-xs opacity-80">Seu herói continuou lutando por {h > 0 ? `${h}h ` : ""}{m}m</p>
+        <div className="mt-3 space-y-1 rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-3 text-sm">
+          <div>🪙 +{fmt(report.gold)} ouro</div>
+          <div>✨ +{fmt(report.xp)} XP</div>
+          {report.drops > 0 && <div>📦 +{report.drops} equipamentos</div>}
+        </div>
+        <p className="mt-2 text-[10px] opacity-60">Limite offline: 8h (Fase beta)</p>
+        <button
+          onClick={onClose}
+          className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-2 font-black text-amber-950 active:translate-y-0.5"
+        >
+          Coletar
+        </button>
       </div>
     </div>
   );
