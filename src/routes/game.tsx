@@ -1880,6 +1880,11 @@ function GamePage() {
               label={save.level >= BLESSING_UNLOCK_LEVEL ? "BÊNÇÃOS" : `🔒Lv${BLESSING_UNLOCK_LEVEL}`}
               onClick={() => setModal("blessings")}
             />
+            <QuickCartoonBtn
+              icon={<Lock className="h-3 w-3" />}
+              label={save.level >= GUILD_UNLOCK_LEVEL ? "GUILDA" : `🔒Lv${GUILD_UNLOCK_LEVEL}`}
+              onClick={() => setModal("guild")}
+            />
           </div>
         </div>
       </header>
