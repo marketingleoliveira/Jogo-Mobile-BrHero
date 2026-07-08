@@ -4787,3 +4787,76 @@ function EventModal({
     </div>
   );
 }
+
+// -------- Skins Modal (Fase 3 — Bloco 8) --------
+function SkinsModal({
+  save,
+  onClose,
+  onEquip,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onEquip: (id: SkinId) => void;
+}) {
+  const locked = save.level < SKIN_UNLOCK_LEVEL;
+  const allIds = Object.keys(SKIN_DEFS) as SkinId[];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>👗 Skins</h2>
+          <div className="text-[10px] opacity-70">Apenas cosmético · sem bônus</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {SKIN_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && (
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+            {allIds.map((id) => {
+              const def = SKIN_DEFS[id];
+              const owned = save.skins.owned.includes(id);
+              const equipped = save.skins.equipped === id;
+              return (
+                <div key={id} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-2 ${owned ? "" : "opacity-60"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="text-3xl">{owned ? def.icon : "🔒"}</div>
+                      <div>
+                        <div className="text-xs font-black text-amber-50 drop-shadow">{def.label}</div>
+                        <div className="text-[10px] text-amber-50/90">{def.rarity} · {def.desc}</div>
+                        {!owned && (
+                          <div className="mt-0.5 text-[10px] font-black text-amber-50/80">
+                            Obtenha em baús raros ou na loja do evento.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onEquip(id)}
+                      disabled={!owned || equipped}
+                      className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2.5 py-1.5 text-[11px] font-black text-amber-100 disabled:opacity-50"
+                    >
+                      {equipped ? "Equipada" : owned ? "Equipar" : "Bloqueada"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
