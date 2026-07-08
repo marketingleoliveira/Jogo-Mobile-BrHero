@@ -98,7 +98,7 @@ export async function persistRemoteLog(input: RemoteLogInput): Promise<void> {
 export async function claimSuperAdmin(displayName?: string): Promise<{ ok: boolean; error?: string }> {
   try {
     const { error } = await supabase.rpc("claim_super_admin", {
-      _display_name: displayName ?? null,
+      _display_name: displayName ?? undefined,
     });
     if (error) return { ok: false, error: error.message };
     resetSupabaseAdminCache();
