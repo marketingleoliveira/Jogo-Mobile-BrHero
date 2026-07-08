@@ -467,6 +467,9 @@ function loadSave(): SaveState {
       equipment: { ...emptyEquipment(), ...(parsed.equipment ?? {}) },
       inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
       globalUp: { ...emptyGlobalUp(), ...(parsed.globalUp ?? {}) },
+      daily: { ...base.daily, ...(parsed.daily ?? {}), streakClaimed: Array.isArray(parsed.daily?.streakClaimed) ? parsed.daily.streakClaimed : [] },
+      freeChest: { ...base.freeChest, ...(parsed.freeChest ?? {}) },
+      lastSeenAt: typeof parsed.lastSeenAt === "number" ? parsed.lastSeenAt : Date.now(),
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
