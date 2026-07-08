@@ -131,6 +131,8 @@ type SaveState = {
   guild: GuildState;
   // Arena PvP Assíncrona (Fase 3 — Bloco 6)
   arena: ArenaState;
+  // Eventos Sazonais (Fase 3 — Bloco 7)
+  event: EventState;
   version: number;
 };
 
@@ -173,8 +175,18 @@ type ArenaState = {
   lastDailyClaim: string | null;
 };
 
+// ===== Eventos Sazonais =====
+type EventKey = "festival_heroes";
+type EventMissionProgress = { id: string; progress: number; claimed: boolean };
+type EventState = {
+  key: EventKey | null;
+  startedAt: number;         // 0 = ainda não iniciado
+  medals: number;
+  missions: EventMissionProgress[];
+};
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 12;
+const SAVE_VERSION = 13;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
@@ -461,7 +473,105 @@ function arenaTicketsLeft(a: ArenaState): number {
 
 
 
+// ===== Eventos Sazonais =====
+const EVENT_UNLOCK_LEVEL = 10;
+const EVENT_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
+type EventDef = {
+  key: EventKey;
+  name: string;
+  icon: string;
+  desc: string;
+  medalIcon: string;
+  medalName: string;
+};
+type EventMissionDef = {
+  id: string;
+  label: string;
+  target: number;
+  medalReward: number;
+  hint: string; // como progride
+};
+type EventShopItem = {
+  id: string;
+  label: string;
+  icon: string;
+  cost: number;
+  limitPerEvent: number; // 0 = ilimitado
+  desc: string;
+};
+
+// Evento ativo — trocar aqui no futuro para rodar outro tema.
+const ACTIVE_EVENT: EventDef = {
+  key: "festival_heroes",
+  name: "Festival dos Heróis",
+  icon: "🎉",
+  desc: "Ganhe Medalhas em qualquer atividade e troque por prêmios!",
+  medalIcon: "🏅",
+  medalName: "Medalhas",
+};
+
+const EVENT_MISSIONS: EventMissionDef[] = [
+  { id: "kill",   label: "Derrotar 200 inimigos",     target: 200, medalReward: 40, hint: "Batalhas normais" },
+  { id: "boss",   label: "Derrotar 5 chefes",         target: 5,   medalReward: 30, hint: "Chefes de bioma" },
+  { id: "arena",  label: "Vencer 3 lutas na Arena",   target: 3,   medalReward: 30, hint: "Vitórias em PvP" },
+  { id: "dungeon",label: "Concluir 2 masmorras",      target: 2,   medalReward: 25, hint: "Qualquer masmorra" },
+  { id: "tower",  label: "Subir 5 andares na Torre",  target: 5,   medalReward: 25, hint: "Novos andares" },
+];
+
+const EVENT_SHOP: EventShopItem[] = [
+  { id: "gold_s",  label: "5.000 Ouro",      icon: "🪙", cost: 10, limitPerEvent: 0, desc: "Injeção rápida de ouro" },
+  { id: "gems_s",  label: "20 Cristais",     icon: "💎", cost: 25, limitPerEvent: 0, desc: "Cristais premium" },
+  { id: "chest",   label: "Baú Épico",       icon: "📦", cost: 40, limitPerEvent: 5, desc: "Equipamento raro+" },
+  { id: "frag",    label: "10 Fragmentos Pet", icon: "🐾", cost: 30, limitPerEvent: 10, desc: "Fragmento aleatório" },
+  { id: "essence", label: "1 Essência",      icon: "✨", cost: 60, limitPerEvent: 3, desc: "Rebirth mais rápido" },
+];
+
+function emptyEvent(): EventState {
+  return { key: null, startedAt: 0, medals: 0, missions: [] };
+}
+
+function ensureEventStarted(save: SaveState): EventState {
+  if (save.level < EVENT_UNLOCK_LEVEL) return save.event;
+  const now = Date.now();
+  const cur = save.event;
+  const expired = cur.key && now - cur.startedAt > EVENT_DURATION_MS;
+  if (!cur.key || expired) {
+    return {
+      key: ACTIVE_EVENT.key,
+      startedAt: now,
+      medals: expired ? cur.medals : cur.medals, // preserva medalhas atuais
+      missions: EVENT_MISSIONS.map((m) => ({ id: m.id, progress: 0, claimed: false })),
+    };
+  }
+  // garante que todas missões existem (caso EVENT_MISSIONS mude)
+  const missions = EVENT_MISSIONS.map((m) => cur.missions.find((x) => x.id === m.id) ?? { id: m.id, progress: 0, claimed: false });
+  return { ...cur, missions };
+}
+
+function eventTimeLeft(ev: EventState): number {
+  if (!ev.key || !ev.startedAt) return 0;
+  return Math.max(0, EVENT_DURATION_MS - (Date.now() - ev.startedAt));
+}
+
+function eventActive(ev: EventState): boolean {
+  return !!ev.key && eventTimeLeft(ev) > 0;
+}
+
+function bumpEventMission(ev: EventState, id: string, delta: number): EventState {
+  if (!eventActive(ev)) return ev;
+  const def = EVENT_MISSIONS.find((m) => m.id === id);
+  if (!def) return ev;
+  const missions = ev.missions.map((m) =>
+    m.id === id ? { ...m, progress: Math.min(def.target, m.progress + delta) } : m,
+  );
+  return { ...ev, missions };
+}
+
+function addMedals(ev: EventState, amount: number): EventState {
+  if (!eventActive(ev) || amount <= 0) return ev;
+  return { ...ev, medals: ev.medals + amount };
+}
 
 // ===== Retenção: tempo =====
 const FREE_CHEST_MS = 4 * 60 * 60 * 1000;   // 4h
@@ -905,6 +1015,7 @@ function defaultSave(): SaveState {
     blessings: emptyBlessings(),
     guild: emptyGuild(),
     arena: emptyArena(),
+    event: emptyEvent(),
     version: SAVE_VERSION,
   };
 }
@@ -943,6 +1054,11 @@ function loadSave(): SaveState {
       blessings: { ...emptyBlessings(), ...(parsed.blessings ?? {}) },
       guild: { ...emptyGuild(), ...(parsed.guild ?? {}) },
       arena: { ...emptyArena(), ...(parsed.arena ?? {}) },
+      event: {
+        ...emptyEvent(),
+        ...(parsed.event ?? {}),
+        missions: Array.isArray(parsed.event?.missions) ? parsed.event.missions : [],
+      },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
@@ -1005,7 +1121,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -1013,6 +1129,8 @@ function GamePage() {
   // Init
   useEffect(() => {
     const s = loadSave();
+    // Inicia/rotaciona evento se elegível
+    s.event = ensureEventStarted(s);
     // ==== Recompensas Offline ====
     const now = Date.now();
     const elapsed = Math.max(0, Math.min(OFFLINE_MAX_MS, now - (s.lastSeenAt ?? now)));
@@ -1258,6 +1376,12 @@ function GamePage() {
       : null;
     if (drop) flashToast(`📦 ${drop.rarity} ${SLOTS.find(s => s.key === drop.slot)!.label}`);
     const nextStage = cur.stage + 1;
+    // Evento: medalhas + progresso missões
+    let ev = ensureEventStarted(cur);
+    const medalGain = eventActive(ev) ? (enemy.isBoss ? 5 : 1) : 0;
+    ev = addMedals(ev, medalGain);
+    ev = bumpEventMission(ev, "kill", 1);
+    if (enemy.isBoss) ev = bumpEventMission(ev, "boss", 1);
     const next: SaveState = {
       ...cur,
       xp,
@@ -1272,6 +1396,7 @@ function GamePage() {
         enemies: cur.counters.enemies + 1,
         bosses: cur.counters.bosses + (enemy.isBoss ? 1 : 0),
       },
+      event: ev,
     };
     setSave(next);
     saveRef.current = next;
@@ -1661,6 +1786,9 @@ function GamePage() {
       if (d.pet) { pets = [...pets, d.pet]; flashToast(`🐾 Pet ${PET_DEFS[d.pet.kind].label} (${d.pet.rarity})!`); }
       else if (d.fragKind && d.fragAmt) { frags = { ...frags, [d.fragKind]: frags[d.fragKind] + d.fragAmt }; }
     }
+    let ev = ensureEventStarted(prev);
+    ev = addMedals(ev, 20);
+    ev = bumpEventMission(ev, "dungeon", 1);
     setSave({
       ...prev,
       gold: prev.gold + gold,
@@ -1671,6 +1799,7 @@ function GamePage() {
       dungeon: nextDungeon,
       pets,
       petFragments: frags,
+      event: ev,
     });
     return { ok: true, rewards: { gold, gems, essence, items } };
   }, [flashToast]);
@@ -1736,6 +1865,10 @@ function GamePage() {
     let frags = prev.petFragments;
     if (rw.frag) frags = { ...frags, [rw.frag.kind]: frags[rw.frag.kind] + rw.frag.amt };
 
+    const floorsClimbed = Math.max(0, floor - prev.tower.bestFloor);
+    let ev = ensureEventStarted(prev);
+    ev = addMedals(ev, 10 + Math.floor(floor / 5));
+    if (floorsClimbed > 0) ev = bumpEventMission(ev, "tower", floorsClimbed);
     setSave({
       ...prev,
       gold: prev.gold + gold,
@@ -1745,6 +1878,7 @@ function GamePage() {
       petFragments: frags,
       counters: { ...prev.counters, chests: prev.counters.chests + chests },
       tower: { bestFloor: best, runs: prev.tower.runs + 1, lastRunAt: Date.now() },
+      event: ev,
     });
     return { floor, best, newRecord, rewards: { gold, gems, essence, chests, frag: rw.frag } };
   }, [flashToast]);
@@ -1858,6 +1992,9 @@ function GamePage() {
       const gems = sim.win ? opp.rewardGems : 1;
       const essence = sim.win && opp.power >= heroPower(computeStats(prev)) ? 1 : 0;
       flashToast(sim.win ? `🏆 Vitória vs ${opp.name} +${pointsGain}pts` : `😞 Derrota vs ${opp.name} ${pointsGain}pts`);
+      let ev = ensureEventStarted(prev);
+      ev = addMedals(ev, sim.win ? 8 : 2);
+      if (sim.win) ev = bumpEventMission(ev, "arena", 1);
       return {
         ...prev,
         gold: prev.gold + gold,
@@ -1873,6 +2010,7 @@ function GamePage() {
           lastTicketDay: today,
           extraTickets: useExtra ? prev.arena.extraTickets - 1 : prev.arena.extraTickets,
         },
+        event: ev,
       };
     });
     return result;
@@ -1905,6 +2043,58 @@ function GamePage() {
       };
     });
   }, [flashToast]);
+
+  // ==== Eventos Sazonais (Fase 3 — Bloco 7) ====
+  const claimEventMission = useCallback((id: string) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      let ev = ensureEventStarted(prev);
+      const def = EVENT_MISSIONS.find((m) => m.id === id);
+      if (!def) return prev;
+      const m = ev.missions.find((x) => x.id === id);
+      if (!m || m.claimed || m.progress < def.target) { flashToast("Missão incompleta"); return prev; }
+      ev = {
+        ...ev,
+        medals: ev.medals + def.medalReward,
+        missions: ev.missions.map((x) => (x.id === id ? { ...x, claimed: true } : x)),
+      };
+      flashToast(`${ACTIVE_EVENT.medalIcon} +${def.medalReward} ${ACTIVE_EVENT.medalName}`);
+      return { ...prev, event: ev };
+    });
+  }, [flashToast]);
+
+  const buyEventShop = useCallback((id: string) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const item = EVENT_SHOP.find((x) => x.id === id);
+      if (!item) return prev;
+      let ev = ensureEventStarted(prev);
+      if (!eventActive(ev)) { flashToast("Evento encerrado"); return prev; }
+      if (ev.medals < item.cost) { flashToast(`${ACTIVE_EVENT.medalIcon} Medalhas insuficientes`); return prev; }
+      let next: SaveState = { ...prev };
+      switch (item.id) {
+        case "gold_s":  next = { ...next, gold: next.gold + 5000 }; break;
+        case "gems_s":  next = { ...next, gems: next.gems + 20 }; break;
+        case "chest":  {
+          const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+          next = { ...next, inventory: [...next.inventory, rollItem(slot, next.stage + 3)].slice(-60) };
+          break;
+        }
+        case "frag": {
+          const kind = PET_KINDS[Math.floor(Math.random() * PET_KINDS.length)]!;
+          next = { ...next, petFragments: { ...next.petFragments, [kind]: next.petFragments[kind] + 10 } };
+          break;
+        }
+        case "essence": next = { ...next, essence: next.essence + 1 }; break;
+      }
+      flashToast(`${item.icon} ${item.label}`);
+      ev = { ...ev, medals: ev.medals - item.cost };
+      return { ...next, event: ev };
+    });
+  }, [flashToast]);
+
+
+
 
 
 
@@ -2051,6 +2241,11 @@ function GamePage() {
               icon={<Lock className="h-3 w-3" />}
               label={save.level >= ARENA_UNLOCK_LEVEL ? "ARENA" : `🔒Lv${ARENA_UNLOCK_LEVEL}`}
               onClick={() => setModal("arena")}
+            />
+            <QuickCartoonBtn
+              icon={<Sparkles className="h-3 w-3" />}
+              label={save.level >= EVENT_UNLOCK_LEVEL ? `${ACTIVE_EVENT.icon} EVENTO` : `🔒Lv${EVENT_UNLOCK_LEVEL}`}
+              onClick={() => setModal("event")}
             />
           </div>
         </div>
@@ -2443,6 +2638,14 @@ function GamePage() {
           onJoin={joinGuild}
           onDonate={donateGuild}
           onFightBoss={fightGuildBoss}
+        />
+      )}
+      {modal === "event" && (
+        <EventModal
+          save={save}
+          onClose={() => setModal(null)}
+          onClaimMission={claimEventMission}
+          onBuy={buyEventShop}
         />
       )}
       {offlineReport && (
@@ -4348,6 +4551,151 @@ function ArenaPvpModal({
                 </div>
               ))}
             </div>
+          </>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
+// -------- Event Modal (Fase 3 — Bloco 7) --------
+function EventModal({
+  save,
+  onClose,
+  onClaimMission,
+  onBuy,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onClaimMission: (id: string) => void;
+  onBuy: (id: string) => void;
+}) {
+  const locked = save.level < EVENT_UNLOCK_LEVEL;
+  const [tab, setTab] = useState<"missions" | "shop">("missions");
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const ev = save.event;
+  const ms = eventTimeLeft(ev);
+  const active = eventActive(ev);
+  const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const mins = Math.floor((ms % (60 * 60 * 1000)) / 60000);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+            {ACTIVE_EVENT.icon} {ACTIVE_EVENT.name}
+          </h2>
+          <div className="text-[10px] opacity-70">Beta · limitado</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {EVENT_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && (
+          <>
+            <div className="mb-3 rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br from-fuchsia-600 to-purple-800 p-3">
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] text-amber-50/90">{ACTIVE_EVENT.desc}</div>
+                <div className="text-right">
+                  <div className="text-sm font-black text-amber-50">{ACTIVE_EVENT.medalIcon} {fmt(ev.medals)}</div>
+                  <div className="text-[10px] text-amber-50/80">{active ? `${days}d ${hours}h ${mins}m` : "Encerrado"}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-3 flex gap-2">
+              <button
+                onClick={() => setTab("missions")}
+                className={`flex-1 rounded-lg border-2 border-[#1A0F08] py-1.5 text-xs font-black ${
+                  tab === "missions" ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+                }`}
+              >
+                Missões
+              </button>
+              <button
+                onClick={() => setTab("shop")}
+                className={`flex-1 rounded-lg border-2 border-[#1A0F08] py-1.5 text-xs font-black ${
+                  tab === "shop" ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+                }`}
+              >
+                Loja
+              </button>
+            </div>
+
+            {tab === "missions" && (
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                {EVENT_MISSIONS.map((def) => {
+                  const m = ev.missions.find((x) => x.id === def.id) ?? { id: def.id, progress: 0, claimed: false };
+                  const pct = Math.min(100, (m.progress / def.target) * 100);
+                  const done = m.progress >= def.target;
+                  return (
+                    <div key={def.id} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-black">{def.label}</div>
+                          <div className="text-[10px] opacity-70">{def.hint} · +{def.medalReward} {ACTIVE_EVENT.medalIcon}</div>
+                          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full border border-[#1A0F08] bg-black/40">
+                            <div className="h-full bg-amber-300" style={{ width: `${pct}%` }} />
+                          </div>
+                          <div className="mt-0.5 text-right text-[10px]">{m.progress}/{def.target}</div>
+                        </div>
+                        <button
+                          onClick={() => onClaimMission(def.id)}
+                          disabled={!done || m.claimed || !active}
+                          className="rounded-md border-2 border-[#1A0F08] bg-gradient-to-b from-emerald-500 to-emerald-700 px-2.5 py-1 text-[10px] font-black text-amber-50 disabled:opacity-40"
+                        >
+                          {m.claimed ? "Coletado" : "Coletar"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {tab === "shop" && (
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                {EVENT_SHOP.map((item) => {
+                  const can = ev.medals >= item.cost && active;
+                  return (
+                    <div key={item.id} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="text-2xl">{item.icon}</div>
+                          <div>
+                            <div className="text-xs font-black">{item.label}</div>
+                            <div className="text-[10px] opacity-70">{item.desc}</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => onBuy(item.id)}
+                          disabled={!can}
+                          className="rounded-md border-2 border-[#1A0F08] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] px-2.5 py-1 text-[10px] font-black text-amber-950 disabled:opacity-40"
+                        >
+                          {ACTIVE_EVENT.medalIcon} {item.cost}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </>
         )}
 
