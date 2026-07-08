@@ -2263,6 +2263,15 @@ function GamePage() {
           onActivate={activateBlessing}
         />
       )}
+      {modal === "guild" && (
+        <GuildModal
+          save={save}
+          onClose={() => setModal(null)}
+          onJoin={joinGuild}
+          onDonate={donateGuild}
+          onFightBoss={fightGuildBoss}
+        />
+      )}
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
