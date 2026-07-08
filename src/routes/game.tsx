@@ -646,7 +646,8 @@ function GamePage() {
       level += 1;
     }
     const canDrop = level >= 3 || cur.level >= 3;
-    const drop = canDrop && (enemy.isBoss || Math.random() < 0.12)
+    const dropBonus = (cur.globalUp?.drop ?? 0) * GLOBAL_UP_DEFS.drop.perLevel;
+    const drop = canDrop && (enemy.isBoss || Math.random() < 0.12 + dropBonus)
       ? rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, cur.stage)
       : null;
     if (drop) flashToast(`📦 ${drop.rarity} ${SLOTS.find(s => s.key === drop.slot)!.label}`);
