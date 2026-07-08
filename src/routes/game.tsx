@@ -1398,7 +1398,7 @@ function ArenaModal({
 
 
 
-function pickEnemyEmoji(stage: number) {
-  const pool = ["👹", "👺", "🧟", "👻", "🦇", "🐍", "🕷️", "🐺", "🦂", "🐗"];
+function pickEnemySprite(stage: number) {
+  const pool = [goblinSprite, slimeSprite, skeletonSprite];
   return pool[stage % pool.length];
 }
