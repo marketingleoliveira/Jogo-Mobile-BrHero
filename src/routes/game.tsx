@@ -2268,8 +2268,10 @@ function GamePage() {
         achievements: { ...prev.achievements, claimed: [...prev.achievements.claimed, id] },
       };
       if (r.chest) {
-        const items = generateChestItems(r.chest === 2 ? "rare" : "normal");
-        next = { ...next, inventory: [...next.inventory, ...items] };
+        // Recompensa de baú convertida em ouro/cristais bônus (sistema simplificado)
+        const bonusGold = r.chest === 2 ? 25000 : 8000;
+        const bonusGems = r.chest === 2 ? 30 : 10;
+        next = { ...next, gold: next.gold + bonusGold, gems: next.gems + bonusGems };
       }
       if (r.petFrags && r.petFragKind) {
         next = { ...next, petFragments: { ...next.petFragments, [r.petFragKind]: next.petFragments[r.petFragKind] + r.petFrags } };
