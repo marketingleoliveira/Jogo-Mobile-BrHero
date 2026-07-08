@@ -1,5 +1,8 @@
 // Mock store for Admin CMS - Codes/Redeem module.
 // Ainda não conectado a Supabase. Persiste em localStorage.
+import { guard } from "./rbac";
+import { logAction } from "./audit-central";
+
 
 export interface CodeRewards {
   gold: number;
@@ -105,6 +108,7 @@ export interface CodeInput {
 
 export const codeActions = {
   create(input: CodeInput, reason: string) {
+    guard("codes", "create");
     const code = input.code.trim().toUpperCase();
     if (!code) throw new Error("Código vazio");
     if (store.codes.some((c) => c.code === code)) throw new Error("Código já existe");
@@ -120,10 +124,12 @@ export const codeActions = {
     };
     store.codes = [created, ...store.codes];
     pushLog({ action: "create", code, before: null, after: created, reason });
+    logAction({ module: "codes", action: "create", target: code, before: null, after: created, reason });
     emit();
     return created;
   },
   update(id: string, input: CodeInput, reason: string) {
+    guard("codes", "edit");
     const idx = store.codes.findIndex((c) => c.id === id);
     if (idx < 0) return;
     const before = store.codes[idx];
@@ -139,28 +145,31 @@ export const codeActions = {
     };
     store.codes = store.codes.map((c, i) => (i === idx ? after : c));
     pushLog({ action: "update", code: after.code, before, after, reason });
+    logAction({ module: "codes", action: "update", target: after.code, before, after, reason });
     emit();
   },
   toggle(id: string, reason: string) {
+    guard("codes", "edit");
     const idx = store.codes.findIndex((c) => c.id === id);
     if (idx < 0) return;
     const before = store.codes[idx];
     const after: RedeemCode = { ...before, active: !before.active, updatedAt: now() };
     store.codes = store.codes.map((c, i) => (i === idx ? after : c));
-    pushLog({
-      action: "toggle", code: after.code,
-      before: { active: before.active }, after: { active: after.active }, reason,
-    });
+    pushLog({ action: "toggle", code: after.code, before: { active: before.active }, after: { active: after.active }, reason });
+    logAction({ module: "codes", action: "toggle", target: after.code, before: { active: before.active }, after: { active: after.active }, reason });
     emit();
   },
   remove(id: string, reason: string) {
+    guard("codes", "delete");
     const target = store.codes.find((c) => c.id === id);
     if (!target) return;
     store.codes = store.codes.filter((c) => c.id !== id);
     pushLog({ action: "delete", code: target.code, before: target, after: null, reason });
+    logAction({ module: "codes", action: "delete", target: target.code, before: target, after: null, reason });
     emit();
   },
 };
+
 
 export function codeStatus(c: RedeemCode): "active" | "inactive" | "scheduled" | "expired" | "exhausted" {
   const t = Date.now();
