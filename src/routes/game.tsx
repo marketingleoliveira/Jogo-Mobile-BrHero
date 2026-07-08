@@ -755,6 +755,7 @@ function loadSave(): SaveState {
       pets: Array.isArray(parsed.pets) ? parsed.pets : [],
       equippedPetId: typeof parsed.equippedPetId === "string" ? parsed.equippedPetId : null,
       petFragments: { ...emptyPetFragments(), ...(parsed.petFragments ?? {}) },
+      tower: { ...emptyTower(), ...(parsed.tower ?? {}) },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
