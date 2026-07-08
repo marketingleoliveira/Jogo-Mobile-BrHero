@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Swords,
   Sparkles,
@@ -9,14 +9,25 @@ import {
   Users,
   Download,
   Globe,
-  UserPlus,
-  LogIn,
-  X,
+  LogOut,
 } from "lucide-react";
 
 const ACCOUNT_KEY = "hero-rise-account-v1";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
-type Account = { name: string; email: string; createdAt: number };
+type Account = {
+  name: string;
+  email: string;
+  picture?: string;
+  sub: string;
+  createdAt: number;
+};
+
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
 
 function loadAccount(): Account | null {
   if (typeof window === "undefined") return null;
@@ -28,6 +39,12 @@ function loadAccount(): Account | null {
   }
 }
 
+function decodeJwt(token: string): any {
+  const payload = token.split(".")[1];
+  const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+  return JSON.parse(decodeURIComponent(escape(json)));
+}
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -35,13 +52,12 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Hero Rise: RPG mobile idle brasileiro. Batalhas automáticas, evolução constante, chefões épicos e progressão viciante. Jogue no navegador ou baixe no Google Play.",
+          "Hero Rise: RPG mobile idle brasileiro. Batalhas automáticas, evolução constante e chefões épicos. Entre com Google e jogue no navegador ou baixe no Google Play.",
       },
       { property: "og:title", content: "Hero Rise — RPG Mobile Idle" },
       {
         property: "og:description",
-        content:
-          "RPG idle em português. Evolua seu herói, derrote chefões e desbloqueie novas funções.",
+        content: "RPG idle em português. Entre com Google e comece agora.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -56,7 +72,57 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const [account, setAccount] = useState<Account | null>(() => loadAccount());
-  const [modal, setModal] = useState<"signup" | "login" | null>(null);
+  const btnRef = useRef<HTMLDivElement>(null);
+  const [gsiReady, setGsiReady] = useState(false);
+
+  // Initialize Google Identity Services
+  useEffect(() => {
+    if (account) return;
+    if (!GOOGLE_CLIENT_ID) return;
+
+    let cancelled = false;
+    const tryInit = () => {
+      if (cancelled) return;
+      if (!window.google?.accounts?.id) {
+        setTimeout(tryInit, 300);
+        return;
+      }
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: (resp: { credential: string }) => {
+          try {
+            const p = decodeJwt(resp.credential);
+            const acc: Account = {
+              name: p.name || p.given_name || "Herói",
+              email: p.email,
+              picture: p.picture,
+              sub: p.sub,
+              createdAt: Date.now(),
+            };
+            localStorage.setItem(ACCOUNT_KEY, JSON.stringify(acc));
+            setAccount(acc);
+          } catch (e) {
+            console.error("Google sign-in decode failed", e);
+          }
+        },
+      });
+      if (btnRef.current) {
+        window.google.accounts.id.renderButton(btnRef.current, {
+          theme: "filled_blue",
+          size: "large",
+          shape: "pill",
+          text: "signup_with",
+          logo_alignment: "left",
+          width: 320,
+        });
+      }
+      setGsiReady(true);
+    };
+    tryInit();
+    return () => {
+      cancelled = true;
+    };
+  }, [account]);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#3E2723] via-[#5D4037] to-[#3E2723] text-amber-50">
@@ -80,108 +146,109 @@ function Landing() {
           </p>
         </header>
 
-        {/* O que é */}
-        <section className="mt-8 rounded-2xl border-4 border-[#8B4513] bg-[#4E342E]/80 p-5 shadow-lg">
-          <h2
-            className="mb-2 text-xl text-amber-200"
-            style={{ fontFamily: "'Luckiest Guy', cursive" }}
-          >
-            🎮 O que é Hero Rise?
-          </h2>
-          <p className="text-sm leading-relaxed text-amber-100">
-            Um RPG <b>idle</b> (o herói luta sozinho!) inspirado em Legend of Mushroom.
-            Sua missão é evoluir atributos, coletar equipamentos raros e derrotar
-            chefões cada vez mais poderosos.
-          </p>
-        </section>
-
-        {/* Como funciona */}
-        <section className="mt-4 rounded-2xl border-4 border-[#8B4513] bg-[#4E342E]/80 p-5 shadow-lg">
-          <h2
-            className="mb-3 text-xl text-amber-200"
-            style={{ fontFamily: "'Luckiest Guy', cursive" }}
-          >
-            ⚙️ Como funciona?
-          </h2>
-          <ul className="space-y-3 text-sm">
-            <Step
-              icon={<Swords className="h-4 w-4" />}
-              title="Batalhas automáticas"
-              body="Seu herói ataca inimigos sozinho. Você só assiste o show!"
-            />
-            <Step
-              icon={<Zap className="h-4 w-4" />}
-              title="Evolua atributos"
-              body="Gaste ouro em ATK, HP, Crítico, Velocidade e muito mais."
-            />
-            <Step
-              icon={<Trophy className="h-4 w-4" />}
-              title="Chefões a cada 10 estágios"
-              body="Vença bosses para ganhar gemas e recompensas raras."
-            />
-            <Step
-              icon={<Shield className="h-4 w-4" />}
-              title="Equipamentos e raridades"
-              body="Colete itens de Comum a Divino — cada um deixa você mais forte."
-            />
-            <Step
-              icon={<Users className="h-4 w-4" />}
-              title="PvP e Multiplayer"
-              body="Desbloqueie arena PvP no Lv 30 e Multiplayer no Lv 50."
-            />
-          </ul>
-        </section>
-
-        {/* CTA */}
-        <section className="mt-6 space-y-3">
-          {!account ? (
-            <>
-              <button
-                onClick={() => setModal("signup")}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border-4 border-[#B34700] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-4 text-lg text-amber-950 shadow-[0_6px_0_#B34700] active:translate-y-1 active:shadow-[0_2px_0_#B34700]"
+        {!account && (
+          <>
+            {/* O que é */}
+            <section className="mt-8 rounded-2xl border-4 border-[#8B4513] bg-[#4E342E]/80 p-5 shadow-lg">
+              <h2
+                className="mb-2 text-xl text-amber-200"
                 style={{ fontFamily: "'Luckiest Guy', cursive" }}
               >
-                <UserPlus className="h-5 w-5" />
-                CRIAR CONTA GRÁTIS
-              </button>
-              <button
-                onClick={() => setModal("login")}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-amber-200/40 bg-[#3E2723] py-3 text-sm font-bold text-amber-100"
+                🎮 O que é Hero Rise?
+              </h2>
+              <p className="text-sm leading-relaxed text-amber-100">
+                Um RPG <b>idle</b> (o herói luta sozinho!) inspirado em Legend of
+                Mushroom. Evolua atributos, colete equipamentos raros e derrote
+                chefões cada vez mais poderosos.
+              </p>
+            </section>
+
+            <section className="mt-4 rounded-2xl border-4 border-[#8B4513] bg-[#4E342E]/80 p-5 shadow-lg">
+              <h2
+                className="mb-3 text-xl text-amber-200"
+                style={{ fontFamily: "'Luckiest Guy', cursive" }}
               >
-                <LogIn className="h-4 w-4" />
-                Já tenho conta
-              </button>
-              <Link
-                to="/game"
-                className="block text-center text-xs text-amber-300/80 underline"
+                ⚙️ Como funciona?
+              </h2>
+              <ul className="space-y-3 text-sm">
+                <Step
+                  icon={<Swords className="h-4 w-4" />}
+                  title="Batalhas automáticas"
+                  body="Seu herói ataca inimigos sozinho. Você só assiste o show!"
+                />
+                <Step
+                  icon={<Zap className="h-4 w-4" />}
+                  title="Evolua atributos"
+                  body="Gaste ouro em ATK, HP, Crítico, Velocidade e muito mais."
+                />
+                <Step
+                  icon={<Trophy className="h-4 w-4" />}
+                  title="Chefões a cada 10 estágios"
+                  body="Vença bosses para ganhar gemas e recompensas raras."
+                />
+                <Step
+                  icon={<Shield className="h-4 w-4" />}
+                  title="Equipamentos e raridades"
+                  body="Colete itens de Comum a Divino — cada um deixa você mais forte."
+                />
+                <Step
+                  icon={<Users className="h-4 w-4" />}
+                  title="PvP e Multiplayer"
+                  body="Desbloqueie arena PvP no Lv 30 e Multiplayer no Lv 50."
+                />
+              </ul>
+            </section>
+
+            {/* Sign-in obrigatório */}
+            <section className="mt-6 rounded-2xl border-4 border-[#8B4513] bg-gradient-to-b from-[#FFF3E0] to-[#FFE0B2] p-5 text-center text-[#3E2723] shadow-xl">
+              <h2
+                className="mb-1 text-xl"
+                style={{ fontFamily: "'Luckiest Guy', cursive" }}
               >
-                ou jogar como convidado
-              </Link>
-            </>
-          ) : (
-            <PlayOptions account={account} onLogout={() => {
-              localStorage.removeItem(ACCOUNT_KEY);
-              setAccount(null);
-            }} />
-          )}
-        </section>
+                Entre para jogar
+              </h2>
+              <p className="mb-4 text-xs text-[#5D4037]">
+                Use sua conta Google (a mesma do Google Play) para salvar seu
+                progresso.
+              </p>
+
+              {GOOGLE_CLIENT_ID ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div ref={btnRef} className="min-h-[44px]" />
+                  {!gsiReady && (
+                    <p className="text-xs text-[#8B4513]">
+                      Carregando login do Google...
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl border-2 border-red-700 bg-red-100 p-3 text-left text-xs text-red-900">
+                  <b>Configuração necessária:</b> defina{" "}
+                  <code>VITE_GOOGLE_CLIENT_ID</code> nas variáveis de ambiente
+                  com seu Client ID OAuth do Google Cloud Console para habilitar
+                  o login.
+                </div>
+              )}
+            </section>
+
+            <p className="mt-4 text-center text-[10px] text-amber-200/60">
+              É obrigatório criar conta. Não há modo convidado.
+            </p>
+          </>
+        )}
+
+        {account && <PlayOptions account={account} onLogout={() => {
+          localStorage.removeItem(ACCOUNT_KEY);
+          if (window.google?.accounts?.id) {
+            window.google.accounts.id.disableAutoSelect();
+          }
+          setAccount(null);
+        }} />}
 
         <p className="mt-8 text-center text-[10px] text-amber-200/60">
           © Hero Rise · Beta MVP · Feito com ❤️ no Brasil
         </p>
       </div>
-
-      {modal && (
-        <AuthModal
-          mode={modal}
-          onClose={() => setModal(null)}
-          onSuccess={(acc) => {
-            localStorage.setItem(ACCOUNT_KEY, JSON.stringify(acc));
-            setAccount(acc);
-            setModal(null);
-          }}
-        />
-      )}
     </main>
   );
 }
@@ -202,14 +269,31 @@ function Step({ icon, title, body }: { icon: React.ReactNode; title: string; bod
 
 function PlayOptions({ account, onLogout }: { account: Account; onLogout: () => void }) {
   return (
-    <div className="space-y-3">
-      <div className="rounded-2xl border-4 border-[#8B4513] bg-[#4E342E]/80 p-4 text-center">
-        <div className="text-xs text-amber-200/70">Bem-vindo(a),</div>
-        <div
-          className="text-lg text-amber-100"
-          style={{ fontFamily: "'Luckiest Guy', cursive" }}
-        >
-          {account.name} 👑
+    <div className="mt-6 space-y-3">
+      <div className="flex items-center gap-3 rounded-2xl border-4 border-[#8B4513] bg-[#4E342E]/80 p-4">
+        {account.picture ? (
+          <img
+            src={account.picture}
+            alt={account.name}
+            referrerPolicy="no-referrer"
+            className="h-12 w-12 rounded-full border-2 border-[#FFB74D]"
+          />
+        ) : (
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#FFB74D] bg-[#5D4037] text-lg">
+            👑
+          </div>
+        )}
+        <div className="flex-1 text-left">
+          <div className="text-xs text-amber-200/70">Bem-vindo(a),</div>
+          <div
+            className="text-lg text-amber-100"
+            style={{ fontFamily: "'Luckiest Guy', cursive" }}
+          >
+            {account.name}
+          </div>
+          <div className="truncate text-[10px] text-amber-200/60">
+            {account.email}
+          </div>
         </div>
       </div>
 
@@ -235,119 +319,16 @@ function PlayOptions({ account, onLogout }: { account: Account; onLogout: () => 
 
       <button
         onClick={onLogout}
-        className="w-full py-2 text-xs text-amber-300/70 underline"
+        className="flex w-full items-center justify-center gap-2 py-2 text-xs text-amber-300/70 underline"
       >
-        Sair da conta
+        <LogOut className="h-3 w-3" /> Sair da conta
       </button>
-    </div>
-  );
-}
 
-function AuthModal({
-  mode,
-  onClose,
-  onSuccess,
-}: {
-  mode: "signup" | "login";
-  onClose: () => void;
-  onSuccess: (a: Account) => void;
-}) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.includes("@")) return setError("Email inválido");
-    if (password.length < 4) return setError("Senha muito curta (min. 4)");
-    if (mode === "signup" && name.trim().length < 2)
-      return setError("Digite seu nome de herói");
-    const acc: Account = {
-      name: mode === "signup" ? name.trim() : email.split("@")[0],
-      email: email.trim(),
-      createdAt: Date.now(),
-    };
-    onSuccess(acc);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-5">
-      <form
-        onSubmit={submit}
-        className="w-full max-w-sm rounded-3xl border-4 border-[#8B4513] bg-gradient-to-b from-[#FFF3E0] to-[#FFE0B2] p-6 text-[#3E2723] shadow-2xl"
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2
-            className="text-2xl"
-            style={{ fontFamily: "'Luckiest Guy', cursive" }}
-          >
-            {mode === "signup" ? "Criar Conta" : "Entrar"}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#8B4513] bg-white/50"
-            aria-label="Fechar"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {mode === "signup" && (
-          <label className="mb-3 block">
-            <span className="mb-1 block text-xs font-bold">Nome do herói</span>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl border-2 border-[#8B4513] bg-white/70 px-3 py-2 text-sm outline-none focus:border-[#FF9800]"
-              placeholder="Ex: Arthur o Bravo"
-            />
-          </label>
-        )}
-        <label className="mb-3 block">
-          <span className="mb-1 block text-xs font-bold">Email</span>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border-2 border-[#8B4513] bg-white/70 px-3 py-2 text-sm outline-none focus:border-[#FF9800]"
-            placeholder="voce@email.com"
-            autoComplete="email"
-          />
-        </label>
-        <label className="mb-4 block">
-          <span className="mb-1 block text-xs font-bold">Senha</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border-2 border-[#8B4513] bg-white/70 px-3 py-2 text-sm outline-none focus:border-[#FF9800]"
-            placeholder="••••••"
-            autoComplete={mode === "signup" ? "new-password" : "current-password"}
-          />
-        </label>
-
-        {error && (
-          <div className="mb-3 rounded-lg border-2 border-red-700 bg-red-100 px-3 py-2 text-xs text-red-800">
-            {error}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border-4 border-[#B34700] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-3 text-amber-950 shadow-[0_4px_0_#B34700] active:translate-y-1 active:shadow-[0_1px_0_#B34700]"
-          style={{ fontFamily: "'Luckiest Guy', cursive" }}
-        >
-          <Sparkles className="h-4 w-4" />
-          {mode === "signup" ? "CRIAR E JOGAR" : "ENTRAR"}
-        </button>
-
-        <p className="mt-3 text-center text-[10px] text-[#5D4037]">
-          Conta salva localmente neste dispositivo (beta).
-        </p>
-      </form>
+      <div className="rounded-xl border border-amber-200/20 bg-[#3E2723]/60 p-3 text-[10px] text-amber-200/70">
+        <Sparkles className="mr-1 inline h-3 w-3" />
+        Login feito via Google — o mesmo usado no Google Play. Seu progresso
+        fica vinculado à sua conta.
+      </div>
     </div>
   );
 }
