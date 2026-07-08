@@ -904,6 +904,7 @@ function defaultSave(): SaveState {
     tower: emptyTower(),
     blessings: emptyBlessings(),
     guild: emptyGuild(),
+    arena: emptyArena(),
     version: SAVE_VERSION,
   };
 }
