@@ -587,6 +587,7 @@ function defaultSave(): SaveState {
     lastSeenAt: Date.now(),
     counters: emptyCounters(),
     missions: emptyMissions(),
+    dungeon: emptyDungeon(),
     version: SAVE_VERSION,
   };
 }
