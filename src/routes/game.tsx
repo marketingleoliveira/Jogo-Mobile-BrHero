@@ -1441,7 +1441,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | "runes" | "cosmetics" | "codes" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | "runes" | "cosmetics" | "codes" | "menu" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -2727,78 +2727,18 @@ function GamePage() {
             </div>
           </div>
 
-          {/* Rebirth + Pass stack */}
+          {/* Menu compacto — abre grade em modal para não atrapalhar a arena */}
           <div className="flex flex-col gap-1">
             <QuickCartoonBtn
               icon={<Sparkles className="h-3 w-3" />}
               label={save.stage >= PRESTIGE_UNLOCK_STAGE ? "REBIRTH" : "🔒"}
               onClick={() => setModal("rebirth")}
             />
-            <QuickCartoonBtn icon={<Calendar className="h-3 w-3" />} label="DIÁRIO" onClick={() => setModal("daily")} />
-            <QuickCartoonBtn icon={<Target className="h-3 w-3" />} label="MISSÕES" onClick={() => setModal("missions")} />
-            <QuickCartoonBtn
-              icon={<Lock className="h-3 w-3" />}
-              label={save.level >= DUNGEON_UNLOCK_LEVEL ? "MASMORRA" : `🔒Lv${DUNGEON_UNLOCK_LEVEL}`}
-              onClick={() => setModal("dungeon")}
-            />
-            <QuickCartoonBtn
-              icon={<Lock className="h-3 w-3" />}
-              label={save.level >= PETS_UNLOCK_LEVEL ? "PETS" : `🔒Lv${PETS_UNLOCK_LEVEL}`}
-              onClick={() => setModal("pets")}
-            />
-            <QuickCartoonBtn
-              icon={<Lock className="h-3 w-3" />}
-              label={save.level >= TOWER_UNLOCK_LEVEL ? "TORRE" : `🔒Lv${TOWER_UNLOCK_LEVEL}`}
-              onClick={() => setModal("tower")}
-            />
-            <QuickCartoonBtn
-              icon={<Sparkles className="h-3 w-3" />}
-              label={save.level >= BLESSING_UNLOCK_LEVEL ? "BÊNÇÃOS" : `🔒Lv${BLESSING_UNLOCK_LEVEL}`}
-              onClick={() => setModal("blessings")}
-            />
-            <QuickCartoonBtn
-              icon={<Lock className="h-3 w-3" />}
-              label={save.level >= GUILD_UNLOCK_LEVEL ? "GUILDA" : `🔒Lv${GUILD_UNLOCK_LEVEL}`}
-              onClick={() => setModal("guild")}
-            />
-            <QuickCartoonBtn
-              icon={<Lock className="h-3 w-3" />}
-              label={save.level >= ARENA_UNLOCK_LEVEL ? "ARENA" : `🔒Lv${ARENA_UNLOCK_LEVEL}`}
-              onClick={() => setModal("arena")}
-            />
-            <QuickCartoonBtn
-              icon={<Sparkles className="h-3 w-3" />}
-              label={save.level >= EVENT_UNLOCK_LEVEL ? `${ACTIVE_EVENT.icon} EVENTO` : `🔒Lv${EVENT_UNLOCK_LEVEL}`}
-              onClick={() => setModal("event")}
-            />
-            <QuickCartoonBtn
-              icon={<Lock className="h-3 w-3" />}
-              label={save.level >= SKIN_UNLOCK_LEVEL ? `${equippedSkinDef(save).icon} SKINS` : `🔒Lv${SKIN_UNLOCK_LEVEL}`}
-              onClick={() => setModal("skins")}
-            />
-            <QuickCartoonBtn
-              icon={<Trophy className="h-3 w-3" />}
-              label="CONQUISTAS"
-              onClick={() => setModal("achievements")}
-            />
-            <QuickCartoonBtn
-              icon={<Sparkles className="h-3 w-3" />}
-              label={save.level >= RUNE_UNLOCK_LEVEL ? "RUNAS" : `🔒Lv${RUNE_UNLOCK_LEVEL}`}
-              onClick={() => setModal("runes")}
-            />
             <QuickCartoonBtn
               icon={<Package className="h-3 w-3" />}
-              label="COSMÉTICOS"
-              onClick={() => setModal("cosmetics")}
+              label="MENU"
+              onClick={() => setModal("menu")}
             />
-            <QuickCartoonBtn
-              icon={<Ticket className="h-3 w-3" />}
-              label="CÓDIGOS"
-              onClick={() => setModal("codes")}
-            />
-
-
-
           </div>
         </div>
       </header>
@@ -3214,6 +3154,13 @@ function GamePage() {
       )}
       {modal === "codes" && (
         <CodesModal save={save} onClose={() => setModal(null)} onRedeem={redeemCode} />
+      )}
+      {modal === "menu" && (
+        <GameMenuModal
+          save={save}
+          onClose={() => setModal(null)}
+          onPick={(m) => setModal(m)}
+        />
       )}
 
 
@@ -5709,6 +5656,91 @@ function CodesModal({
             })}
           </ul>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ============= Game Menu Modal — grade compacta (evita poluir a arena) =============
+type MenuKey =
+  | "daily" | "missions" | "dungeon" | "pets" | "tower"
+  | "blessings" | "guild" | "arena" | "event" | "skins"
+  | "achievements" | "runes" | "cosmetics" | "codes";
+
+function GameMenuModal({
+  save,
+  onClose,
+  onPick,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onPick: (m: MenuKey) => void;
+}) {
+  const items: { key: MenuKey; icon: string; label: string; unlock?: number; kind?: "level" }[] = [
+    { key: "daily",        icon: "📅", label: "Diário" },
+    { key: "missions",     icon: "🎯", label: "Missões" },
+    { key: "dungeon",      icon: "🗝️", label: "Masmorra",  unlock: DUNGEON_UNLOCK_LEVEL },
+    { key: "pets",         icon: "🐾", label: "Pets",      unlock: PETS_UNLOCK_LEVEL },
+    { key: "tower",        icon: "🗼", label: "Torre",     unlock: TOWER_UNLOCK_LEVEL },
+    { key: "blessings",    icon: "✨", label: "Bênçãos",  unlock: BLESSING_UNLOCK_LEVEL },
+    { key: "guild",        icon: "🛡️", label: "Guilda",    unlock: GUILD_UNLOCK_LEVEL },
+    { key: "arena",        icon: "⚔️", label: "Arena",     unlock: ARENA_UNLOCK_LEVEL },
+    { key: "event",        icon: ACTIVE_EVENT.icon, label: "Evento", unlock: EVENT_UNLOCK_LEVEL },
+    { key: "skins",        icon: equippedSkinDef(save).icon, label: "Skins", unlock: SKIN_UNLOCK_LEVEL },
+    { key: "achievements", icon: "🏆", label: "Conquistas" },
+    { key: "runes",        icon: "🔮", label: "Runas",     unlock: RUNE_UNLOCK_LEVEL },
+    { key: "cosmetics",    icon: "🎭", label: "Cosméticos" },
+    { key: "codes",        icon: "🎟️", label: "Códigos" },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-t-2xl border-4 border-b-0 border-[#1A0F08] bg-gradient-to-b from-amber-100 to-amber-200 p-3 shadow-2xl sm:rounded-2xl sm:border-b-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-base font-black text-[#1A0F08]">📖 Menu</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg border-2 border-[#1A0F08] bg-red-500 px-2 py-1 text-xs font-black text-white active:scale-95"
+          >
+            Fechar
+          </button>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2">
+          {items.map((it) => {
+            const locked = it.unlock !== undefined && save.level < it.unlock;
+            return (
+              <button
+                key={it.key}
+                onClick={() => {
+                  if (locked) return;
+                  onPick(it.key);
+                }}
+                disabled={locked}
+                className={`flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-[#1A0F08] px-1.5 py-2 text-[10px] font-black uppercase tracking-wide leading-tight shadow-[inset_0_-3px_0_rgba(0,0,0,0.25)] active:scale-95 ${
+                  locked
+                    ? "bg-stone-300 text-stone-500"
+                    : "bg-gradient-to-b from-amber-300 to-orange-400 text-[#1A0F08]"
+                }`}
+              >
+                <span className="text-xl leading-none">{locked ? "🔒" : it.icon}</span>
+                <span className="text-center">
+                  {locked ? `Lv${it.unlock}` : it.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="mt-3 text-center text-[10px] text-[#3A2415]">
+          Toque em um módulo para abrir · Rebirth continua no topo
+        </p>
       </div>
     </div>
   );
