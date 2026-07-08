@@ -139,6 +139,8 @@ type SaveState = {
   achievements: AchievementsState;
   // Runas / Encantamentos (Fase 3 — Bloco 10)
   runes: RunesState;
+  // Cosméticos avançados (Fase 3 — Bloco 11)
+  cosmetics: CosmeticsState;
   version: number;
 };
 
@@ -200,7 +202,7 @@ type AchievementId = string;
 type AchievementsState = { claimed: AchievementId[] };
 
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 16;
+const SAVE_VERSION = 17;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
@@ -540,6 +542,8 @@ const EVENT_SHOP: EventShopItem[] = [
   { id: "frag",    label: "10 Fragmentos Pet", icon: "🐾", cost: 30, limitPerEvent: 10, desc: "Fragmento aleatório" },
   { id: "essence", label: "1 Essência",      icon: "✨", cost: 60, limitPerEvent: 3, desc: "Rebirth mais rápido" },
   { id: "rune_frag", label: "5 Fragmentos de Runa", icon: "🔮", cost: 40, limitPerEvent: 10, desc: "Evolua suas runas" },
+  { id: "cosm_aura_blue",    label: "Cosmético: Aura Azul",     icon: "💠", cost: 100, limitPerEvent: 1, desc: "Aura brilhante do evento" },
+  { id: "cosm_frame_brasil", label: "Cosmético: Moldura Brasil", icon: "🇧🇷", cost: 100, limitPerEvent: 1, desc: "Moldura tupiniquim" },
   { id: "skin_brasil", label: "Skin: Guardião do Brasil", icon: "🦸", cost: 120, limitPerEvent: 1, desc: "Cosmético do evento" },
 ];
 
@@ -620,7 +624,7 @@ function equippedSkinDef(save: SaveState): SkinDef {
 
 // ===== Conquistas / Achievements (Fase 3 — Bloco 9) =====
 type AchievementCategory = "combate" | "progressao" | "colecao" | "social";
-type AchievementReward = { gold?: number; gems?: number; essence?: number; chest?: 0 | 1 | 2; petFragKind?: PetKind; petFrags?: number; runeFrags?: number };
+type AchievementReward = { gold?: number; gems?: number; essence?: number; chest?: 0 | 1 | 2; petFragKind?: PetKind; petFrags?: number; runeFrags?: number; cosmetic?: CosmeticId };
 type AchievementDef = {
   id: AchievementId;
   category: AchievementCategory;
@@ -647,7 +651,7 @@ const ACHIEVEMENTS: AchievementDef[] = [
   { id: "reb_25",     category: "progressao", icon: "🌟", label: "Ascendido",               desc: "Faça 25 Rebirths",           goal: 25,    metric: (s) => s.prestigeLevel,             reward: { essence: 150, gems: 500, chest: 2 } },
   // Progressão — estágios
   { id: "stg_50",     category: "progressao", icon: "🗺️", label: "Explorador",              desc: "Alcance o estágio 50",       goal: 50,    metric: (s) => s.maxStage,                  reward: { gold: 5000, gems: 15 } },
-  { id: "stg_200",    category: "progressao", icon: "🗺️", label: "Desbravador",             desc: "Alcance o estágio 200",      goal: 200,   metric: (s) => s.maxStage,                  reward: { gold: 50000, gems: 60, chest: 1 } },
+  { id: "stg_200",    category: "progressao", icon: "🗺️", label: "Desbravador",             desc: "Alcance o estágio 200",      goal: 200,   metric: (s) => s.maxStage,                  reward: { gold: 50000, gems: 60, chest: 1, cosmetic: "axe_gold" } },
   { id: "stg_1000",   category: "progressao", icon: "🗺️", label: "Andarilho Infinito",      desc: "Alcance o estágio 1000",     goal: 1000,  metric: (s) => s.maxStage,                  reward: { gems: 300, essence: 50, chest: 2 } },
   // Progressão — Torre
   { id: "twr_10",     category: "progressao", icon: "🗼", label: "Escalador",               desc: "Suba ao andar 10 da Torre",  goal: 10,    metric: (s) => s.tower.bestFloor,           reward: { gold: 4000, gems: 15 } },
@@ -690,6 +694,7 @@ function achievementRewardLabel(r: AchievementReward): string {
   if (r.chest) parts.push(r.chest === 2 ? "🎁 Baú Raro" : "🎁 Baú");
   if (r.petFrags && r.petFragKind) parts.push(`${r.petFrags}🧩 ${r.petFragKind}`);
   if (r.runeFrags) parts.push(`${r.runeFrags}🔮 runa`);
+  if (r.cosmetic && COSMETIC_DEFS[r.cosmetic]) parts.push(`🎭 ${COSMETIC_DEFS[r.cosmetic].label}`);
   return parts.join(" · ");
 }
 
@@ -767,6 +772,61 @@ function runeBonus(s: SaveState): RuneBonus {
 function runeCurrentValue(kind: RuneKind, lv: number): number {
   return RUNE_DEFS[kind].perLevel * Math.min(RUNE_MAX_LEVEL, Math.max(0, lv));
 }
+
+// ===== Cosméticos avançados (Fase 3 — Bloco 11) =====
+// Puramente visuais/status — NUNCA afetam ATK/HP/XP/Ouro/Drop/Crit
+type CosmeticCategory = "weapon" | "aura" | "frame" | "title";
+type CosmeticRarity = "Comum" | "Raro" | "Épico" | "Lendário";
+type CosmeticId = string;
+
+type CosmeticDef = {
+  id: CosmeticId;
+  category: CosmeticCategory;
+  label: string;
+  icon: string;
+  rarity: CosmeticRarity;
+  color: string;
+  desc: string;
+  source: string;
+};
+
+type CosmeticsState = {
+  owned: CosmeticId[];
+  equipped: Partial<Record<CosmeticCategory, CosmeticId | null>>;
+};
+
+const COSMETIC_DEFS: Record<CosmeticId, CosmeticDef> = {
+  // Armas visuais
+  none_weapon:  { id: "none_weapon",  category: "weapon", label: "Sem arma visual", icon: "❌", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "Nenhum efeito visual",           source: "Padrão" },
+  sword_green:  { id: "sword_green",  category: "weapon", label: "Espada Verde",    icon: "🗡️", rarity: "Raro",     color: "from-emerald-500 to-green-700",   desc: "Uma lâmina esmeralda",           source: "Baú Raro" },
+  axe_gold:     { id: "axe_gold",     category: "weapon", label: "Machado Dourado", icon: "🪓", rarity: "Épico",    color: "from-amber-400 to-yellow-700",    desc: "Forjado em ouro puro",           source: "Conquistas" },
+  // Auras
+  none_aura:    { id: "none_aura",    category: "aura",   label: "Sem aura",        icon: "❌", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "Nenhuma aura",                   source: "Padrão" },
+  aura_blue:    { id: "aura_blue",    category: "aura",   label: "Aura Azul",       icon: "💠", rarity: "Raro",     color: "from-sky-400 to-blue-700",        desc: "Um brilho tranquilo",            source: "Evento" },
+  aura_legend:  { id: "aura_legend",  category: "aura",   label: "Aura Lendária",   icon: "✨", rarity: "Lendário", color: "from-fuchsia-500 to-purple-800",  desc: "Poucos a ostentaram",            source: "Baú Raro" },
+  // Molduras
+  none_frame:   { id: "none_frame",   category: "frame",  label: "Sem moldura",     icon: "▫️", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "Sem moldura de avatar",          source: "Padrão" },
+  frame_brasil: { id: "frame_brasil", category: "frame",  label: "Moldura Brasil",  icon: "🇧🇷", rarity: "Épico",    color: "from-green-500 to-yellow-500",    desc: "Cores da bandeira tupiniquim",   source: "Evento" },
+  // Títulos
+  title_none:    { id: "title_none",    category: "title", label: "Sem título",           icon: "—", rarity: "Comum",    color: "from-slate-500 to-slate-700",   desc: "Nenhum título exibido",     source: "Padrão" },
+  title_founder: { id: "title_founder", category: "title", label: "Fundador Beta",        icon: "🌟", rarity: "Lendário", color: "from-amber-400 to-orange-700", desc: "Esteve aqui no início",     source: "Bônus inicial" },
+};
+
+const COSMETIC_CATEGORIES: { key: CosmeticCategory; label: string; icon: string }[] = [
+  { key: "weapon", label: "Armas",     icon: "🗡️" },
+  { key: "aura",   label: "Auras",     icon: "✨" },
+  { key: "frame",  label: "Molduras",  icon: "🖼️" },
+  { key: "title",  label: "Títulos",   icon: "🏷️" },
+];
+
+function emptyCosmetics(): CosmeticsState {
+  return {
+    owned: ["none_weapon", "none_aura", "none_frame", "title_none", "title_founder"],
+    equipped: { weapon: "none_weapon", aura: "none_aura", frame: "none_frame", title: "title_founder" },
+  };
+}
+
+
 
 
 
@@ -1222,6 +1282,7 @@ function defaultSave(): SaveState {
     skins: emptySkins(),
     achievements: emptyAchievements(),
     runes: emptyRunes(),
+    cosmetics: emptyCosmetics(),
     version: SAVE_VERSION,
   };
 }
@@ -1281,6 +1342,20 @@ function loadSave(): SaveState {
           ? (parsed.runes.equipped.filter((k: string) => (RUNE_ORDER as string[]).includes(k)) as RuneKind[]).slice(0, RUNE_MAX_EQUIPPED)
           : [],
       },
+      cosmetics: (() => {
+        const base = emptyCosmetics();
+        const parsedOwned: string[] = Array.isArray(parsed.cosmetics?.owned) ? parsed.cosmetics.owned : [];
+        const ownedSet = new Set<string>([...base.owned, ...parsedOwned.filter((id) => id in COSMETIC_DEFS)]);
+        const eq: Partial<Record<CosmeticCategory, CosmeticId | null>> = { ...base.equipped };
+        const pe = (parsed.cosmetics?.equipped ?? {}) as Record<string, unknown>;
+        for (const c of COSMETIC_CATEGORIES) {
+          const v = pe[c.key];
+          if (typeof v === "string" && v in COSMETIC_DEFS && ownedSet.has(v) && COSMETIC_DEFS[v].category === c.key) {
+            eq[c.key] = v;
+          }
+        }
+        return { owned: Array.from(ownedSet), equipped: eq };
+      })(),
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
@@ -1343,7 +1418,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | "runes" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | "runes" | "cosmetics" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -1922,6 +1997,16 @@ function GamePage() {
           flashToast(`✨ Skin desbloqueada: ${SKIN_DEFS[drop].label}!`);
         }
       }
+      // Chance pequena de cosmético no baú raro
+      let cosm = prev.cosmetics;
+      if (tier === "rare" && Math.random() < 0.08) {
+        const pool: CosmeticId[] = (["sword_green", "aura_legend"] as CosmeticId[]).filter((id) => !cosm.owned.includes(id));
+        if (pool.length > 0) {
+          const drop = pool[Math.floor(Math.random() * pool.length)]!;
+          cosm = { ...cosm, owned: [...cosm.owned, drop] };
+          flashToast(`🎭 Cosmético: ${COSMETIC_DEFS[drop].label}!`);
+        }
+      }
       return {
         ...prev,
         inventory: [...prev.inventory, item].slice(-60),
@@ -1929,6 +2014,7 @@ function GamePage() {
         pets,
         petFragments: frags,
         skins,
+        cosmetics: cosm,
         freeChest: tier === "free"
           ? { ...prev.freeChest, lastFreeAt: now }
           : { ...prev.freeChest, lastRareAt: now },
@@ -2327,6 +2413,16 @@ function GamePage() {
         }
         case "essence": next = { ...next, essence: next.essence + 1 }; break;
         case "rune_frag": next = { ...next, runes: { ...next.runes, fragments: next.runes.fragments + 5 } }; break;
+        case "cosm_aura_blue": {
+          if (next.cosmetics.owned.includes("aura_blue")) { flashToast("💠 Já possui"); return prev; }
+          next = { ...next, cosmetics: { ...next.cosmetics, owned: [...next.cosmetics.owned, "aura_blue"] } };
+          break;
+        }
+        case "cosm_frame_brasil": {
+          if (next.cosmetics.owned.includes("frame_brasil")) { flashToast("🇧🇷 Já possui"); return prev; }
+          next = { ...next, cosmetics: { ...next.cosmetics, owned: [...next.cosmetics.owned, "frame_brasil"] } };
+          break;
+        }
         case "skin_brasil": {
           if (next.skins.owned.includes("brasil")) { flashToast("🦸 Já possui essa skin"); return prev; }
           next = { ...next, skins: { ...next.skins, owned: [...next.skins.owned, "brasil"] } };
@@ -2377,6 +2473,9 @@ function GamePage() {
       if (r.runeFrags) {
         next = { ...next, runes: { ...next.runes, fragments: next.runes.fragments + r.runeFrags } };
       }
+      if (r.cosmetic && COSMETIC_DEFS[r.cosmetic] && !next.cosmetics.owned.includes(r.cosmetic)) {
+        next = { ...next, cosmetics: { ...next.cosmetics, owned: [...next.cosmetics.owned, r.cosmetic] } };
+      }
       flashToast(`🏆 ${def.label} — ${achievementRewardLabel(r)}`);
       return next;
     });
@@ -2417,6 +2516,18 @@ function GamePage() {
       }
       if (eq.length >= RUNE_MAX_EQUIPPED) { flashToast(`Máx ${RUNE_MAX_EQUIPPED} runas equipadas`); return prev; }
       return { ...prev, runes: { ...prev.runes, equipped: [...eq, kind] } };
+    });
+  }, [flashToast]);
+
+  // ==== Cosméticos avançados (Fase 3 — Bloco 11) ====
+  const equipCosmetic = useCallback((category: CosmeticCategory, id: CosmeticId) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const def = COSMETIC_DEFS[id];
+      if (!def || def.category !== category) return prev;
+      if (!prev.cosmetics.owned.includes(id)) { flashToast("🔒 Cosmético bloqueado"); return prev; }
+      flashToast(`${def.icon} ${def.label}`);
+      return { ...prev, cosmetics: { ...prev.cosmetics, equipped: { ...prev.cosmetics.equipped, [category]: id } } };
     });
   }, [flashToast]);
 
@@ -2597,6 +2708,12 @@ function GamePage() {
               label={save.level >= RUNE_UNLOCK_LEVEL ? "RUNAS" : `🔒Lv${RUNE_UNLOCK_LEVEL}`}
               onClick={() => setModal("runes")}
             />
+            <QuickCartoonBtn
+              icon={<Package className="h-3 w-3" />}
+              label="COSMÉTICOS"
+              onClick={() => setModal("cosmetics")}
+            />
+
 
 
           </div>
@@ -3008,6 +3125,9 @@ function GamePage() {
       )}
       {modal === "runes" && (
         <RunesModal save={save} onClose={() => setModal(null)} onUpgrade={upgradeRune} onToggle={toggleRune} />
+      )}
+      {modal === "cosmetics" && (
+        <CosmeticsModal save={save} onClose={() => setModal(null)} onEquip={equipCosmetic} />
       )}
 
 
@@ -5329,5 +5449,93 @@ function RunesModal({
     </div>
   );
 }
+
+// -------- Cosmetics Modal (Fase 3 — Bloco 11) --------
+function CosmeticsModal({
+  save,
+  onClose,
+  onEquip,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onEquip: (category: CosmeticCategory, id: CosmeticId) => void;
+}) {
+  const [cat, setCat] = useState<CosmeticCategory>("weapon");
+  const list = Object.values(COSMETIC_DEFS).filter((c) => c.category === cat);
+  const equippedId = save.cosmetics.equipped[cat] ?? null;
+  const totalOwned = save.cosmetics.owned.length;
+  const totalAll = Object.keys(COSMETIC_DEFS).length;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🎭 Cosméticos</h2>
+          <div className="text-[10px] opacity-70">{totalOwned}/{totalAll} · sem bônus de poder</div>
+        </div>
+
+        <div className="mb-3 grid grid-cols-4 gap-1">
+          {COSMETIC_CATEGORIES.map((c) => (
+            <button
+              key={c.key}
+              onClick={() => setCat(c.key)}
+              className={`rounded-lg border-2 border-[#1A0F08] py-1.5 text-[10px] font-black ${
+                cat === c.key ? "bg-gradient-to-b from-[#FFB74D] to-[#FF9800] text-amber-950" : "bg-[#2A1810] text-amber-100/70"
+              }`}
+            >
+              {c.icon} {c.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+          {list.map((c) => {
+            const owned = save.cosmetics.owned.includes(c.id);
+            const equipped = equippedId === c.id;
+            return (
+              <div key={c.id} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${c.color} p-2 ${!owned ? "opacity-60" : ""}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="text-2xl">{c.icon}</div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-black text-amber-50 drop-shadow">
+                        {c.label} <span className="text-[9px] opacity-80">· {c.rarity}</span>
+                      </div>
+                      <div className="text-[10px] text-amber-50/90">{c.desc}</div>
+                      {!owned && <div className="text-[10px] mt-0.5 text-amber-200">🔒 Fonte: {c.source}</div>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onEquip(c.category, c.id)}
+                    disabled={!owned}
+                    className={`shrink-0 rounded-md border-2 border-[#1A0F08] px-2 py-1 text-[10px] font-black ${
+                      equipped
+                        ? "bg-gradient-to-b from-emerald-500 to-emerald-700 text-white"
+                        : owned
+                        ? "bg-black/40 text-amber-100"
+                        : "bg-black/40 text-amber-100/50"
+                    }`}
+                  >
+                    {equipped ? "✓ Equipado" : owned ? "Equipar" : "🔒"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2 text-[10px] opacity-80">
+            💡 Cosméticos são <b>puramente visuais</b> e não afetam atributos. Fontes: <b>Baús Raros</b>, <b>Conquistas</b> e <b>Loja do Evento</b>.
+          </div>
+        </div>
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
 
 
