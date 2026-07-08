@@ -2640,6 +2640,14 @@ function GamePage() {
           onFightBoss={fightGuildBoss}
         />
       )}
+      {modal === "event" && (
+        <EventModal
+          save={save}
+          onClose={() => setModal(null)}
+          onClaimMission={claimEventMission}
+          onBuy={buyEventShop}
+        />
+      )}
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
