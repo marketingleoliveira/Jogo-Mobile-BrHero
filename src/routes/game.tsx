@@ -689,6 +689,84 @@ function achievementRewardLabel(r: AchievementReward): string {
   return parts.join(" · ");
 }
 
+// ===== Runas / Encantamentos (Fase 3 — Bloco 10) =====
+const RUNE_UNLOCK_LEVEL = 35;
+const RUNE_MAX_LEVEL = 10;
+const RUNE_MAX_EQUIPPED = 3;
+
+type RuneKind = "atk" | "hp" | "gold" | "xp" | "drop" | "crit";
+
+type RunesState = {
+  fragments: number;
+  levels: Record<RuneKind, number>;
+  equipped: RuneKind[];
+};
+
+type RuneDef = {
+  id: RuneKind;
+  label: string;
+  icon: string;
+  color: string;
+  perLevel: number;   // fração (0.02 = +2% ou +0.02 flat)
+  kind: "pct" | "flat"; // pct multiplicativo, flat somado
+  desc: (v: number) => string;
+};
+
+const RUNE_DEFS: Record<RuneKind, RuneDef> = {
+  atk:  { id: "atk",  label: "Runa do Ataque",     icon: "🗡️", color: "from-red-500 to-red-800",         perLevel: 0.02,  kind: "pct",  desc: (v) => `+${(v*100).toFixed(0)}% ATK` },
+  hp:   { id: "hp",   label: "Runa da Vida",       icon: "❤️", color: "from-rose-500 to-rose-800",       perLevel: 0.02,  kind: "pct",  desc: (v) => `+${(v*100).toFixed(0)}% HP` },
+  gold: { id: "gold", label: "Runa da Fortuna",    icon: "🪙", color: "from-amber-400 to-yellow-700",    perLevel: 0.015, kind: "pct",  desc: (v) => `+${(v*100).toFixed(1)}% Ouro` },
+  xp:   { id: "xp",   label: "Runa do Aprendizado",icon: "📘", color: "from-sky-500 to-indigo-700",      perLevel: 0.015, kind: "pct",  desc: (v) => `+${(v*100).toFixed(1)}% XP` },
+  drop: { id: "drop", label: "Runa do Caçador",    icon: "🎯", color: "from-emerald-500 to-emerald-800", perLevel: 0.005, kind: "flat", desc: (v) => `+${(v*100).toFixed(1)}% Drop` },
+  crit: { id: "crit", label: "Runa Crítica",       icon: "💥", color: "from-fuchsia-500 to-purple-800",  perLevel: 0.5,   kind: "flat", desc: (v) => `+${v.toFixed(1)}% Crítico` },
+};
+
+const RUNE_ORDER: RuneKind[] = ["atk", "hp", "gold", "xp", "drop", "crit"];
+
+function emptyRunes(): RunesState {
+  return {
+    fragments: 0,
+    levels: { atk: 0, hp: 0, gold: 0, xp: 0, drop: 0, crit: 0 },
+    equipped: [],
+  };
+}
+
+function runeUpgradeCost(currentLv: number): { gold: number; fragments: number } {
+  const next = currentLv + 1;
+  return {
+    gold: Math.floor(500 * Math.pow(next, 1.7)),
+    fragments: 2 + next * 2,
+  };
+}
+
+type RuneBonus = { atkMul: number; hpMul: number; goldMul: number; xpMul: number; dropAdd: number; critAdd: number };
+
+function runeBonus(s: SaveState): RuneBonus {
+  const acc: RuneBonus = { atkMul: 1, hpMul: 1, goldMul: 1, xpMul: 1, dropAdd: 0, critAdd: 0 };
+  const r = s.runes;
+  if (!r || s.level < RUNE_UNLOCK_LEVEL) return acc;
+  for (const k of r.equipped) {
+    const lv = Math.min(RUNE_MAX_LEVEL, r.levels[k] ?? 0);
+    if (lv <= 0) continue;
+    const def = RUNE_DEFS[k];
+    const v = def.perLevel * lv;
+    if (k === "atk")  acc.atkMul  += v;
+    if (k === "hp")   acc.hpMul   += v;
+    if (k === "gold") acc.goldMul += v;
+    if (k === "xp")   acc.xpMul   += v;
+    if (k === "drop") acc.dropAdd += v;
+    if (k === "crit") acc.critAdd += v;
+  }
+  return acc;
+}
+
+function runeCurrentValue(kind: RuneKind, lv: number): number {
+  return RUNE_DEFS[kind].perLevel * Math.min(RUNE_MAX_LEVEL, Math.max(0, lv));
+}
+
+
+
+
 
 
 
