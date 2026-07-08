@@ -123,6 +123,8 @@ type SaveState = {
   pets: Pet[];
   equippedPetId: string | null;
   petFragments: Record<PetKind, number>;
+  // Torre Infinita (Fase 3 — Bloco 3)
+  tower: TowerState;
   version: number;
 };
 
@@ -134,8 +136,11 @@ type PetKind = "wolf" | "fairy" | "owl" | "dragon";
 type PetRarity = "Comum" | "Raro" | "Épico" | "Lendário";
 type Pet = { id: string; kind: PetKind; rarity: PetRarity; level: number };
 
+// ===== Torre Infinita =====
+type TowerState = { bestFloor: number; runs: number; lastRunAt: number };
+
 const STORAGE_KEY = "hero-rise-idle-v4";
-const SAVE_VERSION = 8;
+const SAVE_VERSION = 9;
 const PRESTIGE_UNLOCK_STAGE = 75;
 const DUNGEON_UNLOCK_LEVEL = 10;
 const DUNGEON_MAX_KEYS = 3;
@@ -229,6 +234,51 @@ function maybePetDrop(petChance: number, fragBonus = 0): { pet?: Pet; fragKind?:
     return { pet: makePet(kind, rollPetRarity(fragBonus)) };
   }
   return { fragKind: kind, fragAmt: 5 + Math.floor(Math.random() * 8) };
+}
+
+// ===== Torre Infinita =====
+const TOWER_UNLOCK_LEVEL = 20;
+const TOWER_BOSS_EVERY = 10;
+const TOWER_MAX_FLOORS_PER_RUN = 500; // trava de segurança
+
+function emptyTower(): TowerState {
+  return { bestFloor: 0, runs: 0, lastRunAt: 0 };
+}
+// Poder do herói (número comparável) — usa stats já com bônus de pet/prestígio
+function heroPower(stats: ReturnType<typeof computeStats>): number {
+  const critFactor = 1 + (stats.critChance / 100) * Math.max(0, stats.critDmg / 100 - 1);
+  const dps = stats.atk * (stats.atkSpeed || 1) * critFactor * (1 + stats.penetration / 100);
+  const tank = stats.hp * (1 + stats.defense / 200) + stats.regen * 20;
+  return dps * 3 + tank;
+}
+function towerRequirement(floor: number, baseStage: number): number {
+  // Ancorado no stage atual do jogador para andares iniciais serem factíveis
+  const base = 60 * Math.pow(1.18, baseStage);
+  return base * Math.pow(1.13, floor);
+}
+// Simula uma tentativa: retorna andares alcançados (0..N) e se derrotou boss
+function simulateTowerRun(save: SaveState): number {
+  const stats = computeStats(save);
+  const power = heroPower(stats);
+  let floor = 0;
+  for (let f = 1; f <= TOWER_MAX_FLOORS_PER_RUN; f++) {
+    const isBoss = f % TOWER_BOSS_EVERY === 0;
+    const req = towerRequirement(f, save.stage) * (isBoss ? 1.6 : 1);
+    if (power < req) break;
+    floor = f;
+  }
+  return floor;
+}
+function towerRewards(floor: number, stage: number, save: SaveState): { gold: number; gems: number; essence: number; chests: number; frag?: { kind: PetKind; amt: number } } {
+  const gold = Math.floor(floor * 60 * Math.pow(1.06, stage));
+  const gems = Math.floor(floor / 5);
+  const essence = Math.floor(floor / 20);
+  const chests = Math.floor(floor / 10);
+  const frag = floor >= 15 && Math.random() < 0.5
+    ? { kind: PET_KINDS[Math.floor(Math.random() * PET_KINDS.length)], amt: Math.max(3, Math.floor(floor / 5)) }
+    : undefined;
+  void save;
+  return { gold, gems, essence, chests, frag };
 }
 
 
@@ -670,6 +720,7 @@ function defaultSave(): SaveState {
     pets: [],
     equippedPetId: null,
     petFragments: emptyPetFragments(),
+    tower: emptyTower(),
     version: SAVE_VERSION,
   };
 }
@@ -704,6 +755,7 @@ function loadSave(): SaveState {
       pets: Array.isArray(parsed.pets) ? parsed.pets : [],
       equippedPetId: typeof parsed.equippedPetId === "string" ? parsed.equippedPetId : null,
       petFragments: { ...emptyPetFragments(), ...(parsed.petFragments ?? {}) },
+      tower: { ...emptyTower(), ...(parsed.tower ?? {}) },
     };
     for (const k of ATTR_ORDER) {
       if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
@@ -766,7 +818,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -1472,7 +1524,41 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  // ==== Torre Infinita: tentativa ====
+  const runTower = useCallback((): { floor: number; best: number; newRecord: boolean; rewards: ReturnType<typeof towerRewards> } | null => {
+    const prev = saveRef.current;
+    if (!prev) return null;
+    if (prev.level < TOWER_UNLOCK_LEVEL) { flashToast(`🔒 Libera no Lv ${TOWER_UNLOCK_LEVEL}`); return null; }
+    const floor = simulateTowerRun(prev);
+    const best = Math.max(prev.tower.bestFloor, floor);
+    const newRecord = floor > prev.tower.bestFloor;
+    const rw = towerRewards(floor, prev.stage, prev);
+    const multi = newRecord ? 1.5 : 1;
+    const gold = Math.floor(rw.gold * multi);
+    const gems = Math.floor(rw.gems * multi);
+    const essence = Math.floor(rw.essence * multi);
+    const chests = Math.floor(rw.chests * multi);
 
+    let inv = prev.inventory;
+    for (let i = 0; i < chests; i++) {
+      const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+      inv = [...inv, rollItem(slot, prev.stage + 3)].slice(-60);
+    }
+    let frags = prev.petFragments;
+    if (rw.frag) frags = { ...frags, [rw.frag.kind]: frags[rw.frag.kind] + rw.frag.amt };
+
+    setSave({
+      ...prev,
+      gold: prev.gold + gold,
+      gems: prev.gems + gems,
+      essence: prev.essence + essence,
+      inventory: inv,
+      petFragments: frags,
+      counters: { ...prev.counters, chests: prev.counters.chests + chests },
+      tower: { bestFloor: best, runs: prev.tower.runs + 1, lastRunAt: Date.now() },
+    });
+    return { floor, best, newRecord, rewards: { gold, gems, essence, chests, frag: rw.frag } };
+  }, [flashToast]);
 
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
@@ -1595,6 +1681,11 @@ function GamePage() {
               icon={<Lock className="h-3 w-3" />}
               label={save.level >= PETS_UNLOCK_LEVEL ? "PETS" : `🔒Lv${PETS_UNLOCK_LEVEL}`}
               onClick={() => setModal("pets")}
+            />
+            <QuickCartoonBtn
+              icon={<Lock className="h-3 w-3" />}
+              label={save.level >= TOWER_UNLOCK_LEVEL ? "TORRE" : `🔒Lv${TOWER_UNLOCK_LEVEL}`}
+              onClick={() => setModal("tower")}
             />
           </div>
         </div>
@@ -1956,6 +2047,13 @@ function GamePage() {
           onEquip={equipPet}
           onUpgrade={upgradePet}
           onCraft={craftPet}
+        />
+      )}
+      {modal === "tower" && (
+        <TowerModal
+          save={save}
+          onClose={() => setModal(null)}
+          onRun={runTower}
         />
       )}
       {offlineReport && (
@@ -3331,6 +3429,120 @@ function PetsModal({
               </div>
             )}
           </>
+        )}
+
+        <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
+      </div>
+    </div>
+  );
+}
+
+// -------- Tower Modal (Fase 3 — Bloco 3) --------
+function TowerModal({
+  save,
+  onClose,
+  onRun,
+}: {
+  save: SaveState;
+  onClose: () => void;
+  onRun: () => { floor: number; best: number; newRecord: boolean; rewards: { gold: number; gems: number; essence: number; chests: number; frag?: { kind: PetKind; amt: number } } } | null;
+}) {
+  const locked = save.level < TOWER_UNLOCK_LEVEL;
+  const [phase, setPhase] = useState<"idle" | "running" | "result">("idle");
+  const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState<ReturnType<typeof onRun> | null>(null);
+
+  useEffect(() => {
+    if (phase !== "running") return;
+    setProgress(0);
+    const start = Date.now();
+    const dur = 2200;
+    const t = setInterval(() => {
+      const p = Math.min(100, ((Date.now() - start) / dur) * 100);
+      setProgress(p);
+      if (p >= 100) {
+        clearInterval(t);
+        const r = onRun();
+        if (r) { setResult(r); setPhase("result"); }
+        else setPhase("idle");
+      }
+    }, 60);
+    return () => clearInterval(t);
+  }, [phase, onRun]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-t-3xl border-t-4 border-[#8B4513] bg-[#3E2723] p-4 pb-8 text-amber-100"
+        style={{ animation: "slideUp 200ms ease" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🗼 Torre Infinita</h2>
+          <div className="text-[10px] opacity-80">🏆 Recorde: {save.tower.bestFloor}</div>
+        </div>
+
+        {locked && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center text-xs">
+            🔒 Desbloqueia no <b>Nível {TOWER_UNLOCK_LEVEL}</b>
+            <div className="mt-1 opacity-70">Você está no Lv {save.level}</div>
+          </div>
+        )}
+
+        {!locked && phase === "idle" && (
+          <>
+            <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-3 text-[11px] leading-relaxed">
+              Enfrente andares cada vez mais fortes. A cada <b>{TOWER_BOSS_EVERY}</b> andares, um chefão. A derrota encerra a tentativa. Recompensas escalam por andar, com <b>+50%</b> em novo recorde.
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+              <div className="rounded border-2 border-[#1A0F08] bg-[#2A1810] p-2">🏆 Recorde: <b>{save.tower.bestFloor}</b></div>
+              <div className="rounded border-2 border-[#1A0F08] bg-[#2A1810] p-2">🔁 Tentativas: <b>{save.tower.runs}</b></div>
+            </div>
+            <button
+              onClick={() => setPhase("running")}
+              className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-2 text-sm font-black text-amber-950"
+            >
+              🗡️ Iniciar Tentativa
+            </button>
+          </>
+        )}
+
+        {!locked && phase === "running" && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4 text-center">
+            <div className="text-3xl">🗼</div>
+            <div className="mt-1 text-sm font-black">Escalando a torre...</div>
+            <div className="mt-3 h-3 w-full overflow-hidden rounded-full border-2 border-[#1A0F08] bg-[#1A0F08]">
+              <div className="h-full bg-gradient-to-r from-fuchsia-400 to-purple-600 transition-all" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+        )}
+
+        {!locked && phase === "result" && result && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-4">
+            <div className="text-center">
+              <div className="text-xs opacity-80">Andar alcançado</div>
+              <div className="text-3xl font-black text-amber-300">{result.floor}</div>
+              {result.newRecord && (
+                <div className="mt-1 text-xs font-black text-emerald-300">🏆 Novo recorde! (+50% recompensa)</div>
+              )}
+              {result.floor === 0 && (
+                <div className="mt-1 text-[11px] opacity-80">Muito difícil — fortaleça o herói e tente novamente.</div>
+              )}
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+              {result.rewards.gold > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">🪙 +{fmt(result.rewards.gold)}</div>}
+              {result.rewards.gems > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">💎 +{result.rewards.gems}</div>}
+              {result.rewards.essence > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">✨ +{result.rewards.essence}</div>}
+              {result.rewards.chests > 0 && <div className="rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">📦 +{result.rewards.chests} baús</div>}
+              {result.rewards.frag && (
+                <div className="col-span-2 rounded border border-[#1A0F08] bg-[#1A0F08]/60 p-2">🧩 +{result.rewards.frag.amt} frag. {PET_DEFS[result.rewards.frag.kind].label}</div>
+              )}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button onClick={() => { setResult(null); setPhase("idle"); }} className="rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-xs font-black">Voltar</button>
+              <button onClick={() => { setResult(null); setPhase("running"); }} className="rounded-lg border-2 border-[#1A0F08] bg-gradient-to-b from-[#FFB74D] to-[#FF9800] py-2 text-xs font-black text-amber-950">Tentar de novo</button>
+            </div>
+          </div>
         )}
 
         <button onClick={onClose} className="mt-3 w-full rounded-lg border-2 border-[#1A0F08] bg-[#5D4037] py-2 text-sm">Fechar</button>
