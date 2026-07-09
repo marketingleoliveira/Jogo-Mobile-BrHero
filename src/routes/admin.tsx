@@ -1,6 +1,9 @@
 import { createFileRoute, Outlet, Link, useRouterState, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
+import brheroLogo from "@/assets/brhero-logo.png.asset.json";
+import { LogOut } from "lucide-react";
+
 import {
   LayoutDashboard,
   Users,
