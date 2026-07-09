@@ -102,9 +102,14 @@ function RankingPage() {
               <p className="text-sm text-slate-400">Compare seu progresso com heróis do mundo todo.</p>
             </div>
           </div>
-          <Link to="/game">
-            <Button variant="outline" size="sm"><Home className="h-4 w-4 mr-2" />Jogo</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link to="/roadmap">
+              <Button variant="outline" size="sm">Roadmap</Button>
+            </Link>
+            <Link to="/game">
+              <Button variant="outline" size="sm"><Home className="h-4 w-4 mr-2" />Jogo</Button>
+            </Link>
+          </div>
         </header>
 
         <div className="flex flex-wrap gap-2">
