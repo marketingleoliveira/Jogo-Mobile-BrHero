@@ -11,6 +11,7 @@ import {
   Sliders,
   Radio,
   ScrollText,
+  Smartphone,
   Shield,
   Search,
   Bell,
