@@ -39,6 +39,7 @@ const EMPTY: LiveOpsSnapshot = {
   globalMessage: null,
   maintenance: null,
   activeBuffs: [],
+  flashEvents: [],
 };
 
 let campaigns: RemoteCampaign[] = [];
