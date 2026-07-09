@@ -311,14 +311,12 @@ function PlayOptions({ account, onLogout }: { account: Account; onLogout: () => 
         </div>
       </div>
 
-      <Link
-        to="/game"
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#f5c542] bg-gradient-to-b from-[#f5c542] to-[#d4a02a] py-4 text-lg text-[#0a1c3a] shadow-[0_6px_0_#8a6614] active:translate-y-1 active:shadow-[0_2px_0_#8a6614]"
-        style={FONT_TITLE}
+      <div
+        className="rounded-2xl border-2 border-[#f5c542]/40 bg-[#0a1c3a]/70 p-3 text-center text-xs text-[#e8ecf1]/80"
       >
-        <Globe className="h-5 w-5" />
-        JOGAR NO NAVEGADOR
-      </Link>
+        BRHero é <b className="text-[#f5c542]">exclusivo para Android</b>.
+        Baixe o APK para jogar no seu celular.
+      </div>
 
       <a
         href="/api/public/apk"

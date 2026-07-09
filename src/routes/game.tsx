@@ -38,7 +38,7 @@ import { WalletHud } from "@/components/game/wallet-hud";
 import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/cloud-save";
 import { beginSandboxCheckout, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
 import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
-import { closeNativeAuthBrowser, completeNativeOAuthFromUrl } from "@/lib/native-auth";
+import { closeNativeAuthBrowser, completeNativeOAuthFromUrl, isBrHeroNativeApp } from "@/lib/native-auth";
 import {
   fetchArenaOpponents,
   canRefreshOpponents,
@@ -1434,8 +1434,61 @@ export const Route = createFileRoute("/game")({
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1" },
     ],
   }),
-  component: GamePage,
+  component: GameGate,
 });
+
+// BRHero é um jogo mobile Android nativo. No navegador web, a rota /game
+// nunca deve permitir jogar — apenas mostra a página de download do APK.
+function GameGate() {
+  const [isNative, setIsNative] = useState<boolean | null>(null);
+  useEffect(() => {
+    setIsNative(isBrHeroNativeApp());
+  }, []);
+  if (isNative === null) return null;
+  if (!isNative) return <AndroidOnlyScreen />;
+  return <GamePage />;
+}
+
+function AndroidOnlyScreen() {
+  return (
+    <main
+      className="relative min-h-screen overflow-hidden text-[#e8ecf1]"
+      style={{
+        fontFamily: "'Fredoka', system-ui, sans-serif",
+        fontWeight: 500,
+        background:
+          "radial-gradient(1200px 600px at 50% -10%, #1e3a7a 0%, #152b5c 35%, #0a1c3a 75%, #050e1f 100%)",
+      }}
+    >
+      <div className="relative mx-auto w-full max-w-md px-5 pb-16 pt-16 text-center">
+        <h1
+          className="text-3xl text-[#f5c542]"
+          style={{ fontFamily: "'Lilita One', system-ui, sans-serif" }}
+        >
+          BRHero é exclusivo para Android
+        </h1>
+        <p className="mt-3 text-base leading-relaxed text-[#e8ecf1]/90">
+          Este jogo não roda no navegador. Instale o APK oficial para jogar no
+          seu celular Android.
+        </p>
+        <a
+          href="/api/public/apk"
+          download="brhero.apk"
+          className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#f5c542] bg-gradient-to-b from-[#f5c542] to-[#d4a02a] py-4 text-lg text-[#0a1c3a] shadow-[0_6px_0_#8a6614] active:translate-y-1 active:shadow-[0_2px_0_#8a6614]"
+          style={{ fontFamily: "'Lilita One', system-ui, sans-serif" }}
+        >
+          BAIXAR APK ANDROID
+        </a>
+        <Link
+          to="/"
+          className="mt-6 inline-block text-sm text-[#e8ecf1]/70 underline hover:text-[#f5c542]"
+        >
+          Voltar para a página inicial
+        </Link>
+      </div>
+    </main>
+  );
+}
 
 // -------- Combat state (refs, not React state, for perf) --------
 type DamageNumber = {
