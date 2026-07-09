@@ -3911,6 +3911,7 @@ function CrystalsModal({
   onBuy: (id: string) => void;
 }) {
   const remoteOffers = useRemoteOffers();
+  return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/70 backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose}>
       <div
         className="max-h-[85vh] w-full overflow-y-auto rounded-t-3xl border-4 border-emerald-400 bg-gradient-to-b from-[#0a1c3a] to-[#0d2b4a] p-5 text-[#e8ecf1] shadow-2xl sm:max-w-md sm:rounded-3xl"
