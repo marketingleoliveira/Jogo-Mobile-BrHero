@@ -225,11 +225,9 @@ function Landing() {
         {account && (
           <PlayOptions
             account={account}
-            onLogout={() => {
+            onLogout={async () => {
+              try { await supabase.auth.signOut(); } catch { /* ignore */ }
               localStorage.removeItem(ACCOUNT_KEY);
-              if (window.google?.accounts?.id) {
-                window.google.accounts.id.disableAutoSelect();
-              }
               setAccount(null);
             }}
           />
