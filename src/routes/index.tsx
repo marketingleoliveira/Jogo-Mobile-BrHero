@@ -22,7 +22,7 @@ const GOOGLE_CLIENT_ID = "363043719780-cnfdm9g2ror5uh6u48k0avceddvf80ij.apps.goo
 // Palette: Azul Real & Ouro
 // #0a1c3a (deep navy) · #152b5c (royal navy) · #f5c542 (gold) · #e8ecf1 (ice)
 const FONT_TITLE = { fontFamily: "'Lilita One', system-ui, sans-serif" } as const;
-const FONT_BODY = { fontFamily: "'Lilita One', system-ui, sans-serif" } as const;
+const FONT_BODY = { fontFamily: "'Fredoka', system-ui, sans-serif", fontWeight: 500 } as const;
 
 type Account = {
   name: string;
@@ -178,7 +178,7 @@ function Landing() {
           />
           <h1 className="sr-only">BRHero</h1>
           <div
-            className="mt-1 inline-block rounded-full border-2 border-[#f5c542]/60 bg-[#0a1c3a]/80 px-4 py-1 text-[11px] uppercase tracking-[0.25em] text-[#f5c542]"
+            className="mt-1 inline-block rounded-full border-2 border-[#f5c542]/60 bg-[#0a1c3a]/80 px-4 py-1 text-xs uppercase tracking-[0.25em] text-[#f5c542]"
             style={FONT_TITLE}
           >
             O 1º RPG IDLE Brasileiro
@@ -194,7 +194,7 @@ function Landing() {
               >
                 O que é BRHero?
               </h2>
-              <p className="text-sm leading-relaxed text-[#e8ecf1]/90">
+              <p className="text-base leading-relaxed text-[#e8ecf1]/90">
                 Um RPG <b className="text-[#f5c542]">idle</b> feito no Brasil — seu herói
                 batalha sozinho enquanto você evolui atributos, coleta equipamentos
                 raros e derrota chefões cada vez mais poderosos.
@@ -205,7 +205,7 @@ function Landing() {
               <h2 className="mb-3 text-2xl text-[#f5c542]" style={FONT_TITLE}>
                 Como funciona?
               </h2>
-              <ul className="space-y-3 text-sm">
+              <ul className="space-y-3 text-base">
                 <Step icon={<Swords className="h-4 w-4" />} title="Batalhas automáticas" body="Seu herói ataca inimigos sozinho. Você só assiste o show!" />
                 <Step icon={<Zap className="h-4 w-4" />} title="Evolua atributos" body="Gaste ouro em ATK, HP, Crítico, Velocidade e muito mais." />
                 <Step icon={<Trophy className="h-4 w-4" />} title="Chefões a cada 10 estágios" body="Vença bosses para ganhar gemas e recompensas raras." />
@@ -218,7 +218,7 @@ function Landing() {
               <h2 className="mb-1 text-2xl" style={FONT_TITLE}>
                 Entre para jogar
               </h2>
-              <p className="mb-4 text-xs text-[#0a1c3a]/80">
+              <p className="mb-4 text-sm text-[#0a1c3a]/90">
                 Use sua conta Google (a mesma do Google Play) para salvar seu progresso.
               </p>
               <div className="flex flex-col items-center gap-2">
@@ -226,18 +226,18 @@ function Landing() {
                   type="button"
                   onClick={handleGoogle}
                   disabled={signingIn}
-                  className="flex w-full max-w-[320px] items-center justify-center gap-3 rounded-full border-2 border-[#0a1c3a] bg-white px-5 py-3 text-sm font-semibold text-[#0a1c3a] shadow-[0_4px_0_#8a6614] transition active:translate-y-0.5 active:shadow-[0_2px_0_#8a6614] disabled:opacity-70"
+                  className="flex w-full max-w-[320px] items-center justify-center gap-3 rounded-full border-2 border-[#0a1c3a] bg-white px-5 py-3 text-base font-semibold text-[#0a1c3a] shadow-[0_4px_0_#8a6614] transition active:translate-y-0.5 active:shadow-[0_2px_0_#8a6614] disabled:opacity-70"
                 >
                   <GoogleGlyph />
                   {signingIn ? "Conectando..." : "Entrar com Google"}
                 </button>
                 {signInError && (
-                  <p className="text-xs text-red-700">{signInError}</p>
+                  <p className="text-sm text-red-700">{signInError}</p>
                 )}
               </div>
             </section>
 
-            <p className="mt-4 text-center text-[10px] text-[#e8ecf1]/50">
+            <p className="mt-4 text-center text-sm text-[#e8ecf1]/60">
               É obrigatório criar conta. Não há modo convidado.
             </p>
           </>
@@ -254,12 +254,12 @@ function Landing() {
           />
         )}
 
-        <div className="mt-8 flex items-center justify-center gap-3 text-[11px] text-[#e8ecf1]/60">
+        <div className="mt-8 flex items-center justify-center gap-3 text-sm text-[#e8ecf1]/70">
           <Link to="/privacidade" className="underline hover:text-[#f5c542]">Privacidade</Link>
           <span>·</span>
           <Link to="/termos" className="underline hover:text-[#f5c542]">Termos</Link>
         </div>
-        <p className="mt-2 text-center text-[10px] text-[#e8ecf1]/50">
+        <p className="mt-2 text-center text-xs text-[#e8ecf1]/60">
           © BRHero · Beta MVP · Feito com ❤️ no Brasil
         </p>
       </div>
@@ -274,8 +274,8 @@ function Step({ icon, title, body }: { icon: React.ReactNode; title: string; bod
         {icon}
       </span>
       <div>
-        <div className="text-[#f5c542]" style={FONT_TITLE}>{title}</div>
-        <div className="text-xs text-[#e8ecf1]/75">{body}</div>
+        <div className="text-base text-[#f5c542]" style={FONT_TITLE}>{title}</div>
+        <div className="text-sm text-[#e8ecf1]/85">{body}</div>
       </div>
     </li>
   );
@@ -309,11 +309,11 @@ function PlayOptions({ account, onLogout }: { account: Account; onLogout: () => 
           </div>
         )}
         <div className="flex-1 text-left">
-          <div className="text-xs text-[#e8ecf1]/60">Bem-vindo(a),</div>
-          <div className="text-lg text-[#f5c542]" style={FONT_TITLE}>
+          <div className="text-sm text-[#e8ecf1]/70">Bem-vindo(a),</div>
+          <div className="text-xl text-[#f5c542]" style={FONT_TITLE}>
             {account.name}
           </div>
-          <div className="truncate text-[10px] text-[#e8ecf1]/50">{account.email}</div>
+          <div className="truncate text-xs text-[#e8ecf1]/60">{account.email}</div>
         </div>
       </div>
 
@@ -329,24 +329,24 @@ function PlayOptions({ account, onLogout }: { account: Account; onLogout: () => 
       <a
         href={brheroApk.url}
         download="brhero.apk"
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#f5c542] bg-[#152b5c] py-4 text-sm text-[#f5c542] shadow-[0_4px_0_#0a1c3a] active:translate-y-0.5 active:shadow-[0_2px_0_#0a1c3a]"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#f5c542] bg-[#152b5c] py-4 text-base text-[#f5c542] shadow-[0_4px_0_#0a1c3a] active:translate-y-0.5 active:shadow-[0_2px_0_#0a1c3a]"
         style={FONT_TITLE}
       >
         <Download className="h-5 w-5" />
         BAIXAR O JOGO (APK ANDROID)
       </a>
-      <p className="text-center text-[10px] text-[#e8ecf1]/50">
+      <p className="text-center text-xs text-[#e8ecf1]/60">
         Após baixar, permita a instalação de fontes desconhecidas no Android.
       </p>
 
       <button
         onClick={onLogout}
-        className="flex w-full items-center justify-center gap-2 py-2 text-xs text-[#e8ecf1]/60 underline"
+        className="flex w-full items-center justify-center gap-2 py-2 text-sm text-[#e8ecf1]/70 underline"
       >
         <LogOut className="h-3 w-3" /> Sair da conta
       </button>
 
-      <div className="rounded-xl border border-[#f5c542]/20 bg-[#0a1c3a]/70 p-3 text-[10px] text-[#e8ecf1]/70">
+      <div className="rounded-xl border border-[#f5c542]/20 bg-[#0a1c3a]/70 p-3 text-xs text-[#e8ecf1]/80">
         <Sparkles className="mr-1 inline h-3 w-3 text-[#f5c542]" />
         Login feito via Google — o mesmo usado no Google Play. Seu progresso fica vinculado à sua conta.
       </div>
