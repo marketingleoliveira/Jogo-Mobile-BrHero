@@ -2,6 +2,12 @@
   display: none !important;
 }
 
+body {
+  font-family: "Fredoka", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+}
+
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
