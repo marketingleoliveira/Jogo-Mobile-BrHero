@@ -59,25 +59,28 @@ function writeCache(c: CacheShape) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch { /* noop */ }
 }
 
-/** Lê top N do ranking. Usa cache local (30s) para reduzir leituras remotas. */
+/** Lê top N do ranking na temporada. Cache local (30s) por (categoria, temporada). */
 export async function fetchLeaderboard(
   category: LeaderboardCategory,
   limit = 100,
   force = false,
+  seasonKey: string = "all-time",
 ): Promise<LeaderboardEntry[]> {
+  const cacheKey = `${seasonKey}::${category}` as LeaderboardCategory;
   const cache = readCache();
-  const hit = cache[category];
+  const hit = cache[cacheKey];
   if (!force && hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.rows;
   try {
     const { data, error } = await supabase
       .from("leaderboards")
-      .select("user_id,category,score,display_name,extra,updated_at")
+      .select("user_id,category,score,display_name,extra,updated_at,season_key")
       .eq("category", category)
+      .eq("season_key", seasonKey)
       .order("score", { ascending: false })
       .limit(limit);
     if (error || !data) return hit?.rows ?? [];
     const rows = data as unknown as LeaderboardEntry[];
-    writeCache({ ...cache, [category]: { at: Date.now(), rows } });
+    writeCache({ ...cache, [cacheKey]: { at: Date.now(), rows } });
     return rows;
   } catch {
     return hit?.rows ?? [];
@@ -85,7 +88,8 @@ export async function fetchLeaderboard(
 }
 
 /**
- * Envia o snapshot do jogador. Um upsert por categoria (RLS impede sobrescrever outros).
+ * Envia o snapshot do jogador em TODAS as temporadas atuais (all-time + weekly + monthly).
+ * Um upsert por (categoria, season). RLS impede sobrescrever outros usuários.
  * No-op se não autenticado. Throttle local: no máx 1 upload a cada 5 min.
  */
 export async function uploadPlayerSnapshot(snap: PlayerSnapshot, force = false): Promise<boolean> {
@@ -106,20 +110,33 @@ export async function uploadPlayerSnapshot(snap: PlayerSnapshot, force = false):
     };
     const extra = meta as unknown as Record<string, unknown>;
 
+    const seasons: string[] = [
+      "all-time",
+      currentSeasonKey("weekly" as SeasonType),
+      currentSeasonKey("monthly" as SeasonType),
+    ];
+
+    const scoreByCat: Record<LeaderboardCategory, number> = {
+      stage:      Math.max(0, Math.floor(snap.stage)),
+      rebirth:    Math.max(0, Math.floor(snap.rebirth)),
+      tower:      Math.max(0, Math.floor(snap.tower)),
+      arena:      Math.max(0, Math.floor(snap.arena)),
+      hero_power: Math.max(0, Math.floor(snap.heroPower)),
+    };
+
     const rows: Array<{
       user_id: string; category: LeaderboardCategory; score: number;
-      display_name: string; extra: Record<string, unknown>;
-    }> = [
-      { user_id: uid, category: "stage",      score: Math.max(0, Math.floor(snap.stage)),     display_name: name, extra },
-      { user_id: uid, category: "rebirth",    score: Math.max(0, Math.floor(snap.rebirth)),   display_name: name, extra },
-      { user_id: uid, category: "tower",      score: Math.max(0, Math.floor(snap.tower)),     display_name: name, extra },
-      { user_id: uid, category: "arena",      score: Math.max(0, Math.floor(snap.arena)),     display_name: name, extra },
-      { user_id: uid, category: "hero_power", score: Math.max(0, Math.floor(snap.heroPower)), display_name: name, extra },
-    ];
+      display_name: string; extra: Record<string, unknown>; season_key: string;
+    }> = [];
+    for (const season of seasons) {
+      for (const cat of CATEGORIES) {
+        rows.push({ user_id: uid, category: cat, score: scoreByCat[cat], display_name: name, extra, season_key: season });
+      }
+    }
 
     const { error } = await supabase
       .from("leaderboards")
-      .upsert(rows as never, { onConflict: "user_id,category" });
+      .upsert(rows as never, { onConflict: "user_id,category,season_key" });
     if (error) return false;
 
     try { localStorage.setItem(UPLOAD_KEY, String(Date.now())); } catch { /* noop */ }
@@ -129,17 +146,18 @@ export async function uploadPlayerSnapshot(snap: PlayerSnapshot, force = false):
   }
 }
 
-/** Hook: baixa e mantém em cache o ranking de uma categoria. */
-export function useLeaderboard(category: LeaderboardCategory, limit = 100) {
+/** Hook: baixa e mantém em cache o ranking de uma (categoria, temporada). */
+export function useLeaderboard(category: LeaderboardCategory, limit = 100, seasonKey: string = "all-time") {
   const [rows, setRows] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const refresh = (force = false) => {
     setLoading(true);
-    void fetchLeaderboard(category, limit, force).then((r) => { setRows(r); setLoading(false); });
+    void fetchLeaderboard(category, limit, force, seasonKey).then((r) => { setRows(r); setLoading(false); });
   };
-  useEffect(() => { refresh(false); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [category, limit]);
+  useEffect(() => { refresh(false); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [category, limit, seasonKey]);
   return { rows, loading, refresh };
 }
+
 
 const CATEGORIES: LeaderboardCategory[] = ["stage", "rebirth", "tower", "arena", "hero_power"];
 
