@@ -31,12 +31,6 @@ type Account = {
   createdAt: number;
 };
 
-declare global {
-  interface Window {
-    google?: any;
-  }
-}
-
 function loadAccount(): Account | null {
   if (typeof window === "undefined") return null;
   try {
@@ -47,10 +41,15 @@ function loadAccount(): Account | null {
   }
 }
 
-function decodeJwt(token: string): any {
-  const payload = token.split(".")[1];
-  const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
-  return JSON.parse(decodeURIComponent(escape(json)));
+function accountFromUser(u: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }): Account {
+  const meta = (u.user_metadata ?? {}) as Record<string, unknown>;
+  return {
+    name: (meta.full_name as string) || (meta.name as string) || (u.email ?? "Herói"),
+    email: u.email ?? "",
+    picture: (meta.avatar_url as string) || (meta.picture as string) || undefined,
+    sub: u.id,
+    createdAt: Date.now(),
+  };
 }
 
 export const Route = createFileRoute("/")({
