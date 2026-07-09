@@ -1683,8 +1683,9 @@ function GamePage() {
     const bb = blessingBonus(cur);
     const gb = guildBonus(cur);
     const rb = runeBonus(cur);
-    const goldMul = (1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * pb.goldMul * bb.goldMul * gb.goldMul * rb.goldMul;
-    const xpMul = (1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * pb.xpMul * bb.xpMul * gb.xpMul * rb.xpMul;
+    const lo = getLiveOpsMultipliers();
+    const goldMul = (1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * pb.goldMul * bb.goldMul * gb.goldMul * rb.goldMul * lo.gold;
+    const xpMul = (1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * pb.xpMul * bb.xpMul * gb.xpMul * rb.xpMul * lo.xp;
     const gainedGold = Math.floor(enemy.gold * goldMul);
     const gainedXp = Math.floor(enemy.xp * xpMul);
     let level = cur.level;
@@ -1694,7 +1695,7 @@ function GamePage() {
       level += 1;
     }
     const canDrop = level >= 3 || cur.level >= 3;
-    const dropBonus = (cur.globalUp?.drop ?? 0) * GLOBAL_UP_DEFS.drop.perLevel + pb.dropAdd + bb.dropAdd + rb.dropAdd;
+    const dropBonus = ((cur.globalUp?.drop ?? 0) * GLOBAL_UP_DEFS.drop.perLevel + pb.dropAdd + bb.dropAdd + rb.dropAdd) * lo.drop;
     const drop = canDrop && (enemy.isBoss || Math.random() < 0.12 + dropBonus)
       ? rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, cur.stage)
       : null;
