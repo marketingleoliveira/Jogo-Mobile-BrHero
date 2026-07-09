@@ -15,6 +15,7 @@ function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,24 +29,33 @@ function AdminLoginPage() {
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
+    setErrorMsg(null);
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setLoading(false);
+      console.error("[admin login]", error);
+      setErrorMsg(error.message);
       toast.error(error.message);
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setLoading(false);
-      toast.error("Sessão inválida.");
+      setErrorMsg("Sessão inválida.");
       return;
     }
-    const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: user.id });
+    const { data: isAdmin, error: rpcErr } = await supabase.rpc("is_admin", { _user_id: user.id });
+    if (rpcErr) {
+      setLoading(false);
+      console.error("[admin login] is_admin", rpcErr);
+      setErrorMsg(rpcErr.message);
+      return;
+    }
     setLoading(false);
     if (!isAdmin) {
       await supabase.auth.signOut();
-      toast.error("Acesso negado. Esta conta não possui permissão administrativa.");
+      setErrorMsg("Acesso negado. Esta conta não possui permissão administrativa.");
       return;
     }
     toast.success("Autenticado.");
@@ -85,6 +95,11 @@ function AdminLoginPage() {
                 required
               />
             </div>
+            {errorMsg && (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {errorMsg}
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading || !email || !password}>
               {loading ? "Entrando..." : "Entrar"}
             </Button>
