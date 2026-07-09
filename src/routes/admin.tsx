@@ -98,7 +98,7 @@ const NAV: NavItem[] = [
 function AdminLayout() {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-slate-950 text-slate-100">
+      <div className="flex min-h-screen w-full bg-slate-50 text-slate-800">
         <AdminSidebar />
         <div className="flex flex-1 flex-col">
           <AdminHeader />
@@ -117,24 +117,24 @@ function AdminSidebar() {
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-slate-800 bg-slate-900">
-      <SidebarHeader className="border-b border-slate-800 bg-slate-900">
+    <Sidebar collapsible="icon" className="border-r border-slate-200 bg-white">
+      <SidebarHeader className="border-b border-slate-200 bg-white">
         <div className="flex items-center gap-2 px-2 py-1">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-600 text-slate-950 shadow">
+          <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-sm">
             <Shield className="h-5 w-5" />
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-black tracking-wide">BRHero</span>
-            <span className="text-[10px] uppercase tracking-widest text-amber-400">
+            <span className="text-sm font-bold tracking-wide text-slate-900">BRHero</span>
+            <span className="text-[10px] uppercase tracking-widest text-indigo-600">
               Admin CMS
             </span>
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-slate-900">
+      <SidebarContent className="bg-white">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-400">Módulos</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-slate-500">Módulos</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {NAV.map((item) => {
@@ -145,7 +145,7 @@ function AdminSidebar() {
                       asChild
                       isActive={active}
                       tooltip={item.label}
-                      className="data-[active=true]:bg-amber-500/15 data-[active=true]:text-amber-300 data-[active=true]:border data-[active=true]:border-amber-500/30 hover:bg-slate-800 hover:text-slate-100"
+                      className="text-slate-700 data-[active=true]:bg-indigo-50 data-[active=true]:text-indigo-700 data-[active=true]:border data-[active=true]:border-indigo-200 hover:bg-slate-100 hover:text-slate-900"
                     >
                       <Link to={item.to} className="flex items-center gap-2">
                         <item.icon className="h-4 w-4" />
@@ -160,10 +160,10 @@ function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-slate-800 bg-slate-900">
-        <div className="flex items-center gap-2 px-2 py-2 text-xs text-slate-400 group-data-[collapsible=icon]:hidden">
-          <div className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/60" />
-          <span>Beta v0.1 · mock data</span>
+      <SidebarFooter className="border-t border-slate-200 bg-white">
+        <div className="flex items-center gap-2 px-2 py-2 text-xs text-slate-500 group-data-[collapsible=icon]:hidden">
+          <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px] shadow-emerald-500/40" />
+          <span>Beta v0.1</span>
         </div>
       </SidebarFooter>
     </Sidebar>
@@ -174,24 +174,24 @@ function AdminHeader() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const current = NAV.find((n) => (n.exact ? pathname === n.to : pathname === n.to || pathname.startsWith(n.to + "/"))) ?? NAV[0];
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-slate-800 bg-slate-950/80 px-3 backdrop-blur md:px-4">
-      <SidebarTrigger className="text-slate-300 hover:bg-slate-800 hover:text-white" />
+    <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-slate-200 bg-white/90 px-3 backdrop-blur md:px-4">
+      <SidebarTrigger className="text-slate-600 hover:bg-slate-100 hover:text-slate-900" />
       <div className="flex items-center gap-2">
-        <current.icon className="h-4 w-4 text-amber-400" />
-        <h1 className="text-sm font-bold tracking-wide text-slate-100">{current.label}</h1>
-        <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-[10px] font-bold uppercase tracking-widest text-amber-300">
-          Mock
+        <current.icon className="h-4 w-4 text-indigo-600" />
+        <h1 className="text-sm font-bold tracking-wide text-slate-900">{current.label}</h1>
+        <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-[10px] font-bold uppercase tracking-widest text-indigo-700">
+          Live
         </Badge>
       </div>
       <div className="ml-auto flex items-center gap-2">
         <div className="relative hidden md:block">
-          <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             placeholder="Buscar jogador, código, item…"
-            className="h-9 w-64 border-slate-800 bg-slate-900 pl-8 text-sm text-slate-100 placeholder:text-slate-500 focus-visible:ring-amber-500"
+            className="h-9 w-64 border-slate-200 bg-white pl-8 text-sm text-slate-800 placeholder:text-slate-400 focus-visible:ring-indigo-500"
           />
         </div>
-        <Button variant="outline" size="icon" className="h-9 w-9 border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white">
+        <Button variant="outline" size="icon" className="h-9 w-9 border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900">
           <Bell className="h-4 w-4" />
         </Button>
         <AdminProfileSelector />
@@ -200,6 +200,7 @@ function AdminHeader() {
     </header>
   );
 }
+
 
 function AdminProfileSelector() {
   const current = useSyncExternalStore(subscribeAdmin, getCurrentAdmin, getCurrentAdmin);
