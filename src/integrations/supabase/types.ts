@@ -350,6 +350,54 @@ export type Database = {
         }
         Relationships: []
       }
+      player_titles: {
+        Row: {
+          awarded_at: string
+          id: string
+          source_season_key: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          id?: string
+          source_season_key?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          id?: string
+          source_season_key?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      player_wallet: {
+        Row: {
+          created_at: string
+          gems: number
+          gold: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gems?: number
+          gold?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gems?: number
+          gold?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       season_rewards: {
         Row: {
           category: string
@@ -394,6 +442,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_season_reward: { Args: { _reward_id: string }; Returns: Json }
       claim_super_admin: { Args: { _display_name?: string }; Returns: string }
       get_admin_role: {
         Args: { _user_id?: string }
