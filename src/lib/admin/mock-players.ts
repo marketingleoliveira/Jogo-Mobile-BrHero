@@ -53,52 +53,6 @@ interface Store {
 // Sem dados fake: a lista fica vazia até integrarmos com player_saves real.
 const seed = (): MockPlayer[] => [];
 
-  {
-    id: "P-2381", nickname: "GuerreiroBR", email: "guerreiro@brhero.gg", googleId: "gg_1029384",
-    status: "active", level: 42, stage: 68, maxStage: 74, rebirths: 2,
-    gold: 148_500, gems: 320, essence: 41,
-    pets: ["Lobo","Falcão"], runes: ["Runa Ataque Lv3","Runa Vida Lv2"],
-    skins: ["Guerreiro Sombrio"], cosmetics: ["Aura Azul","Título Fundador Beta"],
-    guild: "Ordem do Cerrado", arenaRank: 128, towerBest: 24,
-    redeemUsed: ["BETA100"], lastSeen: "há 3min",
-  },
-  {
-    id: "P-1907", nickname: "LenaFire", email: "lena@brhero.gg", googleId: "gg_5567123",
-    status: "active", level: 37, stage: 52, maxStage: 60, rebirths: 1,
-    gold: 88_200, gems: 145, essence: 12,
-    pets: ["Tigre"], runes: ["Runa Crítica Lv1"],
-    skins: [], cosmetics: ["Moldura Brasil"],
-    guild: "Chamas do Sul", arenaRank: 342, towerBest: 18,
-    redeemUsed: ["BETA100","BRHERO"], lastSeen: "há 12min",
-  },
-  {
-    id: "P-5510", nickname: "TigreDoCerrado", email: "tigre@brhero.gg", googleId: "gg_9928471",
-    status: "active", level: 55, stage: 90, maxStage: 112, rebirths: 3,
-    gold: 512_000, gems: 890, essence: 128,
-    pets: ["Dragão","Lobo","Falcão"], runes: ["Runa Ataque Lv6","Runa Vida Lv5","Runa Crítica Lv4"],
-    skins: ["Dragão Ancestral","Guerreiro Sombrio"], cosmetics: ["Aura Lendária","Machado Dourado","Título Fundador Beta"],
-    guild: "Ordem do Cerrado", arenaRank: 12, towerBest: 47,
-    redeemUsed: ["BETA100","BRHERO","FUNDADOR"], lastSeen: "há 1h",
-  },
-  {
-    id: "P-0921", nickname: "PixelHero", email: "pixel@brhero.gg", googleId: "gg_3341902",
-    status: "suspended", level: 19, stage: 22, maxStage: 25, rebirths: 0,
-    gold: 4_200, gems: 30, essence: 0,
-    pets: [], runes: [],
-    skins: [], cosmetics: [],
-    guild: null, arenaRank: 2103, towerBest: 5,
-    redeemUsed: [], lastSeen: "há 4h",
-  },
-  {
-    id: "P-7712", nickname: "NoxBanido", email: "nox@brhero.gg", googleId: "gg_7781122",
-    status: "banned", level: 28, stage: 34, maxStage: 34, rebirths: 0,
-    gold: 0, gems: 0, essence: 0,
-    pets: [], runes: [], skins: [], cosmetics: [], guild: null,
-    arenaRank: 9999, towerBest: 0, redeemUsed: [],
-    lastSeen: "há 2d",
-  },
-];
-
 function load(): Store {
   if (typeof window === "undefined") return { players: seed(), logs: [] };
   try {
