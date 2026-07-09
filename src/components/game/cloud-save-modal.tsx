@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable/index";
+import { isBrHeroNativeApp, startNativeGoogleSignIn } from "@/lib/native-auth";
 import {
   compareSaves, createCloudBackup, exportSaveJSON, getAutoSyncEnabled,
   loadCloudSave, parseImportedSave, pushLocalBackup, saveCloudSave,
@@ -57,8 +58,13 @@ export function CloudSaveModal({ localSave, onClose, onApplySave }: Props) {
   const handleSignIn = useCallback(async () => {
     setBusy(true);
     try {
+      if (isBrHeroNativeApp()) {
+        await startNativeGoogleSignIn();
+        return;
+      }
+
       const r = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin + "/game",
+        redirect_uri: window.location.origin,
       });
       if (r.error) toast.error("Erro ao entrar com Google");
     } finally { setBusy(false); }
