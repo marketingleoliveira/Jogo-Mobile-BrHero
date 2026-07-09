@@ -14,6 +14,8 @@ import {
   Shield,
   Search,
   Bell,
+  CreditCard,
+
 } from "lucide-react";
 import {
   Sidebar,
@@ -66,7 +68,9 @@ const NAV: NavItem[] = [
   { to: "/admin/economy",      label: "Economia",      icon: Coins },
   { to: "/admin/events",       label: "Eventos",       icon: CalendarClock },
   { to: "/admin/shop",         label: "Loja",          icon: ShoppingBag },
+  { to: "/admin/payments",     label: "Pagamentos",    icon: CreditCard },
   { to: "/admin/codes",        label: "Códigos",       icon: Ticket },
+
   { to: "/admin/items",        label: "Itens",         icon: Package },
   { to: "/admin/balancing",    label: "Balanceamento", icon: Sliders },
   { to: "/admin/liveops",      label: "LiveOps",       icon: Radio },

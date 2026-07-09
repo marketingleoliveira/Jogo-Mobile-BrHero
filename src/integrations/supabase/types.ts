@@ -152,6 +152,57 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_transactions: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          error_message: string | null
+          id: string
+          offer_id: string
+          offer_snapshot: Json
+          provider: string
+          provider_ref: string | null
+          reward_delivered: boolean
+          reward_delivered_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          error_message?: string | null
+          id?: string
+          offer_id: string
+          offer_snapshot?: Json
+          provider?: string
+          provider_ref?: string | null
+          reward_delivered?: boolean
+          reward_delivered_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          error_message?: string | null
+          id?: string
+          offer_id?: string
+          offer_snapshot?: Json
+          provider?: string
+          provider_ref?: string | null
+          reward_delivered?: boolean
+          reward_delivered_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_save_backups: {
         Row: {
           client_updated_at: string
