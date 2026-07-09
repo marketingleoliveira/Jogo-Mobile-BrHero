@@ -33,6 +33,8 @@ import woodTexture from "@/assets/wood-texture.jpg";
 import { resolveRemoteRedeem } from "@/lib/game/remote-codes";
 import { getLiveOpsMultipliers, useLiveOps } from "@/lib/game/remote-liveops";
 import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
+import { CloudSaveModal } from "@/components/game/cloud-save-modal";
+import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/cloud-save";
 
 // -------- Types --------
 type AttrKey =
