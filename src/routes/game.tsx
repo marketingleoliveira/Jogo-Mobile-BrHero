@@ -38,6 +38,7 @@ import { WalletHud } from "@/components/game/wallet-hud";
 import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/cloud-save";
 import { beginSandboxCheckout, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
 import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
+import { closeNativeAuthBrowser, completeNativeOAuthFromUrl } from "@/lib/native-auth";
 import {
   fetchArenaOpponents,
   canRefreshOpponents,
@@ -1588,6 +1589,32 @@ function GamePage() {
     setToast(msg);
     setTimeout(() => setToast(null), 2200);
   }, []);
+
+  // OAuth callback do APK: finaliza a sessão e mantém o jogador direto no jogo.
+  useEffect(() => {
+    const currentUrl = window.location.href;
+    if (!currentUrl.includes("brhero_native=1") && !currentUrl.includes("access_token=") && !currentUrl.includes("code=")) {
+      return;
+    }
+
+    let cancelled = false;
+    void completeNativeOAuthFromUrl(currentUrl)
+      .then(async (handled) => {
+        if (!handled || cancelled) return;
+        await closeNativeAuthBrowser();
+        window.history.replaceState({}, document.title, "/game");
+        flashToast("✅ Login Google conectado");
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        const msg = e instanceof Error ? e.message : "Falha ao concluir login Google";
+        flashToast(`⚠️ ${msg}`);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [flashToast]);
 
   // Combat loop
   useEffect(() => {
