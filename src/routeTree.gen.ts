@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosRouteImport } from './routes/termos'
+import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as GameRouteImport } from './routes/game'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -31,6 +32,11 @@ import { Route as AdminBalancingRouteImport } from './routes/admin.balancing'
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
   path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RankingRoute = RankingRouteImport.update({
+  id: '/ranking',
+  path: '/ranking',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/game': typeof GameRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/ranking': typeof RankingRoute
   '/termos': typeof TermosRoute
   '/admin/balancing': typeof AdminBalancingRoute
   '/admin/codes': typeof AdminCodesRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/game': typeof GameRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/ranking': typeof RankingRoute
   '/termos': typeof TermosRoute
   '/admin/balancing': typeof AdminBalancingRoute
   '/admin/codes': typeof AdminCodesRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/game': typeof GameRoute
   '/privacidade': typeof PrivacidadeRoute
+  '/ranking': typeof RankingRoute
   '/termos': typeof TermosRoute
   '/admin/balancing': typeof AdminBalancingRoute
   '/admin/codes': typeof AdminCodesRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/game'
     | '/privacidade'
+    | '/ranking'
     | '/termos'
     | '/admin/balancing'
     | '/admin/codes'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/'
     | '/game'
     | '/privacidade'
+    | '/ranking'
     | '/termos'
     | '/admin/balancing'
     | '/admin/codes'
@@ -225,6 +236,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/game'
     | '/privacidade'
+    | '/ranking'
     | '/termos'
     | '/admin/balancing'
     | '/admin/codes'
@@ -246,6 +258,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   GameRoute: typeof GameRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
+  RankingRoute: typeof RankingRoute
   TermosRoute: typeof TermosRoute
   ApiGenerateBgRoute: typeof ApiGenerateBgRoute
 }
@@ -257,6 +270,13 @@ declare module '@tanstack/react-router' {
       path: '/termos'
       fullPath: '/termos'
       preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ranking': {
+      id: '/ranking'
+      path: '/ranking'
+      fullPath: '/ranking'
+      preLoaderRoute: typeof RankingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacidade': {
@@ -418,6 +438,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   GameRoute: GameRoute,
   PrivacidadeRoute: PrivacidadeRoute,
+  RankingRoute: RankingRoute,
   TermosRoute: TermosRoute,
   ApiGenerateBgRoute: ApiGenerateBgRoute,
 }
