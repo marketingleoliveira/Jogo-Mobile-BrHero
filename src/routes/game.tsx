@@ -31,6 +31,7 @@ import skeletonSprite from "@/assets/sprite-skeleton.png";
 import bossDragonSprite from "@/assets/sprite-boss-dragon.png";
 import woodTexture from "@/assets/wood-texture.jpg";
 import { resolveRemoteRedeem } from "@/lib/game/remote-codes";
+import { getLiveOpsMultipliers, useLiveOps } from "@/lib/game/remote-liveops";
 
 // -------- Types --------
 type AttrKey =
