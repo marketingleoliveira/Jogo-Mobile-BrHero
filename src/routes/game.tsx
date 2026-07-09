@@ -39,6 +39,7 @@ import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/clou
 import { beginSandboxCheckout, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
 import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
 import { closeNativeAuthBrowser, completeNativeOAuthFromUrl, isBrHeroNativeApp } from "@/lib/native-auth";
+import { BiomeBackdrop } from "@/components/game/biome-backdrop";
 import {
   fetchArenaOpponents,
   canRefreshOpponents,
