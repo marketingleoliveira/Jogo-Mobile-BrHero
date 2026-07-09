@@ -1460,11 +1460,12 @@ function GamePage() {
       // Aproximação: 1 batalha ~ 2s no estágio atual
       const battles = Math.floor(elapsed / 2000);
       const enemy = enemyForStage(s.stage);
-      const goldMul = 1 + (s.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel;
-      const xpMul = 1 + (s.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel;
+      const lo = getLiveOpsMultipliers();
+      const goldMul = (1 + (s.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * lo.gold;
+      const xpMul = (1 + (s.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * lo.xp;
       const gold = Math.floor(battles * enemy.gold * 0.4 * goldMul);
       const xp = Math.floor(battles * enemy.xp * 0.4 * xpMul);
-      const drops = Math.min(20, Math.floor(battles * 0.02));
+      const drops = Math.min(20, Math.floor(battles * 0.02 * lo.drop));
       s.gold += gold;
       s.xp += xp;
       // Level up
