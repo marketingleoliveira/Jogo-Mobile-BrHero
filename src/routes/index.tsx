@@ -201,9 +201,17 @@ function Landing() {
                 Use sua conta Google (a mesma do Google Play) para salvar seu progresso.
               </p>
               <div className="flex flex-col items-center gap-2">
-                <div ref={btnRef} className="min-h-[44px]" />
-                {!gsiReady && (
-                  <p className="text-xs text-[#0a1c3a]/70">Carregando login do Google...</p>
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  disabled={signingIn}
+                  className="flex w-full max-w-[320px] items-center justify-center gap-3 rounded-full border-2 border-[#0a1c3a] bg-white px-5 py-3 text-sm font-semibold text-[#0a1c3a] shadow-[0_4px_0_#8a6614] transition active:translate-y-0.5 active:shadow-[0_2px_0_#8a6614] disabled:opacity-70"
+                >
+                  <GoogleGlyph />
+                  {signingIn ? "Conectando..." : "Entrar com Google"}
+                </button>
+                {signInError && (
+                  <p className="text-xs text-red-700">{signInError}</p>
                 )}
               </div>
             </section>
