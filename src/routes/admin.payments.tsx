@@ -47,6 +47,8 @@ function Page() {
   const [saving, setSaving] = useState(false);
   const [txs, setTxs] = useState<PaymentTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [providers, setProviders] = useState<PaymentProvidersConfig | null>(null);
+  const [savingProviders, setSavingProviders] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
