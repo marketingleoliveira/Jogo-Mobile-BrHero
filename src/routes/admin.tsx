@@ -14,6 +14,8 @@ import {
   Shield,
   Search,
   Bell,
+  CreditCard,
+
 } from "lucide-react";
 import {
   Sidebar,

@@ -19,6 +19,7 @@ import { Route as ApiGenerateBgRouteImport } from './routes/api/generate-bg'
 import { Route as AdminShopRouteImport } from './routes/admin.shop'
 import { Route as AdminSetupRouteImport } from './routes/admin.setup'
 import { Route as AdminPlayersRouteImport } from './routes/admin.players'
+import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminLogsRouteImport } from './routes/admin.logs'
 import { Route as AdminLiveopsRouteImport } from './routes/admin.liveops'
 import { Route as AdminItemsRouteImport } from './routes/admin.items'
@@ -77,6 +78,11 @@ const AdminPlayersRoute = AdminPlayersRouteImport.update({
   path: '/players',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminLogsRoute = AdminLogsRouteImport.update({
   id: '/logs',
   path: '/logs',
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/admin/items': typeof AdminItemsRoute
   '/admin/liveops': typeof AdminLiveopsRoute
   '/admin/logs': typeof AdminLogsRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/players': typeof AdminPlayersRoute
   '/admin/setup': typeof AdminSetupRoute
   '/admin/shop': typeof AdminShopRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/admin/items': typeof AdminItemsRoute
   '/admin/liveops': typeof AdminLiveopsRoute
   '/admin/logs': typeof AdminLogsRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/players': typeof AdminPlayersRoute
   '/admin/setup': typeof AdminSetupRoute
   '/admin/shop': typeof AdminShopRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/admin/items': typeof AdminItemsRoute
   '/admin/liveops': typeof AdminLiveopsRoute
   '/admin/logs': typeof AdminLogsRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/players': typeof AdminPlayersRoute
   '/admin/setup': typeof AdminSetupRoute
   '/admin/shop': typeof AdminShopRoute
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/admin/items'
     | '/admin/liveops'
     | '/admin/logs'
+    | '/admin/payments'
     | '/admin/players'
     | '/admin/setup'
     | '/admin/shop'
@@ -203,6 +213,7 @@ export interface FileRouteTypes {
     | '/admin/items'
     | '/admin/liveops'
     | '/admin/logs'
+    | '/admin/payments'
     | '/admin/players'
     | '/admin/setup'
     | '/admin/shop'
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
     | '/admin/items'
     | '/admin/liveops'
     | '/admin/logs'
+    | '/admin/payments'
     | '/admin/players'
     | '/admin/setup'
     | '/admin/shop'
@@ -310,6 +322,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPlayersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/payments': {
+      id: '/admin/payments'
+      path: '/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AdminPaymentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/logs': {
       id: '/admin/logs'
       path: '/logs'
@@ -370,6 +389,7 @@ interface AdminRouteChildren {
   AdminItemsRoute: typeof AdminItemsRoute
   AdminLiveopsRoute: typeof AdminLiveopsRoute
   AdminLogsRoute: typeof AdminLogsRoute
+  AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminPlayersRoute: typeof AdminPlayersRoute
   AdminSetupRoute: typeof AdminSetupRoute
   AdminShopRoute: typeof AdminShopRoute
@@ -384,6 +404,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminItemsRoute: AdminItemsRoute,
   AdminLiveopsRoute: AdminLiveopsRoute,
   AdminLogsRoute: AdminLogsRoute,
+  AdminPaymentsRoute: AdminPaymentsRoute,
   AdminPlayersRoute: AdminPlayersRoute,
   AdminSetupRoute: AdminSetupRoute,
   AdminShopRoute: AdminShopRoute,
