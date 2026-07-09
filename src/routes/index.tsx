@@ -321,7 +321,7 @@ function PlayOptions({ account, onLogout }: { account: Account; onLogout: () => 
       </Link>
 
       <a
-        href={brheroApk.url}
+        href="/api/public/apk"
         download="brhero.apk"
         className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#f5c542] bg-[#152b5c] py-4 text-base text-[#f5c542] shadow-[0_4px_0_#0a1c3a] active:translate-y-0.5 active:shadow-[0_2px_0_#0a1c3a]"
         style={FONT_TITLE}
