@@ -164,30 +164,46 @@ function RankingPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((r, idx) => (
-                      <tr key={r.user_id} className="border-b border-slate-800/60">
-                        <td className="py-2 pr-3">
-                          {idx === 0 ? <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/40">🥇 1</Badge>
-                            : idx === 1 ? <Badge className="bg-slate-300/20 text-slate-200 border-slate-300/40">🥈 2</Badge>
-                            : idx === 2 ? <Badge className="bg-amber-700/20 text-amber-300 border-amber-700/40">🥉 3</Badge>
-                            : <span className="text-slate-500">{idx + 1}</span>}
-                        </td>
-                        <td className="py-2 pr-3 font-medium">
-                          <Link to="/perfil/$userId" params={{ userId: r.user_id }} className="hover:text-sky-300 underline-offset-2 hover:underline">
-                            {r.display_name ?? "Herói"}
-                          </Link>
-                          {typeof (r.extra as { title?: unknown })?.title === "string" && (r.extra as { title: string }).title.trim() !== "" && (
-                            <div className="text-[11px] text-yellow-300/90 truncate">🏆 {(r.extra as { title: string }).title}</div>
-                          )}
-                        </td>
-                        <td className="py-2 pr-3 text-right font-mono text-emerald-300">
-                          {r.score.toLocaleString("pt-BR")}{cat.suffix ?? ""}
-                        </td>
-                        <td className="py-2 pr-3 text-right text-xs text-slate-500 hidden sm:table-cell">
-                          {new Date(r.updated_at).toLocaleDateString("pt-BR")}
-                        </td>
-                      </tr>
-                    ))}
+                    {rows.map((r, idx) => {
+                      const meta = (r.extra ?? {}) as { avatar?: unknown; title?: unknown; skin?: unknown };
+                      const avatar = typeof meta.avatar === "string" && meta.avatar.trim() !== "" ? meta.avatar : "🦸";
+                      const title = typeof meta.title === "string" && meta.title.trim() !== "" ? meta.title : null;
+                      const skin = typeof meta.skin === "string" && meta.skin.trim() !== "" ? meta.skin : null;
+                      return (
+                        <tr key={r.user_id} className="border-b border-slate-800/60">
+                          <td className="py-2 pr-3">
+                            {idx === 0 ? <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/40">🥇 1</Badge>
+                              : idx === 1 ? <Badge className="bg-slate-300/20 text-slate-200 border-slate-300/40">🥈 2</Badge>
+                              : idx === 2 ? <Badge className="bg-amber-700/20 text-amber-300 border-amber-700/40">🥉 3</Badge>
+                              : <span className="text-slate-500">{idx + 1}</span>}
+                          </td>
+                          <td className="py-2 pr-3 font-medium">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="h-8 w-8 shrink-0 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-lg leading-none" aria-hidden>
+                                {avatar}
+                              </div>
+                              <div className="min-w-0">
+                                <Link to="/perfil/$userId" params={{ userId: r.user_id }} className="hover:text-sky-300 underline-offset-2 hover:underline truncate block">
+                                  {r.display_name ?? "Herói"}
+                                </Link>
+                                {title && (
+                                  <div className="text-[11px] text-yellow-300/90 truncate">🏆 {title}</div>
+                                )}
+                                {skin && (
+                                  <div className="text-[10px] text-sky-300/80 truncate">✨ {skin}</div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-2 pr-3 text-right font-mono text-emerald-300">
+                            {r.score.toLocaleString("pt-BR")}{cat.suffix ?? ""}
+                          </td>
+                          <td className="py-2 pr-3 text-right text-xs text-slate-500 hidden sm:table-cell">
+                            {new Date(r.updated_at).toLocaleDateString("pt-BR")}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
