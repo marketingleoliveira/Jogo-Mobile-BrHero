@@ -5783,6 +5783,16 @@ function LiveOpsBanner({ snap }: { snap: import("@/lib/game/remote-liveops").Liv
           📢 {snap.globalMessage}
         </div>
       )}
+      {buffs.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {buffs.map((b, i) => (
+            <span key={i} className="rounded bg-emerald-700/80 px-2 py-0.5 font-bold text-emerald-50">
+              ⚡ ×{b.multiplier} {buffLabel(b.type)}
+              {b.endsAt && ` · até ${new Date(b.endsAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
+            </span>
+          ))}
+        </div>
+      )}
       {events.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {events.map((e) => (
