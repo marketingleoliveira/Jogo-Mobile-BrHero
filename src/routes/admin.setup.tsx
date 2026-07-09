@@ -29,24 +29,33 @@ function AdminLoginPage() {
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
+    setErrorMsg(null);
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setLoading(false);
+      console.error("[admin login]", error);
+      setErrorMsg(error.message);
       toast.error(error.message);
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setLoading(false);
-      toast.error("Sessão inválida.");
+      setErrorMsg("Sessão inválida.");
       return;
     }
-    const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: user.id });
+    const { data: isAdmin, error: rpcErr } = await supabase.rpc("is_admin", { _user_id: user.id });
+    if (rpcErr) {
+      setLoading(false);
+      console.error("[admin login] is_admin", rpcErr);
+      setErrorMsg(rpcErr.message);
+      return;
+    }
     setLoading(false);
     if (!isAdmin) {
       await supabase.auth.signOut();
-      toast.error("Acesso negado. Esta conta não possui permissão administrativa.");
+      setErrorMsg("Acesso negado. Esta conta não possui permissão administrativa.");
       return;
     }
     toast.success("Autenticado.");
