@@ -76,7 +76,7 @@ function ProfilePage() {
             <h1 className="text-2xl font-bold">Perfil do Herói</h1>
           </div>
           <div className="flex gap-2">
-            <Link to="/ranking"><Button size="sm" variant="outline"><Trophy className="h-4 w-4 mr-2" />Ranking</Button></Link>
+            <Link to="/ranking"><Button size="sm" variant="outline"><Trophy className="h-4 w-4 mr-2" />Ver no Ranking</Button></Link>
             <Link to="/game"><Button size="sm" variant="outline"><Home className="h-4 w-4 mr-2" />Jogo</Button></Link>
           </div>
         </header>
