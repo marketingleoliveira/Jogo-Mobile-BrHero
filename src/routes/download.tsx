@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, Smartphone, ArrowLeft } from "lucide-react";
+import { Smartphone, ArrowLeft } from "lucide-react";
 import brheroLogo from "@/assets/brhero-logo.png.asset.json";
 
 export const Route = createFileRoute("/download")({
@@ -42,30 +42,25 @@ function DownloadPage() {
           className="mx-auto h-48 w-48 object-contain drop-shadow-[0_10px_25px_rgba(245,197,66,0.35)]"
         />
         <h1 className="mt-4 text-3xl text-[#f5c542]" style={FONT_TITLE}>
-          Exclusivo para Android
+          Jogue direto no navegador
         </h1>
         <p className="mt-3 text-base leading-relaxed text-[#e8ecf1]/90">
-          BRHero é um jogo <b className="text-[#f5c542]">mobile Android nativo</b>.
-          Para jogar, instale o APK oficial no seu celular.
+          BRHero agora é um <b className="text-[#f5c542]">RPG idle web</b>.
+          Rode em qualquer aparelho — desktop, notebook, tablet ou celular.
         </p>
 
         <div className="mt-6 flex items-center justify-center gap-2 rounded-2xl border-2 border-[#f5c542]/40 bg-[#0a1c3a]/70 p-3 text-sm text-[#e8ecf1]/80">
           <Smartphone className="h-4 w-4 text-[#f5c542]" />
-          Não é possível jogar pelo navegador.
+          Nada para instalar. Basta abrir e jogar.
         </div>
 
-        <a
-          href="/api/public/apk"
-          download="brhero.apk"
+        <Link
+          to="/game"
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#f5c542] bg-gradient-to-b from-[#f5c542] to-[#d4a02a] py-4 text-lg text-[#0a1c3a] shadow-[0_6px_0_#8a6614] active:translate-y-1 active:shadow-[0_2px_0_#8a6614]"
           style={FONT_TITLE}
         >
-          <Download className="h-5 w-5" />
-          BAIXAR APK ANDROID
-        </a>
-        <p className="mt-3 text-xs text-[#e8ecf1]/60">
-          Após baixar, permita a instalação de fontes desconhecidas no Android.
-        </p>
+          JOGAR AGORA
+        </Link>
 
         <Link
           to="/"
@@ -77,3 +72,4 @@ function DownloadPage() {
     </main>
   );
 }
+
