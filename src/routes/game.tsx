@@ -446,6 +446,12 @@ function arenaTier(points: number): ArenaTier {
 
 type ArenaOpponent = {
   name: string; level: number; power: number; guild: string; pet: string; rank: number; rewardGold: number; rewardGems: number; seed: number;
+  // Bloco 4.3 — snapshot público (opcional; presente em oponentes reais)
+  userId?: string;
+  avatar?: string | null;
+  title?: string | null;
+  skin?: string | null;
+  real?: boolean;
 };
 
 const ARENA_NAMES = ["Kael", "Vora", "Ryze", "Nyx", "Thara", "Bel", "Cirus", "Draka", "Elyn", "Fenn", "Garro", "Hilda", "Ivar", "Juno", "Krix", "Luma", "Mord", "Nex", "Ora", "Pyra"];
