@@ -102,9 +102,14 @@ export async function uploadPlayerSnapshot(snap: PlayerSnapshot, force = false):
     const uid = session.user.id;
     const name = (snap.displayName ?? session.user.email ?? "Herói").slice(0, 32);
 
+    // Título equipado vem do localStorage (gravado só via `equipTitle` do useWallet,
+    // que lista apenas títulos existentes em `player_titles`). Sem edição manual.
+    let equippedTitle: string | null = null;
+    try { equippedTitle = localStorage.getItem("brhero_equipped_title_v1"); } catch { /* noop */ }
+
     const meta: PublicProfileMeta = {
       avatar: snap.profile?.avatar ?? null,
-      title:  snap.profile?.title  ?? null,
+      title:  snap.profile?.title  ?? equippedTitle ?? null,
       skin:   snap.profile?.skin   ?? null,
       guild:  snap.profile?.guild  ?? null,
     };

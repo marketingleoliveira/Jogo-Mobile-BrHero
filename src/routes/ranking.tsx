@@ -176,6 +176,9 @@ function RankingPage() {
                           <Link to="/perfil/$userId" params={{ userId: r.user_id }} className="hover:text-sky-300 underline-offset-2 hover:underline">
                             {r.display_name ?? "Herói"}
                           </Link>
+                          {typeof (r.extra as { title?: unknown })?.title === "string" && (r.extra as { title: string }).title.trim() !== "" && (
+                            <div className="text-[11px] text-yellow-300/90 truncate">🏆 {(r.extra as { title: string }).title}</div>
+                          )}
                         </td>
                         <td className="py-2 pr-3 text-right font-mono text-emerald-300">
                           {r.score.toLocaleString("pt-BR")}{cat.suffix ?? ""}
