@@ -13,17 +13,24 @@ import {
 } from "@/lib/game/leaderboards";
 
 export const Route = createFileRoute("/perfil/$userId")({
-  head: () => ({
-    meta: [
-      { title: "Perfil do Herói — BRHero" },
-      { name: "description", content: "Perfil público de um herói do BRHero: estágio, rebirths, torre, arena e poder." },
-      { property: "og:title", content: "Perfil do Herói — BRHero" },
-      { property: "og:description", content: "Veja as conquistas deste herói." },
-      { property: "og:type", content: "profile" },
-      { name: "twitter:card", content: "summary" },
-      { name: "robots", content: "index,follow" },
-    ],
-  }),
+  head: ({ params }) => {
+    const url = `https://brhero.lovable.app/perfil/${params.userId}`;
+    return {
+      meta: [
+        { title: "Perfil do Herói — BRHero" },
+        { name: "description", content: "Perfil público de um herói do BRHero: estágio, rebirths, torre, arena e poder." },
+        { property: "og:title", content: "Perfil do Herói — BRHero" },
+        { property: "og:description", content: "Veja as conquistas deste herói." },
+        { property: "og:type", content: "profile" },
+        { property: "og:url", content: url },
+        { property: "og:image", content: "https://brhero.lovable.app/og-default.png" },
+        { name: "twitter:card", content: "summary" },
+        { name: "twitter:image", content: "https://brhero.lovable.app/og-default.png" },
+        { name: "robots", content: "index,follow" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   errorComponent: ({ error }) => (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
       <p role="alert" className="text-sm text-red-300">Falha ao carregar perfil: {error.message}</p>
