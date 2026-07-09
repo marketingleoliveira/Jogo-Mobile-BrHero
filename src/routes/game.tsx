@@ -2762,6 +2762,14 @@ function GamePage() {
               Lv{save.level}
             </span>
           </Link>
+          <Link
+            to="/roadmap"
+            aria-label="Roadmap"
+            title="Roadmap"
+            className="absolute right-2 top-1 rounded-md border border-[#8B4513]/70 bg-black/40 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-200/90 hover:text-amber-100 hover:bg-black/60"
+          >
+            ROADMAP
+          </Link>
 
           {/* Currencies */}
           <div className="flex flex-1 flex-col gap-1">
