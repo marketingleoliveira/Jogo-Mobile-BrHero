@@ -30,6 +30,7 @@ import slimeSprite from "@/assets/sprite-slime.png";
 import skeletonSprite from "@/assets/sprite-skeleton.png";
 import bossDragonSprite from "@/assets/sprite-boss-dragon.png";
 import woodTexture from "@/assets/wood-texture.jpg";
+import { resolveRemoteRedeem } from "@/lib/game/remote-codes";
 
 // -------- Types --------
 type AttrKey =
@@ -2573,7 +2574,14 @@ function GamePage() {
   const redeemCode = useCallback((raw: string): { ok: boolean; msg: string } => {
     const code = raw.trim().toUpperCase();
     if (!code) return { ok: false, msg: "Digite um código" };
-    const def = REDEEM_CODES[code];
+    // Fase 3 · Bloco 1 — tenta registro remoto primeiro (Supabase → cache local);
+    // se o código não existir remotamente, usa o fallback local REDEEM_CODES.
+    const remote = resolveRemoteRedeem(code, save?.redeem.used ?? []);
+    if (remote && !remote.ok) {
+      flashToast(`❌ ${remote.error}`);
+      return { ok: false, msg: remote.error };
+    }
+    const def = remote?.ok ? remote.def : REDEEM_CODES[code];
     if (!def) {
       flashToast("❌ Código inválido");
       return { ok: false, msg: "Código inválido" };
