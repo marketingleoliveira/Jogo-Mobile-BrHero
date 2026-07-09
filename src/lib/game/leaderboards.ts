@@ -1,8 +1,9 @@
-// Fase 4 · Bloco 1 — Ranking Global.
+// Fase 4 · Bloco 1 + Bloco 4 — Ranking Global com temporadas.
 // Leitura pública + upload do próprio snapshot (RLS: só o dono grava a própria linha).
-// Cache local (30s) para reduzir leituras. Falha silenciosa se offline.
+// Cache local (30s) por (categoria, temporada). Falha silenciosa se offline.
 
 import { useEffect, useState } from "react";
+import { currentSeasonKey, type SeasonType } from "@/lib/game/seasons";
 import { supabase } from "@/integrations/supabase/client";
 
 export type LeaderboardCategory = "stage" | "rebirth" | "tower" | "arena" | "hero_power";
