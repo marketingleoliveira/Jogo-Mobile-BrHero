@@ -194,7 +194,7 @@ function Landing() {
               >
                 O que é BRHero?
               </h2>
-              <p className="text-sm leading-relaxed text-[#e8ecf1]/90">
+              <p className="text-base leading-relaxed text-[#e8ecf1]/90">
                 Um RPG <b className="text-[#f5c542]">idle</b> feito no Brasil — seu herói
                 batalha sozinho enquanto você evolui atributos, coleta equipamentos
                 raros e derrota chefões cada vez mais poderosos.
