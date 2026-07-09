@@ -254,12 +254,12 @@ function Landing() {
           />
         )}
 
-        <div className="mt-8 flex items-center justify-center gap-3 text-[11px] text-[#e8ecf1]/60">
+        <div className="mt-8 flex items-center justify-center gap-3 text-sm text-[#e8ecf1]/70">
           <Link to="/privacidade" className="underline hover:text-[#f5c542]">Privacidade</Link>
           <span>·</span>
           <Link to="/termos" className="underline hover:text-[#f5c542]">Termos</Link>
         </div>
-        <p className="mt-2 text-center text-[10px] text-[#e8ecf1]/50">
+        <p className="mt-2 text-center text-xs text-[#e8ecf1]/60">
           © BRHero · Beta MVP · Feito com ❤️ no Brasil
         </p>
       </div>
