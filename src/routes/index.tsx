@@ -329,24 +329,24 @@ function PlayOptions({ account, onLogout }: { account: Account; onLogout: () => 
       <a
         href={brheroApk.url}
         download="brhero.apk"
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#f5c542] bg-[#152b5c] py-4 text-sm text-[#f5c542] shadow-[0_4px_0_#0a1c3a] active:translate-y-0.5 active:shadow-[0_2px_0_#0a1c3a]"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#f5c542] bg-[#152b5c] py-4 text-base text-[#f5c542] shadow-[0_4px_0_#0a1c3a] active:translate-y-0.5 active:shadow-[0_2px_0_#0a1c3a]"
         style={FONT_TITLE}
       >
         <Download className="h-5 w-5" />
         BAIXAR O JOGO (APK ANDROID)
       </a>
-      <p className="text-center text-[10px] text-[#e8ecf1]/50">
+      <p className="text-center text-xs text-[#e8ecf1]/60">
         Após baixar, permita a instalação de fontes desconhecidas no Android.
       </p>
 
       <button
         onClick={onLogout}
-        className="flex w-full items-center justify-center gap-2 py-2 text-xs text-[#e8ecf1]/60 underline"
+        className="flex w-full items-center justify-center gap-2 py-2 text-sm text-[#e8ecf1]/70 underline"
       >
         <LogOut className="h-3 w-3" /> Sair da conta
       </button>
 
-      <div className="rounded-xl border border-[#f5c542]/20 bg-[#0a1c3a]/70 p-3 text-[10px] text-[#e8ecf1]/70">
+      <div className="rounded-xl border border-[#f5c542]/20 bg-[#0a1c3a]/70 p-3 text-xs text-[#e8ecf1]/80">
         <Sparkles className="mr-1 inline h-3 w-3 text-[#f5c542]" />
         Login feito via Google — o mesmo usado no Google Play. Seu progresso fica vinculado à sua conta.
       </div>
