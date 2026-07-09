@@ -40,6 +40,7 @@ import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purcha
 import {
   fetchArenaOpponents,
   canRefreshOpponents,
+  getCurrentUserId,
   pushArenaHistory,
   readArenaHistory,
   type RealArenaOpponent,
