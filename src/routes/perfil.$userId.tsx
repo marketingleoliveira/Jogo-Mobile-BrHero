@@ -70,6 +70,45 @@ function ProfilePage() {
 
   useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [userId]);
 
+  // Atualiza title/description dinamicamente com nome + score principal (sem dados privados).
+  useEffect(() => {
+    if (!profile) return;
+    const hp = profile.scores.hero_power ?? 0;
+    const name = profile.displayName || "Herói";
+    const t = profile.meta.title ? ` · 🏆 ${profile.meta.title}` : "";
+    try {
+      document.title = `${name}${t} — BRHero`;
+      const desc = `${name}${t} · Poder ${hp.toLocaleString("pt-BR")} · Estágio ${profile.scores.stage ?? 0}`;
+      document.querySelector('meta[name="description"]')?.setAttribute("content", desc);
+      document.querySelector('meta[property="og:title"]')?.setAttribute("content", `${name} — BRHero`);
+      document.querySelector('meta[property="og:description"]')?.setAttribute("content", desc);
+    } catch { /* noop */ }
+  }, [profile]);
+
+  const share = async () => {
+    const url = typeof window !== "undefined" ? window.location.href : `https://brhero.lovable.app/perfil/${userId}`;
+    const name = profile?.displayName || "Herói";
+    const text = `Veja o perfil de ${name} no BRHero!`;
+    try {
+      const nav = typeof navigator !== "undefined" ? navigator : null;
+      if (nav && typeof nav.share === "function") {
+        await nav.share({ title: `${name} — BRHero`, text, url });
+        return;
+      }
+      if (nav?.clipboard?.writeText) {
+        await nav.clipboard.writeText(url);
+        toast.success("Link do perfil copiado!");
+        return;
+      }
+      toast.error("Compartilhamento indisponível neste dispositivo.");
+    } catch (e) {
+      // AbortError = usuário fechou o share nativo; não é erro.
+      if (e instanceof Error && e.name === "AbortError") return;
+      toast.error("Não foi possível compartilhar o perfil.");
+    }
+  };
+
+
   if (notFoundFlag) throw notFound();
 
   const meta = profile?.meta ?? {};
