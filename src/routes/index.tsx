@@ -274,8 +274,8 @@ function Step({ icon, title, body }: { icon: React.ReactNode; title: string; bod
         {icon}
       </span>
       <div>
-        <div className="text-[#f5c542]" style={FONT_TITLE}>{title}</div>
-        <div className="text-xs text-[#e8ecf1]/75">{body}</div>
+        <div className="text-base text-[#f5c542]" style={FONT_TITLE}>{title}</div>
+        <div className="text-sm text-[#e8ecf1]/85">{body}</div>
       </div>
     </li>
   );
