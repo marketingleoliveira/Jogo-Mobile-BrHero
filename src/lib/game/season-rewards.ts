@@ -65,13 +65,30 @@ export async function listUnclaimedRewards(userId: string): Promise<SeasonReward
   } catch { return []; }
 }
 
+/**
+ * Aplica a recompensa de forma atômica e idempotente via RPC `claim_season_reward`.
+ * A função SQL:
+ *  - trava a linha em `season_rewards` (marca `claimed_at`) somente se ainda estiver pendente
+ *    e pertencer ao `auth.uid()` — impede replay e resgate cruzado;
+ *  - credita `gems`/`gold` em `player_wallet` (upsert somando);
+ *  - insere `title` cosmético em `player_titles` (UNIQUE user_id,title — sem duplicar).
+ * Retorna true se aplicou agora; false se já resgatada, inexistente ou de outro usuário.
+ */
 export async function claimReward(id: string): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from("season_rewards")
-      .update({ claimed_at: new Date().toISOString() })
-      .eq("id", id)
-      .is("claimed_at", null);
-    return !error;
-  } catch { return false; }
+    const { data, error } = await supabase.rpc("claim_season_reward", { _reward_id: id });
+    if (error) {
+      console.error("[claimReward] rpc error:", error.message);
+      return false;
+    }
+    if (!data) {
+      console.warn("[claimReward] already claimed or not owned:", id);
+      return false;
+    }
+    console.log("[claimReward] applied:", data);
+    return true;
+  } catch (e) {
+    console.error("[claimReward] exception:", (e as Error).message);
+    return false;
+  }
 }
