@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import brheroLogo from "@/assets/brhero-logo.png.asset.json";
+import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Swords,
   Sparkles,
@@ -29,12 +31,6 @@ type Account = {
   createdAt: number;
 };
 
-declare global {
-  interface Window {
-    google?: any;
-  }
-}
-
 function loadAccount(): Account | null {
   if (typeof window === "undefined") return null;
   try {
@@ -45,10 +41,15 @@ function loadAccount(): Account | null {
   }
 }
 
-function decodeJwt(token: string): any {
-  const payload = token.split(".")[1];
-  const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
-  return JSON.parse(decodeURIComponent(escape(json)));
+function accountFromUser(u: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }): Account {
+  const meta = (u.user_metadata ?? {}) as Record<string, unknown>;
+  return {
+    name: (meta.full_name as string) || (meta.name as string) || (u.email ?? "Herói"),
+    email: u.email ?? "",
+    picture: (meta.avatar_url as string) || (meta.picture as string) || undefined,
+    sub: u.id,
+    createdAt: Date.now(),
+  };
 }
 
 export const Route = createFileRoute("/")({
@@ -74,56 +75,53 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const [account, setAccount] = useState<Account | null>(() => loadAccount());
-  const btnRef = useRef<HTMLDivElement>(null);
-  const [gsiReady, setGsiReady] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
+  const [signInError, setSignInError] = useState<string | null>(null);
 
+  // Hydrate session from Supabase and keep in sync
   useEffect(() => {
-    if (account) return;
-    if (!GOOGLE_CLIENT_ID) return;
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      const u = data.session?.user;
+      if (u) {
+        const acc = accountFromUser(u);
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify(acc));
+        setAccount(acc);
+      }
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      const u = session?.user;
+      if (u) {
+        const acc = accountFromUser(u);
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify(acc));
+        setAccount(acc);
+      }
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
-    let cancelled = false;
-    const tryInit = () => {
-      if (cancelled) return;
-      if (!window.google?.accounts?.id) {
-        setTimeout(tryInit, 300);
+  const handleGoogle = async () => {
+    setSignInError(null);
+    setSigningIn(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        setSignInError(result.error.message || "Falha no login com Google.");
+        setSigningIn(false);
         return;
       }
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: (resp: { credential: string }) => {
-          try {
-            const p = decodeJwt(resp.credential);
-            const acc: Account = {
-              name: p.name || p.given_name || "Herói",
-              email: p.email,
-              picture: p.picture,
-              sub: p.sub,
-              createdAt: Date.now(),
-            };
-            localStorage.setItem(ACCOUNT_KEY, JSON.stringify(acc));
-            setAccount(acc);
-          } catch (e) {
-            console.error("Google sign-in decode failed", e);
-          }
-        },
-      });
-      if (btnRef.current) {
-        window.google.accounts.id.renderButton(btnRef.current, {
-          theme: "filled_blue",
-          size: "large",
-          shape: "pill",
-          text: "signup_with",
-          logo_alignment: "left",
-          width: 320,
-        });
-      }
-      setGsiReady(true);
-    };
-    tryInit();
-    return () => {
-      cancelled = true;
-    };
-  }, [account]);
+      // If redirected, browser is leaving; otherwise session set — leave loading on
+    } catch (e) {
+      setSignInError(e instanceof Error ? e.message : "Falha no login com Google.");
+      setSigningIn(false);
+    }
+  };
 
   return (
     <main
@@ -203,9 +201,17 @@ function Landing() {
                 Use sua conta Google (a mesma do Google Play) para salvar seu progresso.
               </p>
               <div className="flex flex-col items-center gap-2">
-                <div ref={btnRef} className="min-h-[44px]" />
-                {!gsiReady && (
-                  <p className="text-xs text-[#0a1c3a]/70">Carregando login do Google...</p>
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  disabled={signingIn}
+                  className="flex w-full max-w-[320px] items-center justify-center gap-3 rounded-full border-2 border-[#0a1c3a] bg-white px-5 py-3 text-sm font-semibold text-[#0a1c3a] shadow-[0_4px_0_#8a6614] transition active:translate-y-0.5 active:shadow-[0_2px_0_#8a6614] disabled:opacity-70"
+                >
+                  <GoogleGlyph />
+                  {signingIn ? "Conectando..." : "Entrar com Google"}
+                </button>
+                {signInError && (
+                  <p className="text-xs text-red-700">{signInError}</p>
                 )}
               </div>
             </section>
@@ -219,11 +225,9 @@ function Landing() {
         {account && (
           <PlayOptions
             account={account}
-            onLogout={() => {
+            onLogout={async () => {
+              try { await supabase.auth.signOut(); } catch { /* ignore */ }
               localStorage.removeItem(ACCOUNT_KEY);
-              if (window.google?.accounts?.id) {
-                window.google.accounts.id.disableAutoSelect();
-              }
               setAccount(null);
             }}
           />
@@ -253,6 +257,17 @@ function Step({ icon, title, body }: { icon: React.ReactNode; title: string; bod
         <div className="text-xs text-[#e8ecf1]/75">{body}</div>
       </div>
     </li>
+  );
+}
+
+function GoogleGlyph() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C33.9 6.1 29.2 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"/>
+      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 16 18.9 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C33.9 6.1 29.2 4 24 4 16.4 4 9.8 8.3 6.3 14.7z"/>
+      <path fill="#4CAF50" d="M24 44c5.1 0 9.8-1.9 13.4-5.1l-6.2-5.2C29.2 35.5 26.7 36.5 24 36.5c-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.7 39.7 16.3 44 24 44z"/>
+      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.2 5.2C41.6 34.6 44 29.7 44 24c0-1.2-.1-2.3-.4-3.5z"/>
+    </svg>
   );
 }
 
