@@ -139,3 +139,59 @@ export function useLeaderboard(category: LeaderboardCategory, limit = 100) {
   useEffect(() => { refresh(false); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [category, limit]);
   return { rows, loading, refresh };
 }
+
+const CATEGORIES: LeaderboardCategory[] = ["stage", "rebirth", "tower", "arena", "hero_power"];
+
+/** Perfil público de um jogador. Agrega linhas dele em leaderboards. */
+export async function fetchPublicProfile(userId: string): Promise<PublicProfile | null> {
+  try {
+    const { data, error } = await supabase
+      .from("leaderboards")
+      .select("user_id,category,score,display_name,extra,updated_at")
+      .eq("user_id", userId);
+    if (error || !data || data.length === 0) return null;
+    const rows = data as unknown as LeaderboardEntry[];
+    const scores = { stage: 0, rebirth: 0, tower: 0, arena: 0, hero_power: 0 } as Record<LeaderboardCategory, number>;
+    let updatedAt: string | null = null;
+    let name = "Herói";
+    let meta: PublicProfileMeta = {};
+    for (const r of rows) {
+      scores[r.category] = Number(r.score) || 0;
+      if (r.display_name) name = r.display_name;
+      const rm = (r.extra ?? {}) as PublicProfileMeta;
+      if (rm && Object.keys(rm).length) meta = rm;
+      if (!updatedAt || (r.updated_at && r.updated_at > updatedAt)) updatedAt = r.updated_at;
+    }
+    return { userId, displayName: name, meta, scores, updatedAt };
+  } catch {
+    return null;
+  }
+}
+
+/** Posição 1-based do jogador na categoria. Retorna null se não estiver no ranking. */
+export async function fetchRankPosition(userId: string, category: LeaderboardCategory): Promise<number | null> {
+  try {
+    const { data: mine } = await supabase
+      .from("leaderboards")
+      .select("score")
+      .eq("user_id", userId).eq("category", category).maybeSingle();
+    if (!mine) return null;
+    const { count } = await supabase
+      .from("leaderboards")
+      .select("user_id", { count: "exact", head: true })
+      .eq("category", category)
+      .gt("score", mine.score);
+    return (count ?? 0) + 1;
+  } catch {
+    return null;
+  }
+}
+
+/** Posições em todas as categorias, em paralelo. */
+export async function fetchAllRankPositions(userId: string): Promise<Record<LeaderboardCategory, number | null>> {
+  const entries = await Promise.all(
+    CATEGORIES.map(async (c) => [c, await fetchRankPosition(userId, c)] as const),
+  );
+  return Object.fromEntries(entries) as Record<LeaderboardCategory, number | null>;
+}
+
