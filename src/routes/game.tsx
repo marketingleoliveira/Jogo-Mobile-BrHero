@@ -5684,7 +5684,7 @@ function CodesModal({
 type MenuKey =
   | "daily" | "missions" | "dungeon" | "pets" | "tower"
   | "blessings" | "guild" | "arena" | "event" | "skins"
-  | "achievements" | "runes" | "cosmetics" | "codes";
+  | "achievements" | "runes" | "cosmetics" | "codes" | "cloud";
 
 function GameMenuModal({
   save,
