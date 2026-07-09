@@ -16,6 +16,13 @@ import {
   type PaymentsConfig,
   type PaymentTransaction,
 } from "@/lib/game/payments";
+import {
+  getPaymentProviders,
+  setPaymentProviders,
+  resolveActiveProvider,
+  type PaymentProvidersConfig,
+  type PaymentProvider,
+} from "@/lib/game/payment-providers";
 import { persistRemoteLog } from "@/lib/admin/supabase-admin";
 
 export const Route = createFileRoute("/admin/payments")({
