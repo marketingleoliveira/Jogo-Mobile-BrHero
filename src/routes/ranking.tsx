@@ -13,6 +13,7 @@ import {
   type PlayerSnapshot,
 } from "@/lib/game/leaderboards";
 import { currentSeasonKey, seasonLabel, type SeasonType } from "@/lib/game/seasons";
+import { useWallet } from "@/lib/game/wallet";
 
 export const Route = createFileRoute("/ranking")({
   head: () => ({
@@ -76,6 +77,9 @@ function RankingPage() {
   const seasonKey = useMemo(() => currentSeasonKey(seasonType), [seasonType]);
   const { rows, loading, refresh } = useLeaderboard(category, 100, seasonKey);
   const cat = useMemo(() => CATEGORIES.find((c) => c.key === category)!, [category]);
+  const { userId: myId, equippedTitle } = useWallet();
+  const myRow = useMemo(() => (myId ? rows.find((r) => r.user_id === myId) ?? null : null), [rows, myId]);
+  const myRank = useMemo(() => (myId ? rows.findIndex((r) => r.user_id === myId) : -1), [rows, myId]);
 
   const doUpload = async () => {
     const snap = readLocalSnapshot();
@@ -131,6 +135,40 @@ function RankingPage() {
 
         <SeasonRewardsPanel />
 
+        {myId && (() => {
+          const meta = (myRow?.extra ?? {}) as { avatar?: unknown; skin?: unknown; title?: unknown };
+          const avatar = typeof meta.avatar === "string" && meta.avatar.trim() !== "" ? meta.avatar : "🦸";
+          const skin = typeof meta.skin === "string" && meta.skin.trim() !== "" ? meta.skin : null;
+          const rowTitle = typeof meta.title === "string" && meta.title.trim() !== "" ? meta.title : null;
+          const title = rowTitle ?? equippedTitle ?? null;
+          const name = myRow?.display_name ?? "Você";
+          return (
+            <Card className="border-sky-800/60 bg-gradient-to-br from-sky-950/60 to-slate-900/60">
+              <CardContent className="py-3 flex items-center gap-3">
+                <div className="h-12 w-12 shrink-0 rounded-full bg-slate-800 border border-sky-700 flex items-center justify-center text-2xl leading-none">
+                  {avatar}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-bold truncate">{name}</div>
+                  {title && <div className="text-[11px] text-yellow-300/90 truncate">🏆 {title}</div>}
+                  {skin && <div className="text-[10px] text-sky-300/80 truncate">✨ {skin}</div>}
+                  <div className="text-[11px] text-slate-400">
+                    {cat.icon} {cat.label} · {seasonLabel(seasonKey)}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-mono text-emerald-300 text-lg leading-none">
+                    {myRow ? myRow.score.toLocaleString("pt-BR") : "—"}{cat.suffix ?? ""}
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    {myRank >= 0 ? `#${myRank + 1}` : "sem posição"}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         <Card className="border-slate-800 bg-slate-900/60">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-slate-100 flex items-center gap-2">
@@ -164,30 +202,46 @@ function RankingPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((r, idx) => (
-                      <tr key={r.user_id} className="border-b border-slate-800/60">
-                        <td className="py-2 pr-3">
-                          {idx === 0 ? <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/40">🥇 1</Badge>
-                            : idx === 1 ? <Badge className="bg-slate-300/20 text-slate-200 border-slate-300/40">🥈 2</Badge>
-                            : idx === 2 ? <Badge className="bg-amber-700/20 text-amber-300 border-amber-700/40">🥉 3</Badge>
-                            : <span className="text-slate-500">{idx + 1}</span>}
-                        </td>
-                        <td className="py-2 pr-3 font-medium">
-                          <Link to="/perfil/$userId" params={{ userId: r.user_id }} className="hover:text-sky-300 underline-offset-2 hover:underline">
-                            {r.display_name ?? "Herói"}
-                          </Link>
-                          {typeof (r.extra as { title?: unknown })?.title === "string" && (r.extra as { title: string }).title.trim() !== "" && (
-                            <div className="text-[11px] text-yellow-300/90 truncate">🏆 {(r.extra as { title: string }).title}</div>
-                          )}
-                        </td>
-                        <td className="py-2 pr-3 text-right font-mono text-emerald-300">
-                          {r.score.toLocaleString("pt-BR")}{cat.suffix ?? ""}
-                        </td>
-                        <td className="py-2 pr-3 text-right text-xs text-slate-500 hidden sm:table-cell">
-                          {new Date(r.updated_at).toLocaleDateString("pt-BR")}
-                        </td>
-                      </tr>
-                    ))}
+                    {rows.map((r, idx) => {
+                      const meta = (r.extra ?? {}) as { avatar?: unknown; title?: unknown; skin?: unknown };
+                      const avatar = typeof meta.avatar === "string" && meta.avatar.trim() !== "" ? meta.avatar : "🦸";
+                      const title = typeof meta.title === "string" && meta.title.trim() !== "" ? meta.title : null;
+                      const skin = typeof meta.skin === "string" && meta.skin.trim() !== "" ? meta.skin : null;
+                      return (
+                        <tr key={r.user_id} className="border-b border-slate-800/60">
+                          <td className="py-2 pr-3">
+                            {idx === 0 ? <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/40">🥇 1</Badge>
+                              : idx === 1 ? <Badge className="bg-slate-300/20 text-slate-200 border-slate-300/40">🥈 2</Badge>
+                              : idx === 2 ? <Badge className="bg-amber-700/20 text-amber-300 border-amber-700/40">🥉 3</Badge>
+                              : <span className="text-slate-500">{idx + 1}</span>}
+                          </td>
+                          <td className="py-2 pr-3 font-medium">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="h-8 w-8 shrink-0 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-lg leading-none" aria-hidden>
+                                {avatar}
+                              </div>
+                              <div className="min-w-0">
+                                <Link to="/perfil/$userId" params={{ userId: r.user_id }} className="hover:text-sky-300 underline-offset-2 hover:underline truncate block">
+                                  {r.display_name ?? "Herói"}
+                                </Link>
+                                {title && (
+                                  <div className="text-[11px] text-yellow-300/90 truncate">🏆 {title}</div>
+                                )}
+                                {skin && (
+                                  <div className="text-[10px] text-sky-300/80 truncate">✨ {skin}</div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-2 pr-3 text-right font-mono text-emerald-300">
+                            {r.score.toLocaleString("pt-BR")}{cat.suffix ?? ""}
+                          </td>
+                          <td className="py-2 pr-3 text-right text-xs text-slate-500 hidden sm:table-cell">
+                            {new Date(r.updated_at).toLocaleDateString("pt-BR")}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
