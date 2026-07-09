@@ -128,8 +128,8 @@ function AdminSidebar() {
     <Sidebar collapsible="icon" className="border-r border-slate-200 bg-white">
       <SidebarHeader className="border-b border-slate-200 bg-white">
         <div className="flex items-center gap-2 px-2 py-1">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-sm">
-            <Shield className="h-5 w-5" />
+          <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
+            <img src={brheroLogo.url} alt="BRHero" className="h-full w-full object-cover" />
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-bold tracking-wide text-slate-900">BRHero</span>
@@ -139,6 +139,7 @@ function AdminSidebar() {
           </div>
         </div>
       </SidebarHeader>
+
 
       <SidebarContent className="bg-white">
         <SidebarGroup>
