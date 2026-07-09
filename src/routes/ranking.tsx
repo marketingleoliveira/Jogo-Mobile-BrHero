@@ -135,6 +135,40 @@ function RankingPage() {
 
         <SeasonRewardsPanel />
 
+        {myId && (() => {
+          const meta = (myRow?.extra ?? {}) as { avatar?: unknown; skin?: unknown; title?: unknown };
+          const avatar = typeof meta.avatar === "string" && meta.avatar.trim() !== "" ? meta.avatar : "🦸";
+          const skin = typeof meta.skin === "string" && meta.skin.trim() !== "" ? meta.skin : null;
+          const rowTitle = typeof meta.title === "string" && meta.title.trim() !== "" ? meta.title : null;
+          const title = rowTitle ?? equippedTitle ?? null;
+          const name = myRow?.display_name ?? "Você";
+          return (
+            <Card className="border-sky-800/60 bg-gradient-to-br from-sky-950/60 to-slate-900/60">
+              <CardContent className="py-3 flex items-center gap-3">
+                <div className="h-12 w-12 shrink-0 rounded-full bg-slate-800 border border-sky-700 flex items-center justify-center text-2xl leading-none">
+                  {avatar}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-bold truncate">{name}</div>
+                  {title && <div className="text-[11px] text-yellow-300/90 truncate">🏆 {title}</div>}
+                  {skin && <div className="text-[10px] text-sky-300/80 truncate">✨ {skin}</div>}
+                  <div className="text-[11px] text-slate-400">
+                    {cat.icon} {cat.label} · {seasonLabel(seasonKey)}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-mono text-emerald-300 text-lg leading-none">
+                    {myRow ? myRow.score.toLocaleString("pt-BR") : "—"}{cat.suffix ?? ""}
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-1">
+                    {myRank >= 0 ? `#${myRank + 1}` : "sem posição"}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         <Card className="border-slate-800 bg-slate-900/60">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-slate-100 flex items-center gap-2">
