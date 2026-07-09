@@ -57,7 +57,7 @@ export const beginSecureSandboxCheckout = createServerFn({ method: "POST" })
     if (entErr || !entity) {
       return { ok: false as const, reason: "Oferta inexistente." };
     }
-    const offer = entity.data as AdminShopEntity;
+    const offer = entity.data as unknown as AdminShopEntity;
 
     // 3) Validações server-side (janela / estoque / moeda)
     const now = Date.now();
