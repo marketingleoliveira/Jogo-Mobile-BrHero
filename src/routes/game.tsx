@@ -32,6 +32,7 @@ import bossDragonSprite from "@/assets/sprite-boss-dragon.png";
 import woodTexture from "@/assets/wood-texture.jpg";
 import { resolveRemoteRedeem } from "@/lib/game/remote-codes";
 import { getLiveOpsMultipliers, useLiveOps } from "@/lib/game/remote-liveops";
+import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
 
 // -------- Types --------
 type AttrKey =
