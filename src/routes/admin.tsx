@@ -1,6 +1,9 @@
 import { createFileRoute, Outlet, Link, useRouterState, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
+import brheroLogo from "@/assets/brhero-logo.png.asset.json";
+import { LogOut } from "lucide-react";
+
 import {
   LayoutDashboard,
   Users,
@@ -36,12 +39,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  AVAILABLE_PROFILES, ROLE_LABEL, getCurrentAdmin, setCurrentAdmin, subscribeAdmin,
-} from "@/lib/admin/rbac";
+import { ROLE_LABEL, type AdminRole } from "@/lib/admin/rbac";
+
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -125,8 +124,8 @@ function AdminSidebar() {
     <Sidebar collapsible="icon" className="border-r border-slate-200 bg-white">
       <SidebarHeader className="border-b border-slate-200 bg-white">
         <div className="flex items-center gap-2 px-2 py-1">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-sm">
-            <Shield className="h-5 w-5" />
+          <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
+            <img src={brheroLogo.url} alt="BRHero" className="h-full w-full object-cover" />
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-bold tracking-wide text-slate-900">BRHero</span>
@@ -136,6 +135,7 @@ function AdminSidebar() {
           </div>
         </div>
       </SidebarHeader>
+
 
       <SidebarContent className="bg-white">
         <SidebarGroup>
@@ -208,31 +208,57 @@ function AdminHeader() {
 
 
 function AdminProfileSelector() {
-  const current = useSyncExternalStore(subscribeAdmin, getCurrentAdmin, getCurrentAdmin);
+  const [name, setName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [role, setRole] = useState<AdminRole | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      setEmail(user.email ?? "");
+      const [{ data: profile }, { data: roleData }] = await Promise.all([
+        supabase.from("admin_profiles").select("display_name").eq("id", user.id).maybeSingle(),
+        supabase.rpc("get_admin_role", { _user_id: user.id }),
+      ]);
+      if (cancelled) return;
+      setName(profile?.display_name ?? user.email ?? "Admin");
+      setRole((roleData as AdminRole | null) ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const initials = (name || email || "AD").slice(0, 2).toUpperCase();
+  const roleLabel = role ? ROLE_LABEL[role] : "Admin";
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/admin/setup";
+  };
+
   return (
     <div className="hidden items-center gap-2 rounded-lg border border-indigo-200 bg-white px-2 py-1 md:flex">
-      <div className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-[10px] font-bold text-white">
-        {current.name.slice(0, 2).toUpperCase()}
+      <div className="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-[10px] font-bold text-white">
+        {initials}
       </div>
       <div className="flex flex-col leading-tight">
-        <span className="text-[11px] font-bold text-slate-900">{current.name}</span>
+        <span className="text-[11px] font-bold text-slate-900">{name || "Carregando…"}</span>
         <span className="text-[9px] uppercase tracking-widest text-indigo-600">
-          {ROLE_LABEL[current.role]}
+          {roleLabel}
         </span>
       </div>
-      <Select value={current.id} onValueChange={(v) => setCurrentAdmin(v)}>
-        <SelectTrigger className="ml-1 h-7 w-[40px] border-slate-200 bg-slate-50 px-1 text-[10px] text-slate-700">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent className="border-slate-200 bg-white text-slate-800">
-          {AVAILABLE_PROFILES.map((p) => (
-            <SelectItem key={p.id} value={p.id} className="text-xs">
-              {p.name} · {ROLE_LABEL[p.role]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={signOut}
+        title="Sair"
+        className="ml-1 h-7 w-7 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+      >
+        <LogOut className="h-3.5 w-3.5" />
+      </Button>
     </div>
   );
 }
+
 
