@@ -80,6 +80,7 @@ export function getLiveOpsSnapshot(): LiveOpsSnapshot {
     globalMessage: null,
     maintenance: null,
     activeBuffs: [],
+    flashEvents: [],
   };
   let msgPriority = Infinity;
   for (const c of campaigns) {
