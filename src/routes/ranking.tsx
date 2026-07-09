@@ -11,6 +11,7 @@ import {
   type LeaderboardCategory,
   type PlayerSnapshot,
 } from "@/lib/game/leaderboards";
+import { currentSeasonKey, seasonLabel, type SeasonType } from "@/lib/game/seasons";
 
 export const Route = createFileRoute("/ranking")({
   head: () => ({
