@@ -39,12 +39,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  AVAILABLE_PROFILES, ROLE_LABEL, getCurrentAdmin, setCurrentAdmin, subscribeAdmin,
-} from "@/lib/admin/rbac";
+import { ROLE_LABEL, type AdminRole } from "@/lib/admin/rbac";
+
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
