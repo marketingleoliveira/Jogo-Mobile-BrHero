@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { User, Home, Trophy, RefreshCw } from "lucide-react";
+import { User, Home, Trophy, RefreshCw, Share2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,17 +13,24 @@ import {
 } from "@/lib/game/leaderboards";
 
 export const Route = createFileRoute("/perfil/$userId")({
-  head: () => ({
-    meta: [
-      { title: "Perfil do Herói — BRHero" },
-      { name: "description", content: "Perfil público de um herói do BRHero: estágio, rebirths, torre, arena e poder." },
-      { property: "og:title", content: "Perfil do Herói — BRHero" },
-      { property: "og:description", content: "Veja as conquistas deste herói." },
-      { property: "og:type", content: "profile" },
-      { name: "twitter:card", content: "summary" },
-      { name: "robots", content: "index,follow" },
-    ],
-  }),
+  head: ({ params }) => {
+    const url = `https://brhero.lovable.app/perfil/${params.userId}`;
+    return {
+      meta: [
+        { title: "Perfil do Herói — BRHero" },
+        { name: "description", content: "Perfil público de um herói do BRHero: estágio, rebirths, torre, arena e poder." },
+        { property: "og:title", content: "Perfil do Herói — BRHero" },
+        { property: "og:description", content: "Veja as conquistas deste herói." },
+        { property: "og:type", content: "profile" },
+        { property: "og:url", content: url },
+        { property: "og:image", content: "https://brhero.lovable.app/og-default.png" },
+        { name: "twitter:card", content: "summary" },
+        { name: "twitter:image", content: "https://brhero.lovable.app/og-default.png" },
+        { name: "robots", content: "index,follow" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   errorComponent: ({ error }) => (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
       <p role="alert" className="text-sm text-red-300">Falha ao carregar perfil: {error.message}</p>
@@ -62,6 +70,45 @@ function ProfilePage() {
 
   useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [userId]);
 
+  // Atualiza title/description dinamicamente com nome + score principal (sem dados privados).
+  useEffect(() => {
+    if (!profile) return;
+    const hp = profile.scores.hero_power ?? 0;
+    const name = profile.displayName || "Herói";
+    const t = profile.meta.title ? ` · 🏆 ${profile.meta.title}` : "";
+    try {
+      document.title = `${name}${t} — BRHero`;
+      const desc = `${name}${t} · Poder ${hp.toLocaleString("pt-BR")} · Estágio ${profile.scores.stage ?? 0}`;
+      document.querySelector('meta[name="description"]')?.setAttribute("content", desc);
+      document.querySelector('meta[property="og:title"]')?.setAttribute("content", `${name} — BRHero`);
+      document.querySelector('meta[property="og:description"]')?.setAttribute("content", desc);
+    } catch { /* noop */ }
+  }, [profile]);
+
+  const share = async () => {
+    const url = typeof window !== "undefined" ? window.location.href : `https://brhero.lovable.app/perfil/${userId}`;
+    const name = profile?.displayName || "Herói";
+    const text = `Veja o perfil de ${name} no BRHero!`;
+    try {
+      const nav = typeof navigator !== "undefined" ? navigator : null;
+      if (nav && typeof nav.share === "function") {
+        await nav.share({ title: `${name} — BRHero`, text, url });
+        return;
+      }
+      if (nav?.clipboard?.writeText) {
+        await nav.clipboard.writeText(url);
+        toast.success("Link do perfil copiado!");
+        return;
+      }
+      toast.error("Compartilhamento indisponível neste dispositivo.");
+    } catch (e) {
+      // AbortError = usuário fechou o share nativo; não é erro.
+      if (e instanceof Error && e.name === "AbortError") return;
+      toast.error("Não foi possível compartilhar o perfil.");
+    }
+  };
+
+
   if (notFoundFlag) throw notFound();
 
   const meta = profile?.meta ?? {};
@@ -76,6 +123,9 @@ function ProfilePage() {
             <h1 className="text-2xl font-bold">Perfil do Herói</h1>
           </div>
           <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={share} disabled={loading}>
+              <Share2 className="h-4 w-4 mr-2" />Compartilhar
+            </Button>
             <Link to="/ranking"><Button size="sm" variant="outline"><Trophy className="h-4 w-4 mr-2" />Ver no Ranking</Button></Link>
             <Link to="/game"><Button size="sm" variant="outline"><Home className="h-4 w-4 mr-2" />Jogo</Button></Link>
           </div>
