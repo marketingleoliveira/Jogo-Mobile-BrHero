@@ -1,14 +1,15 @@
-// Fase 3 · Bloco 4a.2 — Entrega segura de recompensa sandbox no cliente.
-// Regras:
-//  - Só entrega quando transação está `paid` E `reward_delivered = true` no backend.
-//  - Idempotente: cada transaction.id é entregue no máximo uma vez neste dispositivo
-//    (registro em localStorage). Se o jogador jogar em outro device, o backend
-//    permanece como fonte de verdade para o admin, mas a recompensa é aplicada
-//    ao save local do device onde o polling encontrar o `paid` primeiro.
-//  - Se parsing do reward falhar, aplica fallback pequeno (100 gems) e loga.
+// Fase 3 · Bloco 4a.2.1 — Entrega segura de recompensa sandbox no cliente.
+// Correções da auditoria:
+//  - Idempotência GLOBAL agora vem do backend (claimSandboxDelivery + coluna
+//    client_consumed_at). localStorage é apenas cache secundário de UX;
+//    apagá-lo NÃO permite reentrega, pois o UPDATE atômico no servidor falha.
+//  - reward vem do offer_snapshot autoritativo gravado pelo servidor.
+//  - fallback removido: se parsing falhar, NÃO entrega gems fantasmas.
 
 import { useEffect, useRef } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { getPlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
+import { claimSandboxDelivery } from "@/lib/game/payments-secure.functions";
 
 const DELIVERED_KEY = "brhero_sandbox_delivered_v1";
 
@@ -51,14 +52,15 @@ export function markLocallyDelivered(txId: string) {
 }
 
 /**
- * Polling do histórico + entrega idempotente.
- * Chama `onDeliver` uma única vez por transação `paid` + `reward_delivered`.
+ * Polling do histórico + entrega idempotente via server-fn.
+ * Só chama `onDeliver` quando o UPDATE atômico no backend seta client_consumed_at.
  */
 export function useSandboxDelivery(
   onDeliver: (tx: PaymentTransaction, parsed: ParsedReward) => void,
   intervalMs = 6000,
 ) {
   const cb = useRef(onDeliver); cb.current = onDeliver;
+  const claim = useServerFn(claimSandboxDelivery);
   useEffect(() => {
     let alive = true;
     const tick = async () => {
@@ -67,9 +69,20 @@ export function useSandboxDelivery(
         if (!alive) return;
         for (const tx of list) {
           if (tx.status !== "paid" || !tx.reward_delivered) continue;
+          if (tx.client_consumed_at) { markLocallyDelivered(tx.id); continue; }
           if (isLocallyDelivered(tx.id)) continue;
-          const snapshot = tx.offer_snapshot as { reward?: string } | null;
-          const parsed = parseReward(snapshot?.reward ?? "");
+
+          // Reivindica no servidor. Se outra sessão/device já consumiu, aborta.
+          const res = await claim({ data: { transactionId: tx.id } });
+          if (!res.ok) { markLocallyDelivered(tx.id); continue; }
+
+          const snap = res.snapshot ?? (tx.offer_snapshot as { reward?: string } | null);
+          const parsed = parseReward(snap?.reward ?? "");
+          // Sem fallback: se parsing falhou, não fabrica recompensa.
+          if (!parsed.gems && !parsed.gold && !parsed.essence) {
+            markLocallyDelivered(tx.id);
+            continue;
+          }
           markLocallyDelivered(tx.id);
           cb.current(tx, parsed);
         }
@@ -78,5 +91,5 @@ export function useSandboxDelivery(
     void tick();
     const id = window.setInterval(tick, intervalMs);
     return () => { alive = false; window.clearInterval(id); };
-  }, [intervalMs]);
+  }, [intervalMs, claim]);
 }

@@ -45,7 +45,7 @@ function Page() {
     setLoading(true);
     const { data } = await supabase
       .from("payment_transactions")
-      .select("id,offer_id,offer_snapshot,amount_cents,currency,status,provider,provider_ref,reward_delivered,reward_delivered_at,error_message,created_at")
+      .select("id,offer_id,offer_snapshot,amount_cents,currency,status,provider,provider_ref,reward_delivered,reward_delivered_at,client_consumed_at,error_message,created_at")
       .order("created_at", { ascending: false })
       .limit(50);
     setTxs((data ?? []) as unknown as PaymentTransaction[]);
