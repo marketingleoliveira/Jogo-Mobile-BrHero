@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SeasonRewardsPanel } from "@/components/game/season-rewards-panel";
 import {
   useLeaderboard,
   uploadPlayerSnapshot,
@@ -127,6 +128,8 @@ function RankingPage() {
             </Button>
           ))}
         </div>
+
+        <SeasonRewardsPanel />
 
         <Card className="border-slate-800 bg-slate-900/60">
           <CardHeader className="flex flex-row items-center justify-between">
