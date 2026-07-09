@@ -3935,6 +3935,8 @@ function CrystalsModal({
           Preços em R$ são apenas de referência para a monetização final via Google Play / Stripe.
         </p>
 
+        <RemoteOffersPanel offers={remoteOffers} />
+
         <div className="space-y-2">
           {CRYSTAL_PACKS.map((p) => (
             <div key={p.id} className="flex items-center gap-3 rounded-xl border-2 border-emerald-400/30 bg-[#0a1c3a]/70 p-3">
