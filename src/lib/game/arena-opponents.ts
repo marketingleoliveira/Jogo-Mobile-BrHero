@@ -40,6 +40,13 @@ export function canRefreshOpponents(): boolean {
   } catch { return true; }
 }
 
+export async function getCurrentUserId(): Promise<string | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user.id ?? null;
+  } catch { return null; }
+}
+
 export function nextRefreshInMs(): number {
   try {
     const last = Number(localStorage.getItem(REFRESH_KEY) ?? 0);
