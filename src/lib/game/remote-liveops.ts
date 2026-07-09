@@ -95,6 +95,9 @@ export function getLiveOpsSnapshot(): LiveOpsSnapshot {
       snap.globalMessage = c.message;
       msgPriority = c.priority;
     }
+    if (active && c.type === "flash_event") {
+      snap.flashEvents.push({ id: c.id, name: c.name, message: c.message, endsAt: c.endsAt });
+    }
     if (c.type === "maintenance" && (active || isScheduledSoon(c, now))) {
       // manter apenas o mais próximo/ativo
       if (!snap.maintenance || (c.startsAt && (!snap.maintenance.startsAt || new Date(c.startsAt) < new Date(snap.maintenance.startsAt)))) {
