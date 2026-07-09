@@ -156,51 +156,69 @@ export type Database = {
         Row: {
           amount_cents: number
           client_consumed_at: string | null
+          country: string | null
           created_at: string
           currency: string
           error_message: string | null
           id: string
+          ip_address: string | null
+          metadata: Json
           offer_id: string
           offer_snapshot: Json
           provider: string
           provider_ref: string | null
+          refunded_at: string | null
           reward_delivered: boolean
           reward_delivered_at: string | null
           status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           amount_cents: number
           client_consumed_at?: string | null
+          country?: string | null
           created_at?: string
           currency?: string
           error_message?: string | null
           id?: string
+          ip_address?: string | null
+          metadata?: Json
           offer_id: string
           offer_snapshot?: Json
           provider?: string
           provider_ref?: string | null
+          refunded_at?: string | null
           reward_delivered?: boolean
           reward_delivered_at?: string | null
           status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           amount_cents?: number
           client_consumed_at?: string | null
+          country?: string | null
           created_at?: string
           currency?: string
           error_message?: string | null
           id?: string
+          ip_address?: string | null
+          metadata?: Json
           offer_id?: string
           offer_snapshot?: Json
           provider?: string
           provider_ref?: string | null
+          refunded_at?: string | null
           reward_delivered?: boolean
           reward_delivered_at?: string | null
           status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           updated_at?: string
           user_id?: string
         }
