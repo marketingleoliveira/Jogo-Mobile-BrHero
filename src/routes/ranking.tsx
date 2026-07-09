@@ -103,6 +103,19 @@ function RankingPage() {
         </header>
 
         <div className="flex flex-wrap gap-2">
+          {SEASONS.map((s) => (
+            <Button
+              key={s.key}
+              size="sm"
+              variant={s.key === seasonType ? "default" : "outline"}
+              onClick={() => setSeasonType(s.key)}
+            >
+              <span className="mr-1">{s.icon}</span>{s.label}
+            </Button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((c) => (
             <Button
               key={c.key}
@@ -119,6 +132,7 @@ function RankingPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-slate-100 flex items-center gap-2">
               <span>{cat.icon}</span> Top 100 — {cat.label}
+              <Badge variant="outline" className="ml-2 text-xs">{seasonLabel(seasonKey)}</Badge>
             </CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={doUpload} disabled={uploading}>
