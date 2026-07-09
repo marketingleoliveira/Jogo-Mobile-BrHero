@@ -30,6 +30,7 @@ import slimeSprite from "@/assets/sprite-slime.png";
 import skeletonSprite from "@/assets/sprite-skeleton.png";
 import bossDragonSprite from "@/assets/sprite-boss-dragon.png";
 import woodTexture from "@/assets/wood-texture.jpg";
+import { resolveRemoteRedeem } from "@/lib/game/remote-codes";
 
 // -------- Types --------
 type AttrKey =
