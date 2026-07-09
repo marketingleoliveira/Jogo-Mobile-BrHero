@@ -24,11 +24,13 @@ interface RemoteCampaign {
 }
 
 export interface LiveOpsMultipliers { xp: number; gold: number; drop: number }
+export interface LiveOpsFlashEvent { id: string; name: string; message: string; endsAt: string | null }
 export interface LiveOpsSnapshot {
   mult: LiveOpsMultipliers;
   globalMessage: string | null;
   maintenance: { message: string; startsAt: string | null; endsAt: string | null; active: boolean } | null;
   activeBuffs: { type: "double_xp" | "double_gold" | "double_drop"; multiplier: number; endsAt: string | null }[];
+  flashEvents: LiveOpsFlashEvent[];
 }
 
 const CACHE_KEY = "brhero_remote_liveops_cache_v1";
