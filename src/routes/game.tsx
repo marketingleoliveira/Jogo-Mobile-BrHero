@@ -32,6 +32,7 @@ import bossDragonSprite from "@/assets/sprite-boss-dragon.png";
 import woodTexture from "@/assets/wood-texture.jpg";
 import { resolveRemoteRedeem } from "@/lib/game/remote-codes";
 import { getLiveOpsMultipliers, useLiveOps } from "@/lib/game/remote-liveops";
+import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
 
 // -------- Types --------
 type AttrKey =
@@ -3909,6 +3910,7 @@ function CrystalsModal({
   onClose: () => void;
   onBuy: (id: string) => void;
 }) {
+  const remoteOffers = useRemoteOffers();
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/70 backdrop-blur-sm sm:items-center sm:justify-center" onClick={onClose}>
       <div
@@ -3932,6 +3934,8 @@ function CrystalsModal({
           ⚠️ <b>Beta:</b> os pacotes abaixo são <b>gratuitos</b> por enquanto (mock).
           Preços em R$ são apenas de referência para a monetização final via Google Play / Stripe.
         </p>
+
+        <RemoteOffersPanel offers={remoteOffers} />
 
         <div className="space-y-2">
           {CRYSTAL_PACKS.map((p) => (
@@ -5762,7 +5766,8 @@ function GameMenuModal({
 // ---- LiveOps banner (Fase 3 · Bloco 2) ----
 function LiveOpsBanner({ snap }: { snap: import("@/lib/game/remote-liveops").LiveOpsSnapshot }) {
   const buffs = snap.activeBuffs;
-  const hasAny = snap.globalMessage || snap.maintenance || buffs.length > 0;
+  const events = snap.flashEvents;
+  const hasAny = snap.globalMessage || snap.maintenance || buffs.length > 0 || events.length > 0;
   if (!hasAny) return null;
   const buffLabel = (t: string) =>
     t === "double_xp" ? "XP" : t === "double_gold" ? "Ouro" : "Drop";
@@ -5791,6 +5796,63 @@ function LiveOpsBanner({ snap }: { snap: import("@/lib/game/remote-liveops").Liv
           ))}
         </div>
       )}
+      {events.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {events.map((e) => (
+            <span key={e.id} className="rounded bg-fuchsia-700/80 px-2 py-0.5 font-bold text-fuchsia-50">
+              🎉 {e.name}
+              {e.endsAt && ` · até ${new Date(e.endsAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Remote offers panel (Fase 3 · Bloco 3, read-only) ----
+function RemoteOffersPanel({ offers }: { offers: RemoteOffer[] }) {
+  if (offers.length === 0) return null;
+  const currencyIcon = (c: RemoteOffer["currency"]) =>
+    c === "gems" ? "💎" : c === "gold" ? "🪙" : c === "essence" ? "✨" : "R$";
+  return (
+    <div className="mb-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm text-amber-300" style={{ fontFamily: "'Lilita One', cursive" }}>
+          🎁 Ofertas do Admin
+        </h3>
+        <span className="rounded-full bg-amber-500/20 px-2 py-[1px] text-[9px] uppercase text-amber-300">
+          somente leitura
+        </span>
+      </div>
+      {offers.map((o) => (
+        <div key={o.id} className="flex items-center gap-3 rounded-xl border-2 border-amber-400/30 bg-[#0a1c3a]/70 p-3">
+          <div className="text-2xl">{o.featured ? "⭐" : "🛒"}</div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 text-sm text-amber-200" style={{ fontFamily: "'Lilita One', cursive" }}>
+              {o.name}
+              {o.featured && <span className="rounded-full bg-amber-400 px-2 py-[1px] text-[9px] uppercase text-[#0a1c3a]">destaque</span>}
+            </div>
+            <div className="text-[11px] opacity-80">{o.reward}</div>
+            {o.endsAt && (
+              <div className="text-[10px] opacity-60">até {new Date(o.endsAt).toLocaleString("pt-BR")}</div>
+            )}
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <div className="text-[11px] text-amber-100">
+              {o.currency === "brl"
+                ? `R$ ${(o.price / 100).toFixed(2).replace(".", ",")}`
+                : `${currencyIcon(o.currency)} ${o.price.toLocaleString("pt-BR")}`}
+            </div>
+            <span className="rounded border border-amber-400/40 px-2 py-[2px] text-[9px] uppercase text-amber-200/70">
+              {o.isPaid ? "em breve" : "prévia"}
+            </span>
+          </div>
+        </div>
+      ))}
+      <p className="text-[10px] opacity-50">
+        Ofertas gerenciadas pelo Admin. Compra real será liberada em versão futura.
+      </p>
     </div>
   );
 }

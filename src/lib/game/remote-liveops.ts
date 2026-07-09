@@ -24,11 +24,13 @@ interface RemoteCampaign {
 }
 
 export interface LiveOpsMultipliers { xp: number; gold: number; drop: number }
+export interface LiveOpsFlashEvent { id: string; name: string; message: string; endsAt: string | null }
 export interface LiveOpsSnapshot {
   mult: LiveOpsMultipliers;
   globalMessage: string | null;
   maintenance: { message: string; startsAt: string | null; endsAt: string | null; active: boolean } | null;
   activeBuffs: { type: "double_xp" | "double_gold" | "double_drop"; multiplier: number; endsAt: string | null }[];
+  flashEvents: LiveOpsFlashEvent[];
 }
 
 const CACHE_KEY = "brhero_remote_liveops_cache_v1";
@@ -37,6 +39,7 @@ const EMPTY: LiveOpsSnapshot = {
   globalMessage: null,
   maintenance: null,
   activeBuffs: [],
+  flashEvents: [],
 };
 
 let campaigns: RemoteCampaign[] = [];
@@ -77,6 +80,7 @@ export function getLiveOpsSnapshot(): LiveOpsSnapshot {
     globalMessage: null,
     maintenance: null,
     activeBuffs: [],
+    flashEvents: [],
   };
   let msgPriority = Infinity;
   for (const c of campaigns) {
@@ -90,6 +94,9 @@ export function getLiveOpsSnapshot(): LiveOpsSnapshot {
     if (active && c.type === "global_message" && c.message && c.priority < msgPriority) {
       snap.globalMessage = c.message;
       msgPriority = c.priority;
+    }
+    if (active && c.type === "flash_event") {
+      snap.flashEvents.push({ id: c.id, name: c.name, message: c.message, endsAt: c.endsAt });
     }
     if (c.type === "maintenance" && (active || isScheduledSoon(c, now))) {
       // manter apenas o mais próximo/ativo
