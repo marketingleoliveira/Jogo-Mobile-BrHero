@@ -96,6 +96,11 @@ const NAV: NavItem[] = [
 ];
 
 function AdminLayout() {
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
+  // Rota de login não deve exibir sidebar/header nem qualquer informação do painel.
+  if (pathname.startsWith("/admin/setup")) {
+    return <Outlet />;
+  }
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-slate-50 text-slate-800">
