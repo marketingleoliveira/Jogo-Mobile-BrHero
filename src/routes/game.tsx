@@ -45,7 +45,7 @@ import {
   type RealArenaOpponent,
   type ArenaHistoryEntry,
 } from "@/lib/game/arena-opponents";
-import { supabase } from "@/integrations/supabase/client";
+
 
 // -------- Types --------
 type AttrKey =
