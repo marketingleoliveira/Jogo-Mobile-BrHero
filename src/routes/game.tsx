@@ -5177,21 +5177,62 @@ function ArenaPvpModal({
               </div>
             )}
 
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="text-[10px] opacity-70">
+                {loadingReal ? "Buscando heróis reais…" : (opponents.some(o => o.real) ? "Oponentes reais + NPCs" : "Somente NPCs (offline)")}
+              </div>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setShowHistory((s) => !s)}
+                  className="rounded border border-[#1A0F08] bg-black/40 px-2 py-0.5 text-[10px] font-black"
+                >
+                  📜 Histórico
+                </button>
+                <button
+                  onClick={() => void loadReal(true)}
+                  disabled={!refreshReady || loadingReal}
+                  className="rounded border border-[#1A0F08] bg-black/40 px-2 py-0.5 text-[10px] font-black disabled:opacity-40"
+                >
+                  {refreshReady ? "🔄 Atualizar" : "⏳ Aguarde"}
+                </button>
+              </div>
+            </div>
+
+            {showHistory && (
+              <div className="mb-2 max-h-[20vh] overflow-y-auto rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2 text-[10px]">
+                {history.length === 0 ? (
+                  <div className="opacity-60 text-center py-2">Sem batalhas recentes.</div>
+                ) : history.slice(0, 10).map((h, i) => (
+                  <div key={i} className="flex justify-between border-b border-[#1A0F08]/40 py-0.5 last:border-0">
+                    <span>{h.win ? "🏆" : "💀"} vs {h.opponentName} {h.real ? "🌎" : "🤖"}</span>
+                    <span className="opacity-60">⚡{fmt(h.opponentPower)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
               {opponents.map((o, i) => (
-                <div key={i} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                <div key={`${o.userId ?? "npc"}-${i}`} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 text-xs font-black text-amber-100">
-                        <span>#{o.rank}</span>
-                        <span className="truncate">{o.name}</span>
-                        <span className="text-[10px] opacity-70">Lv{o.level}</span>
+                    <div className="min-w-0 flex items-center gap-2">
+                      <div className="h-9 w-9 shrink-0 rounded-full bg-[#1A0F08] border border-[#8B4513] flex items-center justify-center text-lg">
+                        {o.avatar || (o.real ? "🦸" : "🤖")}
                       </div>
-                      <div className="text-[10px] opacity-80">
-                        {o.guild} · {o.pet} · ⚡{fmt(o.power)}
-                      </div>
-                      <div className="text-[10px] text-amber-300/90">
-                        Prêmio: 🪙{fmt(o.rewardGold)} · 💎{o.rewardGems}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-amber-100">
+                          <span>#{o.rank}</span>
+                          <span className="truncate">{o.name}</span>
+                          <span className="text-[10px] opacity-70">Lv{o.level}</span>
+                          {o.real && <span className="text-[9px] text-emerald-300">🌎</span>}
+                        </div>
+                        {o.title && <div className="text-[10px] text-yellow-300 truncate">🏆 {o.title}</div>}
+                        <div className="text-[10px] opacity-80 truncate">
+                          {o.guild} · {o.pet} · ⚡{fmt(o.power)}
+                        </div>
+                        <div className="text-[10px] text-amber-300/90">
+                          Prêmio: 🪙{fmt(o.rewardGold)} · 💎{o.rewardGems}
+                        </div>
                       </div>
                     </div>
                     <button
@@ -5205,6 +5246,7 @@ function ArenaPvpModal({
                 </div>
               ))}
             </div>
+
           </>
         )}
 
