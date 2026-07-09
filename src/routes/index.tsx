@@ -218,7 +218,7 @@ function Landing() {
               <h2 className="mb-1 text-2xl" style={FONT_TITLE}>
                 Entre para jogar
               </h2>
-              <p className="mb-4 text-xs text-[#0a1c3a]/80">
+              <p className="mb-4 text-sm text-[#0a1c3a]/90">
                 Use sua conta Google (a mesma do Google Play) para salvar seu progresso.
               </p>
               <div className="flex flex-col items-center gap-2">
