@@ -11,6 +11,7 @@ import {
   Sliders,
   Radio,
   ScrollText,
+  Smartphone,
   Shield,
   Search,
   Bell,
@@ -75,6 +76,7 @@ const NAV: NavItem[] = [
   { to: "/admin/balancing",    label: "Balanceamento", icon: Sliders },
   { to: "/admin/liveops",      label: "LiveOps",       icon: Radio },
   { to: "/admin/logs",         label: "Logs",          icon: ScrollText },
+  { to: "/admin/apk",          label: "APK",           icon: Smartphone },
 ];
 
 function AdminLayout() {
