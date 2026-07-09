@@ -31,6 +31,7 @@ export interface PaymentTransaction {
   provider_ref: string | null;
   reward_delivered: boolean;
   reward_delivered_at: string | null;
+  client_consumed_at: string | null;
   error_message: string | null;
   created_at: string;
 }
