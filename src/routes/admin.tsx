@@ -44,6 +44,20 @@ import {
 } from "@/lib/admin/rbac";
 
 export const Route = createFileRoute("/admin")({
+  ssr: false,
+  beforeLoad: async ({ location }) => {
+    // Gate: apenas admins autenticados podem acessar /admin/*
+    // Exceção: /admin/setup deve permanecer aberta para o bootstrap inicial.
+    if (location.pathname.startsWith("/admin/setup")) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      throw redirect({ to: "/admin/setup" });
+    }
+    const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: user.id });
+    if (!isAdmin) {
+      throw redirect({ to: "/admin/setup" });
+    }
+  },
   head: () => ({
     meta: [
       { title: "BRHero Admin — Game Master Panel" },
@@ -55,6 +69,7 @@ export const Route = createFileRoute("/admin")({
     ],
   }),
   component: AdminLayout,
+
 });
 
 
