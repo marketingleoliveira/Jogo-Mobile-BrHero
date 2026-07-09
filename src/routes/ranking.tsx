@@ -77,6 +77,9 @@ function RankingPage() {
   const seasonKey = useMemo(() => currentSeasonKey(seasonType), [seasonType]);
   const { rows, loading, refresh } = useLeaderboard(category, 100, seasonKey);
   const cat = useMemo(() => CATEGORIES.find((c) => c.key === category)!, [category]);
+  const { userId: myId, equippedTitle } = useWallet();
+  const myRow = useMemo(() => (myId ? rows.find((r) => r.user_id === myId) ?? null : null), [rows, myId]);
+  const myRank = useMemo(() => (myId ? rows.findIndex((r) => r.user_id === myId) : -1), [rows, myId]);
 
   const doUpload = async () => {
     const snap = readLocalSnapshot();
