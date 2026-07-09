@@ -152,6 +152,39 @@ export type Database = {
         }
         Relationships: []
       }
+      leaderboards: {
+        Row: {
+          category: string
+          created_at: string
+          display_name: string | null
+          extra: Json
+          id: string
+          score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          display_name?: string | null
+          extra?: Json
+          id?: string
+          score?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          display_name?: string | null
+          extra?: Json
+          id?: string
+          score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_transactions: {
         Row: {
           amount_cents: number
