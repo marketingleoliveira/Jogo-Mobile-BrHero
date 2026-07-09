@@ -16,6 +16,14 @@ export interface LeaderboardEntry {
   updated_at: string;
 }
 
+/** Metadata cosmético público, exibido no perfil. Nada sensível. */
+export interface PublicProfileMeta {
+  avatar?: string | null;   // ex: emoji ou id de sprite
+  title?: string | null;    // ex: "Andarilho Infinito"
+  skin?: string | null;     // id da skin equipada
+  guild?: string | null;    // id/nome da guilda
+}
+
 /** Snapshot mínimo que o jogo envia. Todos números — sem dados sensíveis. */
 export interface PlayerSnapshot {
   displayName?: string | null;
@@ -24,7 +32,17 @@ export interface PlayerSnapshot {
   tower: number;
   arena: number;
   heroPower: number;
+  profile?: PublicProfileMeta;
 }
+
+export interface PublicProfile {
+  userId: string;
+  displayName: string;
+  meta: PublicProfileMeta;
+  scores: Record<LeaderboardCategory, number>;
+  updatedAt: string | null;
+}
+
 
 const CACHE_TTL_MS = 30_000;
 const CACHE_KEY = "brhero_leaderboard_cache_v1";
