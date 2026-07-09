@@ -120,6 +120,7 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <Toaster richColors position="top-center" />
         <script src="https://accounts.google.com/gsi/client" async defer></script>
         <Scripts />
       </body>
