@@ -217,9 +217,14 @@ function RankingPage() {
                           </td>
                           <td className="py-2 pr-3 font-medium">
                             <div className="flex items-center gap-2 min-w-0">
-                              <div className="h-8 w-8 shrink-0 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-lg leading-none" aria-hidden>
-                                {avatar}
-                              </div>
+                              <Link
+                                to="/perfil/$userId"
+                                params={{ userId: r.user_id }}
+                                aria-label={`Perfil de ${r.display_name ?? "Herói"}`}
+                                className="h-8 w-8 shrink-0 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-lg leading-none hover:border-sky-500"
+                              >
+                                <span aria-hidden>{avatar}</span>
+                              </Link>
                               <div className="min-w-0">
                                 <Link to="/perfil/$userId" params={{ userId: r.user_id }} className="hover:text-sky-300 underline-offset-2 hover:underline truncate block">
                                   {r.display_name ?? "Herói"}
