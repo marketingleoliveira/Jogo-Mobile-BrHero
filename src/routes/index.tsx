@@ -13,7 +13,7 @@ import {
   Zap,
   Users,
   Download,
-  Globe,
+  // Globe removed — game is Android-only now
   LogOut,
 } from "lucide-react";
 
