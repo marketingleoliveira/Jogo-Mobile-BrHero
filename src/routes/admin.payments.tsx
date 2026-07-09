@@ -16,6 +16,13 @@ import {
   type PaymentsConfig,
   type PaymentTransaction,
 } from "@/lib/game/payments";
+import {
+  getPaymentProviders,
+  setPaymentProviders,
+  resolveActiveProvider,
+  type PaymentProvidersConfig,
+  type PaymentProvider,
+} from "@/lib/game/payment-providers";
 import { persistRemoteLog } from "@/lib/admin/supabase-admin";
 
 export const Route = createFileRoute("/admin/payments")({
@@ -40,6 +47,8 @@ function Page() {
   const [saving, setSaving] = useState(false);
   const [txs, setTxs] = useState<PaymentTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [providers, setProviders] = useState<PaymentProvidersConfig | null>(null);
+  const [savingProviders, setSavingProviders] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -54,8 +63,28 @@ function Page() {
 
   useEffect(() => {
     void getPaymentsConfig(true).then(setCfg);
+    void getPaymentProviders(true).then(setProviders);
     void refresh();
   }, []);
+
+  const saveProviders = async (next: PaymentProvidersConfig) => {
+    setSavingProviders(true);
+    const ok = await setPaymentProviders(next);
+    setSavingProviders(false);
+    if (ok) { setProviders(next); toast.success("Providers atualizados."); }
+    else toast.error("Falha ao salvar providers.");
+  };
+
+  const moveInPriority = (p: PaymentProvider, dir: -1 | 1) => {
+    if (!providers) return;
+    const list = [...providers.priority];
+    const i = list.indexOf(p);
+    if (i < 0) return;
+    const j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    void saveProviders({ ...providers, priority: list });
+  };
 
   const save = async (next: PaymentsConfig) => {
     setSaving(true);
@@ -131,6 +160,57 @@ function Page() {
           </Badge>
         </CardContent>
       </Card>
+
+      <Card className="border-slate-800 bg-slate-900/60">
+        <CardHeader>
+          <CardTitle className="text-slate-100">Providers de pagamento (feature flags)</CardTitle>
+          <p className="text-xs text-slate-400 mt-1">
+            Ativo agora: <b className="text-emerald-300">{providers ? (resolveActiveProvider(providers) ?? "nenhum") : "…"}</b>.
+            Integração real do Stripe/Google Play ainda não implementada — ligar não cria checkout real.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {(["stripe", "sandbox", "google_play"] as const).map((p) => {
+              const key = `${p}_enabled` as const;
+              const on = providers?.[key] ?? false;
+              return (
+                <div key={p} className="flex items-center justify-between rounded-md border border-slate-800 bg-slate-950/60 px-3 py-2">
+                  <div>
+                    <div className="text-sm font-medium capitalize">{p.replace("_", " ")}</div>
+                    <div className="text-xs text-slate-500">
+                      {p === "stripe" && "Real — desligado"}
+                      {p === "sandbox" && "Teste — sem cobrança"}
+                      {p === "google_play" && "Real — desligado"}
+                    </div>
+                  </div>
+                  <Switch
+                    checked={on}
+                    disabled={!providers || savingProviders}
+                    onCheckedChange={(v) => providers && saveProviders({ ...providers, [key]: v })}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-400 mb-2">Prioridade (primeiro habilitado vence):</div>
+            <div className="flex flex-wrap gap-2">
+              {providers?.priority.map((p, idx) => (
+                <div key={p} className="flex items-center gap-1 rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1">
+                  <span className="text-xs text-slate-500">{idx + 1}.</span>
+                  <span className="text-sm capitalize">{p.replace("_", " ")}</span>
+                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0" disabled={idx === 0 || savingProviders} onClick={() => moveInPriority(p, -1)}>↑</Button>
+                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0" disabled={idx === (providers?.priority.length ?? 0) - 1 || savingProviders} onClick={() => moveInPriority(p, 1)}>↓</Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+
 
       <Card className="border-slate-800 bg-slate-900/60">
         <CardHeader className="flex flex-row items-center justify-between">
