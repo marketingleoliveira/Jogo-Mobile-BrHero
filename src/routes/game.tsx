@@ -35,6 +35,8 @@ import { getLiveOpsMultipliers, useLiveOps } from "@/lib/game/remote-liveops";
 import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
 import { CloudSaveModal } from "@/components/game/cloud-save-modal";
 import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/cloud-save";
+import { beginSandboxCheckout, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
+import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
 
 // -------- Types --------
 type AttrKey =
@@ -1951,6 +1953,24 @@ function GamePage() {
     setSave((prev) => prev ? { ...prev, gems: prev.gems + pack.gems + pack.bonus } : prev);
     flashToast(`💎 +${pack.gems + pack.bonus} cristais (mock — Stripe em breve)`);
   }, [flashToast]);
+
+  // ==== Sandbox purchase delivery (Fase 3 · Bloco 4a.2) ====
+  const deliverSandboxReward = useCallback((tx: PaymentTransaction, parsed: ParsedReward) => {
+    const g = parsed.gems || 100; // fallback mínimo se parsing falhar
+    setSave((prev) => prev ? {
+      ...prev,
+      gems: prev.gems + g,
+      gold: prev.gold + (parsed.gold || 0),
+      essence: prev.essence + (parsed.essence || 0),
+    } : prev);
+    const parts: string[] = [];
+    if (g) parts.push(`💎 +${g}`);
+    if (parsed.gold) parts.push(`🪙 +${fmt(parsed.gold)}`);
+    if (parsed.essence) parts.push(`✨ +${parsed.essence}`);
+    flashToast(`🛒 Sandbox: ${parts.join(" ")} entregue`);
+    void tx; // audit registrada no backend
+  }, [flashToast]);
+  useSandboxDelivery(deliverSandboxReward);
 
 
   // ==== Retenção: helpers de reivindicação ====
@@ -5833,9 +5853,30 @@ function LiveOpsBanner({ snap }: { snap: import("@/lib/game/remote-liveops").Liv
 
 // ---- Remote offers panel (Fase 3 · Bloco 3, read-only) ----
 function RemoteOffersPanel({ offers }: { offers: RemoteOffer[] }) {
-  if (offers.length === 0) return null;
+  const paymentsCfg = usePaymentsConfig();
+  const { list: txs, loading: txLoading, refresh } = usePlayerTransactions();
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const canBuy = !!paymentsCfg?.enabled;
+
+  const buySandbox = async (o: RemoteOffer) => {
+    setBusyId(o.id);
+    const res = await beginSandboxCheckout(o);
+    setBusyId(null);
+    if (!res.ok) {
+      // eslint-disable-next-line no-alert
+      alert(res.reason ?? "Falha no checkout");
+      return;
+    }
+    refresh();
+    // eslint-disable-next-line no-alert
+    alert("🛒 Transação criada como PENDING.\nO Admin precisa confirmar para liberar a recompensa.");
+  };
+
   const currencyIcon = (c: RemoteOffer["currency"]) =>
     c === "gems" ? "💎" : c === "gold" ? "🪙" : c === "essence" ? "✨" : "R$";
+
+  if (offers.length === 0 && txs.length === 0) return null;
+
   return (
     <div className="mb-3 space-y-2">
       <div className="flex items-center justify-between">
@@ -5843,37 +5884,87 @@ function RemoteOffersPanel({ offers }: { offers: RemoteOffer[] }) {
           🎁 Ofertas do Admin
         </h3>
         <span className="rounded-full bg-amber-500/20 px-2 py-[1px] text-[9px] uppercase text-amber-300">
-          somente leitura
+          {canBuy ? "sandbox ativo" : "somente leitura"}
         </span>
       </div>
-      {offers.map((o) => (
-        <div key={o.id} className="flex items-center gap-3 rounded-xl border-2 border-amber-400/30 bg-[#0a1c3a]/70 p-3">
-          <div className="text-2xl">{o.featured ? "⭐" : "🛒"}</div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 text-sm text-amber-200" style={{ fontFamily: "'Lilita One', cursive" }}>
-              {o.name}
-              {o.featured && <span className="rounded-full bg-amber-400 px-2 py-[1px] text-[9px] uppercase text-[#0a1c3a]">destaque</span>}
+      {offers.map((o) => {
+        const paid = o.currency === "brl";
+        const showBuy = paid && canBuy;
+        return (
+          <div key={o.id} className="flex items-center gap-3 rounded-xl border-2 border-amber-400/30 bg-[#0a1c3a]/70 p-3">
+            <div className="text-2xl">{o.featured ? "⭐" : "🛒"}</div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 text-sm text-amber-200" style={{ fontFamily: "'Lilita One', cursive" }}>
+                {o.name}
+                {o.featured && <span className="rounded-full bg-amber-400 px-2 py-[1px] text-[9px] uppercase text-[#0a1c3a]">destaque</span>}
+              </div>
+              <div className="text-[11px] opacity-80">{o.reward}</div>
+              {o.endsAt && (
+                <div className="text-[10px] opacity-60">até {new Date(o.endsAt).toLocaleString("pt-BR")}</div>
+              )}
             </div>
-            <div className="text-[11px] opacity-80">{o.reward}</div>
-            {o.endsAt && (
-              <div className="text-[10px] opacity-60">até {new Date(o.endsAt).toLocaleString("pt-BR")}</div>
-            )}
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <div className="text-[11px] text-amber-100">
-              {o.currency === "brl"
-                ? `R$ ${(o.price / 100).toFixed(2).replace(".", ",")}`
-                : `${currencyIcon(o.currency)} ${o.price.toLocaleString("pt-BR")}`}
+            <div className="flex flex-col items-end gap-1">
+              <div className="text-[11px] text-amber-100">
+                {paid
+                  ? `R$ ${(o.price / 100).toFixed(2).replace(".", ",")}`
+                  : `${currencyIcon(o.currency)} ${o.price.toLocaleString("pt-BR")}`}
+              </div>
+              {showBuy ? (
+                <button
+                  onClick={() => void buySandbox(o)}
+                  disabled={busyId === o.id}
+                  className="rounded-lg border-2 border-amber-400 bg-gradient-to-b from-amber-400 to-amber-600 px-2 py-1 text-[10px] font-black text-[#0a1c3a] disabled:opacity-60"
+                >
+                  {busyId === o.id ? "..." : "COMPRAR (SANDBOX)"}
+                </button>
+              ) : (
+                <span className="rounded border border-amber-400/40 px-2 py-[2px] text-[9px] uppercase text-amber-200/70">
+                  {paid ? "em breve" : "prévia"}
+                </span>
+              )}
             </div>
-            <span className="rounded border border-amber-400/40 px-2 py-[2px] text-[9px] uppercase text-amber-200/70">
-              {o.isPaid ? "em breve" : "prévia"}
-            </span>
           </div>
+        );
+      })}
+
+      {/* Histórico de compras */}
+      <details className="rounded-lg border border-amber-400/20 bg-[#0a1c3a]/50 p-2 text-[11px]">
+        <summary className="cursor-pointer text-amber-200/80">
+          🧾 Minhas compras {txLoading ? "(carregando…)" : `(${txs.length})`}
+        </summary>
+        <div className="mt-2 space-y-1">
+          {txs.length === 0 ? (
+            <div className="opacity-60">Nenhuma transação ainda.</div>
+          ) : txs.map((tx) => {
+            const snap = tx.offer_snapshot as { name?: string; reward?: string } | null;
+            const badge =
+              tx.status === "paid" ? "bg-emerald-500/30 text-emerald-200"
+              : tx.status === "pending" ? "bg-yellow-500/30 text-yellow-200"
+              : tx.status === "failed" ? "bg-red-500/30 text-red-200"
+              : "bg-slate-500/30 text-slate-200";
+            return (
+              <div key={tx.id} className="flex items-center justify-between gap-2 rounded border border-amber-400/10 bg-black/20 px-2 py-1">
+                <div className="flex-1 truncate">
+                  <div className="truncate">{snap?.name ?? tx.offer_id}</div>
+                  <div className="opacity-60 text-[10px]">
+                    R$ {(tx.amount_cents / 100).toFixed(2).replace(".", ",")} · {new Date(tx.created_at).toLocaleString("pt-BR")}
+                  </div>
+                </div>
+                <span className={`rounded px-2 py-[1px] text-[9px] uppercase ${badge}`}>
+                  {tx.status}{tx.reward_delivered ? " ✓" : ""}
+                </span>
+              </div>
+            );
+          })}
         </div>
-      ))}
+      </details>
+
       <p className="text-[10px] opacity-50">
-        Ofertas gerenciadas pelo Admin. Compra real será liberada em versão futura.
+        {canBuy
+          ? "Modo sandbox: nenhum valor real é cobrado. Recompensas só entram após confirmação do Admin."
+          : "Ofertas gerenciadas pelo Admin. Compra real será liberada em versão futura."}
       </p>
     </div>
   );
 }
+
