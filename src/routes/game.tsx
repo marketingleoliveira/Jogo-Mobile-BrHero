@@ -5763,7 +5763,8 @@ function GameMenuModal({
 // ---- LiveOps banner (Fase 3 · Bloco 2) ----
 function LiveOpsBanner({ snap }: { snap: import("@/lib/game/remote-liveops").LiveOpsSnapshot }) {
   const buffs = snap.activeBuffs;
-  const hasAny = snap.globalMessage || snap.maintenance || buffs.length > 0;
+  const events = snap.flashEvents;
+  const hasAny = snap.globalMessage || snap.maintenance || buffs.length > 0 || events.length > 0;
   if (!hasAny) return null;
   const buffLabel = (t: string) =>
     t === "double_xp" ? "XP" : t === "double_gold" ? "Ouro" : "Drop";
