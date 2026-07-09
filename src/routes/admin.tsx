@@ -205,21 +205,21 @@ function AdminHeader() {
 function AdminProfileSelector() {
   const current = useSyncExternalStore(subscribeAdmin, getCurrentAdmin, getCurrentAdmin);
   return (
-    <div className="hidden items-center gap-2 rounded-lg border border-amber-500/30 bg-slate-900 px-2 py-1 md:flex">
-      <div className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-[10px] font-black text-slate-950">
+    <div className="hidden items-center gap-2 rounded-lg border border-indigo-200 bg-white px-2 py-1 md:flex">
+      <div className="grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-[10px] font-bold text-white">
         {current.name.slice(0, 2).toUpperCase()}
       </div>
       <div className="flex flex-col leading-tight">
-        <span className="text-[11px] font-bold text-slate-100">{current.name}</span>
-        <span className="text-[9px] uppercase tracking-widest text-amber-400">
+        <span className="text-[11px] font-bold text-slate-900">{current.name}</span>
+        <span className="text-[9px] uppercase tracking-widest text-indigo-600">
           {ROLE_LABEL[current.role]}
         </span>
       </div>
       <Select value={current.id} onValueChange={(v) => setCurrentAdmin(v)}>
-        <SelectTrigger className="ml-1 h-7 w-[40px] border-slate-700 bg-slate-800 px-1 text-[10px] text-slate-200">
+        <SelectTrigger className="ml-1 h-7 w-[40px] border-slate-200 bg-slate-50 px-1 text-[10px] text-slate-700">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+        <SelectContent className="border-slate-200 bg-white text-slate-800">
           {AVAILABLE_PROFILES.map((p) => (
             <SelectItem key={p.id} value={p.id} className="text-xs">
               {p.name} · {ROLE_LABEL[p.role]}
