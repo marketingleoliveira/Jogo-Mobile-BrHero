@@ -97,15 +97,23 @@ export async function uploadPlayerSnapshot(snap: PlayerSnapshot, force = false):
     const uid = session.user.id;
     const name = (snap.displayName ?? session.user.email ?? "Herói").slice(0, 32);
 
+    const meta: PublicProfileMeta = {
+      avatar: snap.profile?.avatar ?? null,
+      title:  snap.profile?.title  ?? null,
+      skin:   snap.profile?.skin   ?? null,
+      guild:  snap.profile?.guild  ?? null,
+    };
+    const extra = meta as unknown as Record<string, unknown>;
+
     const rows: Array<{
       user_id: string; category: LeaderboardCategory; score: number;
       display_name: string; extra: Record<string, unknown>;
     }> = [
-      { user_id: uid, category: "stage",      score: Math.max(0, Math.floor(snap.stage)),     display_name: name, extra: {} },
-      { user_id: uid, category: "rebirth",    score: Math.max(0, Math.floor(snap.rebirth)),   display_name: name, extra: {} },
-      { user_id: uid, category: "tower",      score: Math.max(0, Math.floor(snap.tower)),     display_name: name, extra: {} },
-      { user_id: uid, category: "arena",      score: Math.max(0, Math.floor(snap.arena)),     display_name: name, extra: {} },
-      { user_id: uid, category: "hero_power", score: Math.max(0, Math.floor(snap.heroPower)), display_name: name, extra: {} },
+      { user_id: uid, category: "stage",      score: Math.max(0, Math.floor(snap.stage)),     display_name: name, extra },
+      { user_id: uid, category: "rebirth",    score: Math.max(0, Math.floor(snap.rebirth)),   display_name: name, extra },
+      { user_id: uid, category: "tower",      score: Math.max(0, Math.floor(snap.tower)),     display_name: name, extra },
+      { user_id: uid, category: "arena",      score: Math.max(0, Math.floor(snap.arena)),     display_name: name, extra },
+      { user_id: uid, category: "hero_power", score: Math.max(0, Math.floor(snap.heroPower)), display_name: name, extra },
     ];
 
     const { error } = await supabase
