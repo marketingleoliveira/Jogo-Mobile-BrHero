@@ -155,6 +155,7 @@ export type Database = {
       payment_transactions: {
         Row: {
           amount_cents: number
+          client_consumed_at: string | null
           created_at: string
           currency: string
           error_message: string | null
@@ -171,6 +172,7 @@ export type Database = {
         }
         Insert: {
           amount_cents: number
+          client_consumed_at?: string | null
           created_at?: string
           currency?: string
           error_message?: string | null
@@ -187,6 +189,7 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
+          client_consumed_at?: string | null
           created_at?: string
           currency?: string
           error_message?: string | null
