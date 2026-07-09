@@ -64,7 +64,7 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:title", content: "BRHero — O 1º RPG IDLE Brasileiro" },
       { property: "og:url", content: "https://brhero.lovable.app/" },
-      { property: "og:description", content: "O primeiro RPG idle brasileiro. Jogue no navegador ou baixe no Google Play." },
+      { property: "og:description", content: "BRHero — O primeiro RPG idle brasileiro. Batalhas automáticas, evolução épica e chefões lendários. Entre com Google e jogue no navegador ou baixe no Google Play." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1" },
