@@ -37,6 +37,15 @@ import { CloudSaveModal } from "@/components/game/cloud-save-modal";
 import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/cloud-save";
 import { beginSandboxCheckout, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
 import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
+import {
+  fetchArenaOpponents,
+  canRefreshOpponents,
+  pushArenaHistory,
+  readArenaHistory,
+  type RealArenaOpponent,
+  type ArenaHistoryEntry,
+} from "@/lib/game/arena-opponents";
+import { supabase } from "@/integrations/supabase/client";
 
 // -------- Types --------
 type AttrKey =
