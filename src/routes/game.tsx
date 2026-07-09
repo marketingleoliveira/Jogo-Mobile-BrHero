@@ -2690,12 +2690,14 @@ function GamePage() {
 
   const enemy = enemyRef.current;
   const xpNeed = xpForLevel(save.level);
+  const liveOps = useLiveOps();
 
   return (
     <div
       className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-[#2D1B0E] text-white select-none"
       style={{ fontFamily: "'Fredoka', system-ui, sans-serif" }}
     >
+      <LiveOpsBanner snap={liveOps} />
       {/* ===== Top HUD ===== */}
       <header className="relative bg-gradient-to-b from-[#3E2723] to-[#2D1B0E] border-b-4 border-[#8B4513] px-3 pt-2 pb-2">
         <div className="flex items-center gap-2">
