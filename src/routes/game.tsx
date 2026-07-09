@@ -33,6 +33,8 @@ import woodTexture from "@/assets/wood-texture.jpg";
 import { resolveRemoteRedeem } from "@/lib/game/remote-codes";
 import { getLiveOpsMultipliers, useLiveOps } from "@/lib/game/remote-liveops";
 import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
+import { CloudSaveModal } from "@/components/game/cloud-save-modal";
+import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/cloud-save";
 
 // -------- Types --------
 type AttrKey =
@@ -1444,7 +1446,7 @@ function GamePage() {
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
-  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | "runes" | "cosmetics" | "codes" | "menu" | null>(null);
+  const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | "runes" | "cosmetics" | "codes" | "menu" | "cloud" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
 
@@ -1527,6 +1529,12 @@ function GamePage() {
       const cur = saveRef.current;
       if (!cur) return;
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...cur, lastSeenAt: Date.now() })); } catch {}
+      // Auto-sync opcional (desligado por padrão)
+      if (getAutoSyncEnabled()) {
+        void getCloudUser().then((u) => {
+          if (u) void saveCloudSave(u.id, cur).catch(() => { /* silencioso */ });
+        });
+      }
     };
     window.addEventListener("beforeunload", onHide);
     window.addEventListener("visibilitychange", onHide);
@@ -3168,6 +3176,18 @@ function GamePage() {
       )}
       {modal === "codes" && (
         <CodesModal save={save} onClose={() => setModal(null)} onRedeem={redeemCode} />
+      )}
+      {modal === "cloud" && (
+        <CloudSaveModal
+          localSave={save}
+          onClose={() => setModal(null)}
+          onApplySave={(remote) => {
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+            } catch { /* ignore */ }
+            window.location.reload();
+          }}
+        />
       )}
       {modal === "menu" && (
         <GameMenuModal
@@ -5682,7 +5702,7 @@ function CodesModal({
 type MenuKey =
   | "daily" | "missions" | "dungeon" | "pets" | "tower"
   | "blessings" | "guild" | "arena" | "event" | "skins"
-  | "achievements" | "runes" | "cosmetics" | "codes";
+  | "achievements" | "runes" | "cosmetics" | "codes" | "cloud";
 
 function GameMenuModal({
   save,
@@ -5708,6 +5728,7 @@ function GameMenuModal({
     { key: "runes",        icon: "🔮", label: "Runas",     unlock: RUNE_UNLOCK_LEVEL },
     { key: "cosmetics",    icon: "🎭", label: "Cosméticos" },
     { key: "codes",        icon: "🎟️", label: "Códigos" },
+    { key: "cloud",        icon: "☁️", label: "Nuvem" },
   ];
 
   return (

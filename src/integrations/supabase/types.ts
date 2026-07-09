@@ -152,6 +152,96 @@ export type Database = {
         }
         Relationships: []
       }
+      player_save_backups: {
+        Row: {
+          client_updated_at: string
+          created_at: string
+          essence: number
+          gems: number
+          id: string
+          level: number
+          max_stage: number
+          prestige_level: number
+          reason: string
+          save_data: Json
+          stage: number
+          user_id: string
+        }
+        Insert: {
+          client_updated_at?: string
+          created_at?: string
+          essence?: number
+          gems?: number
+          id?: string
+          level?: number
+          max_stage?: number
+          prestige_level?: number
+          reason?: string
+          save_data: Json
+          stage?: number
+          user_id: string
+        }
+        Update: {
+          client_updated_at?: string
+          created_at?: string
+          essence?: number
+          gems?: number
+          id?: string
+          level?: number
+          max_stage?: number
+          prestige_level?: number
+          reason?: string
+          save_data?: Json
+          stage?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      player_saves: {
+        Row: {
+          client_updated_at: string
+          created_at: string
+          essence: number
+          gems: number
+          level: number
+          max_stage: number
+          prestige_level: number
+          save_data: Json
+          save_version: number
+          stage: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_updated_at?: string
+          created_at?: string
+          essence?: number
+          gems?: number
+          level?: number
+          max_stage?: number
+          prestige_level?: number
+          save_data: Json
+          save_version?: number
+          stage?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_updated_at?: string
+          created_at?: string
+          essence?: number
+          gems?: number
+          level?: number
+          max_stage?: number
+          prestige_level?: number
+          save_data?: Json
+          save_version?: number
+          stage?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
