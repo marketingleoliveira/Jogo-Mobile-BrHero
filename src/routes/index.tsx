@@ -4,7 +4,7 @@ import brheroLogo from "@/assets/brhero-logo.png.asset.json";
 
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
-import { isBrHeroNativeApp, startNativeGoogleSignIn } from "@/lib/native-auth";
+import { startNativeGoogleSignIn, isBrHeroNativeApp } from "@/lib/native-auth";
 import {
   Swords,
   Sparkles,
@@ -12,8 +12,6 @@ import {
   Shield,
   Zap,
   Users,
-  Download,
-  // Globe removed — game is Android-only now
   LogOut,
 } from "lucide-react";
 

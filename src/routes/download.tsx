@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Download, Smartphone, ArrowLeft } from "lucide-react";
+import { Smartphone, ArrowLeft } from "lucide-react";
 import brheroLogo from "@/assets/brhero-logo.png.asset.json";
 
 export const Route = createFileRoute("/download")({
