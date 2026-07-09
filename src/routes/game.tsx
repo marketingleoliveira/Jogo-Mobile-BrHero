@@ -1954,6 +1954,24 @@ function GamePage() {
     flashToast(`💎 +${pack.gems + pack.bonus} cristais (mock — Stripe em breve)`);
   }, [flashToast]);
 
+  // ==== Sandbox purchase delivery (Fase 3 · Bloco 4a.2) ====
+  const deliverSandboxReward = useCallback((tx: PaymentTransaction, parsed: ParsedReward) => {
+    const g = parsed.gems || 100; // fallback mínimo se parsing falhar
+    setSave((prev) => prev ? {
+      ...prev,
+      gems: prev.gems + g,
+      gold: prev.gold + (parsed.gold || 0),
+      essence: prev.essence + (parsed.essence || 0),
+    } : prev);
+    const parts: string[] = [];
+    if (g) parts.push(`💎 +${g}`);
+    if (parsed.gold) parts.push(`🪙 +${fmt(parsed.gold)}`);
+    if (parsed.essence) parts.push(`✨ +${parsed.essence}`);
+    flashToast(`🛒 Sandbox: ${parts.join(" ")} entregue`);
+    void tx; // audit registrada no backend
+  }, [flashToast]);
+  useSandboxDelivery(deliverSandboxReward);
+
 
   // ==== Retenção: helpers de reivindicação ====
   const applyReward = useCallback((next: SaveState, r: DailyReward): { next: SaveState; msg: string } => {
