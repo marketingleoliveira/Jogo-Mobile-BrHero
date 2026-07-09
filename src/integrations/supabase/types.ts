@@ -160,6 +160,7 @@ export type Database = {
           extra: Json
           id: string
           score: number
+          season_key: string
           updated_at: string
           user_id: string
         }
@@ -170,6 +171,7 @@ export type Database = {
           extra?: Json
           id?: string
           score?: number
+          season_key?: string
           updated_at?: string
           user_id: string
         }
@@ -180,6 +182,7 @@ export type Database = {
           extra?: Json
           id?: string
           score?: number
+          season_key?: string
           updated_at?: string
           user_id?: string
         }
@@ -342,6 +345,45 @@ export type Database = {
           save_data?: Json
           save_version?: number
           stage?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      season_rewards: {
+        Row: {
+          category: string
+          claimed_at: string | null
+          created_at: string
+          id: string
+          rank: number
+          reward: Json
+          season_key: string
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          claimed_at?: string | null
+          created_at?: string
+          id?: string
+          rank: number
+          reward?: Json
+          season_key: string
+          tier: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          claimed_at?: string | null
+          created_at?: string
+          id?: string
+          rank?: number
+          reward?: Json
+          season_key?: string
+          tier?: string
           updated_at?: string
           user_id?: string
         }
