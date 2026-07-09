@@ -29,6 +29,7 @@ import { Route as AdminEventsRouteImport } from './routes/admin.events'
 import { Route as AdminEconomyRouteImport } from './routes/admin.economy'
 import { Route as AdminCodesRouteImport } from './routes/admin.codes'
 import { Route as AdminBalancingRouteImport } from './routes/admin.balancing'
+import { Route as ApiPublicHooksCloseSeasonRouteImport } from './routes/api/public/hooks/close-season'
 
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
@@ -130,6 +131,12 @@ const AdminBalancingRoute = AdminBalancingRouteImport.update({
   path: '/balancing',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiPublicHooksCloseSeasonRoute =
+  ApiPublicHooksCloseSeasonRouteImport.update({
+    id: '/api/public/hooks/close-season',
+    path: '/api/public/hooks/close-season',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/api/generate-bg': typeof ApiGenerateBgRoute
   '/perfil/$userId': typeof PerfilUserIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/api/public/hooks/close-season': typeof ApiPublicHooksCloseSeasonRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -173,6 +181,7 @@ export interface FileRoutesByTo {
   '/api/generate-bg': typeof ApiGenerateBgRoute
   '/perfil/$userId': typeof PerfilUserIdRoute
   '/admin': typeof AdminIndexRoute
+  '/api/public/hooks/close-season': typeof ApiPublicHooksCloseSeasonRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -196,6 +205,7 @@ export interface FileRoutesById {
   '/api/generate-bg': typeof ApiGenerateBgRoute
   '/perfil/$userId': typeof PerfilUserIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/api/public/hooks/close-season': typeof ApiPublicHooksCloseSeasonRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/api/generate-bg'
     | '/perfil/$userId'
     | '/admin/'
+    | '/api/public/hooks/close-season'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/api/generate-bg'
     | '/perfil/$userId'
     | '/admin'
+    | '/api/public/hooks/close-season'
   id:
     | '__root__'
     | '/'
@@ -263,6 +275,7 @@ export interface FileRouteTypes {
     | '/api/generate-bg'
     | '/perfil/$userId'
     | '/admin/'
+    | '/api/public/hooks/close-season'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -274,6 +287,7 @@ export interface RootRouteChildren {
   TermosRoute: typeof TermosRoute
   ApiGenerateBgRoute: typeof ApiGenerateBgRoute
   PerfilUserIdRoute: typeof PerfilUserIdRoute
+  ApiPublicHooksCloseSeasonRoute: typeof ApiPublicHooksCloseSeasonRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -418,6 +432,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBalancingRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/public/hooks/close-season': {
+      id: '/api/public/hooks/close-season'
+      path: '/api/public/hooks/close-season'
+      fullPath: '/api/public/hooks/close-season'
+      preLoaderRoute: typeof ApiPublicHooksCloseSeasonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -462,17 +483,8 @@ const rootRouteChildren: RootRouteChildren = {
   TermosRoute: TermosRoute,
   ApiGenerateBgRoute: ApiGenerateBgRoute,
   PerfilUserIdRoute: PerfilUserIdRoute,
+  ApiPublicHooksCloseSeasonRoute: ApiPublicHooksCloseSeasonRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
