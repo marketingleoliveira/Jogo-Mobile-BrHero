@@ -1,4 +1,5 @@
-import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link, useRouterState, redirect } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
 import { useSyncExternalStore } from "react";
 import {
   LayoutDashboard,
