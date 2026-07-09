@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import brheroLogo from "@/assets/brhero-logo.png.asset.json";
+import brheroApk from "@/assets/brhero-apk.asset.json";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -325,16 +326,17 @@ function PlayOptions({ account, onLogout }: { account: Account; onLogout: () => 
         JOGAR NO NAVEGADOR
       </Link>
 
-      <div
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#e8ecf1]/50 bg-[#0a1c3a]/60 py-4 text-sm text-[#e8ecf1]/70"
+      <a
+        href={brheroApk.url}
+        download="brhero.apk"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#f5c542] bg-[#152b5c] py-4 text-sm text-[#f5c542] shadow-[0_4px_0_#0a1c3a] active:translate-y-0.5 active:shadow-[0_2px_0_#0a1c3a]"
         style={FONT_TITLE}
-        aria-disabled="true"
       >
         <Download className="h-5 w-5" />
-        APK ANDROID — EM BREVE (BETA)
-      </div>
+        BAIXAR O JOGO (APK ANDROID)
+      </a>
       <p className="text-center text-[10px] text-[#e8ecf1]/50">
-        Estamos empacotando o BRHero como APK oficial. Enquanto isso, jogue direto no navegador.
+        Após baixar, permita a instalação de fontes desconhecidas no Android.
       </p>
 
       <button
