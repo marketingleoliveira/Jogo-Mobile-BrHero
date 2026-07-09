@@ -2726,6 +2726,8 @@ function GamePage() {
     };
   }, [biome.name, save?.stage, bgCache]);
 
+  const liveOps = useLiveOps();
+
   if (!save || !stats || !enemyRef.current) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#1A0F08] text-amber-300 font-cartoon">
@@ -2736,7 +2738,7 @@ function GamePage() {
 
   const enemy = enemyRef.current;
   const xpNeed = xpForLevel(save.level);
-  const liveOps = useLiveOps();
+
 
   return (
     <div
