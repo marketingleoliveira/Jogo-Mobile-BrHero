@@ -129,6 +129,8 @@ function RankingPage() {
           ))}
         </div>
 
+        <SeasonRewardsPanel />
+
         <Card className="border-slate-800 bg-slate-900/60">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-slate-100 flex items-center gap-2">
