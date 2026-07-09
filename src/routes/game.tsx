@@ -5758,3 +5758,39 @@ function GameMenuModal({
     </div>
   );
 }
+
+// ---- LiveOps banner (Fase 3 · Bloco 2) ----
+function LiveOpsBanner({ snap }: { snap: import("@/lib/game/remote-liveops").LiveOpsSnapshot }) {
+  const buffs = snap.activeBuffs;
+  const hasAny = snap.globalMessage || snap.maintenance || buffs.length > 0;
+  if (!hasAny) return null;
+  const buffLabel = (t: string) =>
+    t === "double_xp" ? "XP" : t === "double_gold" ? "Ouro" : "Drop";
+  return (
+    <div className="flex flex-col gap-1 border-b-2 border-[#8B4513] bg-[#1a0f07] px-3 py-1.5 text-[11px]">
+      {snap.maintenance && (
+        <div className={`rounded px-2 py-1 font-semibold ${snap.maintenance.active ? "bg-red-700/80 text-white" : "bg-amber-600/80 text-amber-50"}`}>
+          🛠️ {snap.maintenance.active ? "Manutenção em andamento" : "Manutenção programada"} — {snap.maintenance.message}
+          {snap.maintenance.startsAt && !snap.maintenance.active && (
+            <> · início {new Date(snap.maintenance.startsAt).toLocaleString("pt-BR")}</>
+          )}
+        </div>
+      )}
+      {snap.globalMessage && (
+        <div className="rounded bg-sky-700/80 px-2 py-1 font-medium text-sky-50">
+          📢 {snap.globalMessage}
+        </div>
+      )}
+      {buffs.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {buffs.map((b, i) => (
+            <span key={i} className="rounded bg-emerald-700/80 px-2 py-0.5 font-bold text-emerald-50">
+              ⚡ ×{b.multiplier} {buffLabel(b.type)}
+              {b.endsAt && ` · até ${new Date(b.endsAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
