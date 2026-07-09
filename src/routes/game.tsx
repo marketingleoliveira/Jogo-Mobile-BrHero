@@ -5710,6 +5710,7 @@ function GameMenuModal({
     { key: "runes",        icon: "🔮", label: "Runas",     unlock: RUNE_UNLOCK_LEVEL },
     { key: "cosmetics",    icon: "🎭", label: "Cosméticos" },
     { key: "codes",        icon: "🎟️", label: "Códigos" },
+    { key: "cloud",        icon: "☁️", label: "Nuvem" },
   ];
 
   return (
