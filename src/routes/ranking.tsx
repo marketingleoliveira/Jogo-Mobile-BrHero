@@ -146,7 +146,11 @@ function RankingPage() {
                             : idx === 2 ? <Badge className="bg-amber-700/20 text-amber-300 border-amber-700/40">🥉 3</Badge>
                             : <span className="text-slate-500">{idx + 1}</span>}
                         </td>
-                        <td className="py-2 pr-3 font-medium">{r.display_name ?? "Herói"}</td>
+                        <td className="py-2 pr-3 font-medium">
+                          <Link to="/perfil/$userId" params={{ userId: r.user_id }} className="hover:text-sky-300 underline-offset-2 hover:underline">
+                            {r.display_name ?? "Herói"}
+                          </Link>
+                        </td>
                         <td className="py-2 pr-3 text-right font-mono text-emerald-300">
                           {r.score.toLocaleString("pt-BR")}{cat.suffix ?? ""}
                         </td>

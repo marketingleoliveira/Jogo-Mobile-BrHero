@@ -16,6 +16,7 @@ import { Route as GameRouteImport } from './routes/game'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as PerfilUserIdRouteImport } from './routes/perfil.$userId'
 import { Route as ApiGenerateBgRouteImport } from './routes/api/generate-bg'
 import { Route as AdminShopRouteImport } from './routes/admin.shop'
 import { Route as AdminSetupRouteImport } from './routes/admin.setup'
@@ -63,6 +64,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const PerfilUserIdRoute = PerfilUserIdRouteImport.update({
+  id: '/perfil/$userId',
+  path: '/perfil/$userId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGenerateBgRoute = ApiGenerateBgRouteImport.update({
   id: '/api/generate-bg',
@@ -144,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/admin/setup': typeof AdminSetupRoute
   '/admin/shop': typeof AdminShopRoute
   '/api/generate-bg': typeof ApiGenerateBgRoute
+  '/perfil/$userId': typeof PerfilUserIdRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/admin/setup': typeof AdminSetupRoute
   '/admin/shop': typeof AdminShopRoute
   '/api/generate-bg': typeof ApiGenerateBgRoute
+  '/perfil/$userId': typeof PerfilUserIdRoute
   '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/admin/setup': typeof AdminSetupRoute
   '/admin/shop': typeof AdminShopRoute
   '/api/generate-bg': typeof ApiGenerateBgRoute
+  '/perfil/$userId': typeof PerfilUserIdRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -209,6 +218,7 @@ export interface FileRouteTypes {
     | '/admin/setup'
     | '/admin/shop'
     | '/api/generate-bg'
+    | '/perfil/$userId'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -229,6 +239,7 @@ export interface FileRouteTypes {
     | '/admin/setup'
     | '/admin/shop'
     | '/api/generate-bg'
+    | '/perfil/$userId'
     | '/admin'
   id:
     | '__root__'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/admin/setup'
     | '/admin/shop'
     | '/api/generate-bg'
+    | '/perfil/$userId'
     | '/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -261,6 +273,7 @@ export interface RootRouteChildren {
   RankingRoute: typeof RankingRoute
   TermosRoute: typeof TermosRoute
   ApiGenerateBgRoute: typeof ApiGenerateBgRoute
+  PerfilUserIdRoute: typeof PerfilUserIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -313,6 +326,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/perfil/$userId': {
+      id: '/perfil/$userId'
+      path: '/perfil/$userId'
+      fullPath: '/perfil/$userId'
+      preLoaderRoute: typeof PerfilUserIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/generate-bg': {
       id: '/api/generate-bg'
@@ -441,6 +461,7 @@ const rootRouteChildren: RootRouteChildren = {
   RankingRoute: RankingRoute,
   TermosRoute: TermosRoute,
   ApiGenerateBgRoute: ApiGenerateBgRoute,
+  PerfilUserIdRoute: PerfilUserIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
