@@ -205,7 +205,7 @@ function Landing() {
               <h2 className="mb-3 text-2xl text-[#f5c542]" style={FONT_TITLE}>
                 Como funciona?
               </h2>
-              <ul className="space-y-3 text-sm">
+              <ul className="space-y-3 text-base">
                 <Step icon={<Swords className="h-4 w-4" />} title="Batalhas automáticas" body="Seu herói ataca inimigos sozinho. Você só assiste o show!" />
                 <Step icon={<Zap className="h-4 w-4" />} title="Evolua atributos" body="Gaste ouro em ATK, HP, Crítico, Velocidade e muito mais." />
                 <Step icon={<Trophy className="h-4 w-4" />} title="Chefões a cada 10 estágios" body="Vença bosses para ganhar gemas e recompensas raras." />
