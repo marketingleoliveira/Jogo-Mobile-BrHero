@@ -63,8 +63,28 @@ function Page() {
 
   useEffect(() => {
     void getPaymentsConfig(true).then(setCfg);
+    void getPaymentProviders(true).then(setProviders);
     void refresh();
   }, []);
+
+  const saveProviders = async (next: PaymentProvidersConfig) => {
+    setSavingProviders(true);
+    const ok = await setPaymentProviders(next);
+    setSavingProviders(false);
+    if (ok) { setProviders(next); toast.success("Providers atualizados."); }
+    else toast.error("Falha ao salvar providers.");
+  };
+
+  const moveInPriority = (p: PaymentProvider, dir: -1 | 1) => {
+    if (!providers) return;
+    const list = [...providers.priority];
+    const i = list.indexOf(p);
+    if (i < 0) return;
+    const j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    void saveProviders({ ...providers, priority: list });
+  };
 
   const save = async (next: PaymentsConfig) => {
     setSaving(true);
