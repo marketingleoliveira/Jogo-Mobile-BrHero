@@ -3171,6 +3171,18 @@ function GamePage() {
       {modal === "codes" && (
         <CodesModal save={save} onClose={() => setModal(null)} onRedeem={redeemCode} />
       )}
+      {modal === "cloud" && (
+        <CloudSaveModal
+          localSave={save}
+          onClose={() => setModal(null)}
+          onApplySave={(remote) => {
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+            } catch { /* ignore */ }
+            window.location.reload();
+          }}
+        />
+      )}
       {modal === "menu" && (
         <GameMenuModal
           save={save}
