@@ -32,6 +32,7 @@ import { Route as AdminCodesRouteImport } from './routes/admin.codes'
 import { Route as AdminBalancingRouteImport } from './routes/admin.balancing'
 import { Route as AdminApkRouteImport } from './routes/admin.apk'
 import { Route as ApiPublicApkRouteImport } from './routes/api/public/apk'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksCloseSeasonRouteImport } from './routes/api/public/hooks/close-season'
 
 const TermosRoute = TermosRouteImport.update({
@@ -149,6 +150,12 @@ const ApiPublicApkRoute = ApiPublicApkRouteImport.update({
   path: '/api/public/apk',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksCloseSeasonRoute =
   ApiPublicHooksCloseSeasonRouteImport.update({
     id: '/api/public/hooks/close-season',
@@ -181,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/api/public/apk': typeof ApiPublicApkRoute
   '/api/public/hooks/close-season': typeof ApiPublicHooksCloseSeasonRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -206,6 +214,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/api/public/apk': typeof ApiPublicApkRoute
   '/api/public/hooks/close-season': typeof ApiPublicHooksCloseSeasonRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -233,6 +242,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/api/public/apk': typeof ApiPublicApkRoute
   '/api/public/hooks/close-season': typeof ApiPublicHooksCloseSeasonRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/api/public/apk'
     | '/api/public/hooks/close-season'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/api/public/apk'
     | '/api/public/hooks/close-season'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -312,6 +324,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/api/public/apk'
     | '/api/public/hooks/close-season'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -326,6 +339,7 @@ export interface RootRouteChildren {
   PerfilUserIdRoute: typeof PerfilUserIdRoute
   ApiPublicApkRoute: typeof ApiPublicApkRoute
   ApiPublicHooksCloseSeasonRoute: typeof ApiPublicHooksCloseSeasonRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -491,6 +505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicApkRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/close-season': {
       id: '/api/public/hooks/close-season'
       path: '/api/public/hooks/close-season'
@@ -547,6 +568,7 @@ const rootRouteChildren: RootRouteChildren = {
   PerfilUserIdRoute: PerfilUserIdRoute,
   ApiPublicApkRoute: ApiPublicApkRoute,
   ApiPublicHooksCloseSeasonRoute: ApiPublicHooksCloseSeasonRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
