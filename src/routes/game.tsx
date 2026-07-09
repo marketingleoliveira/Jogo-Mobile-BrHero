@@ -31,6 +31,7 @@ import skeletonSprite from "@/assets/sprite-skeleton.png";
 import bossDragonSprite from "@/assets/sprite-boss-dragon.png";
 import woodTexture from "@/assets/wood-texture.jpg";
 import { resolveRemoteRedeem } from "@/lib/game/remote-codes";
+import { getLiveOpsMultipliers, useLiveOps } from "@/lib/game/remote-liveops";
 
 // -------- Types --------
 type AttrKey =
@@ -1459,11 +1460,12 @@ function GamePage() {
       // Aproximação: 1 batalha ~ 2s no estágio atual
       const battles = Math.floor(elapsed / 2000);
       const enemy = enemyForStage(s.stage);
-      const goldMul = 1 + (s.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel;
-      const xpMul = 1 + (s.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel;
+      const lo = getLiveOpsMultipliers();
+      const goldMul = (1 + (s.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * lo.gold;
+      const xpMul = (1 + (s.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * lo.xp;
       const gold = Math.floor(battles * enemy.gold * 0.4 * goldMul);
       const xp = Math.floor(battles * enemy.xp * 0.4 * xpMul);
-      const drops = Math.min(20, Math.floor(battles * 0.02));
+      const drops = Math.min(20, Math.floor(battles * 0.02 * lo.drop));
       s.gold += gold;
       s.xp += xp;
       // Level up
@@ -1681,8 +1683,9 @@ function GamePage() {
     const bb = blessingBonus(cur);
     const gb = guildBonus(cur);
     const rb = runeBonus(cur);
-    const goldMul = (1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * pb.goldMul * bb.goldMul * gb.goldMul * rb.goldMul;
-    const xpMul = (1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * pb.xpMul * bb.xpMul * gb.xpMul * rb.xpMul;
+    const lo = getLiveOpsMultipliers();
+    const goldMul = (1 + (cur.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * pb.goldMul * bb.goldMul * gb.goldMul * rb.goldMul * lo.gold;
+    const xpMul = (1 + (cur.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * pb.xpMul * bb.xpMul * gb.xpMul * rb.xpMul * lo.xp;
     const gainedGold = Math.floor(enemy.gold * goldMul);
     const gainedXp = Math.floor(enemy.xp * xpMul);
     let level = cur.level;
@@ -1692,7 +1695,7 @@ function GamePage() {
       level += 1;
     }
     const canDrop = level >= 3 || cur.level >= 3;
-    const dropBonus = (cur.globalUp?.drop ?? 0) * GLOBAL_UP_DEFS.drop.perLevel + pb.dropAdd + bb.dropAdd + rb.dropAdd;
+    const dropBonus = ((cur.globalUp?.drop ?? 0) * GLOBAL_UP_DEFS.drop.perLevel + pb.dropAdd + bb.dropAdd + rb.dropAdd) * lo.drop;
     const drop = canDrop && (enemy.isBoss || Math.random() < 0.12 + dropBonus)
       ? rollItem(SLOTS[Math.floor(Math.random() * SLOTS.length)].key, cur.stage)
       : null;
@@ -2687,12 +2690,14 @@ function GamePage() {
 
   const enemy = enemyRef.current;
   const xpNeed = xpForLevel(save.level);
+  const liveOps = useLiveOps();
 
   return (
     <div
       className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-[#2D1B0E] text-white select-none"
       style={{ fontFamily: "'Fredoka', system-ui, sans-serif" }}
     >
+      <LiveOpsBanner snap={liveOps} />
       {/* ===== Top HUD ===== */}
       <header className="relative bg-gradient-to-b from-[#3E2723] to-[#2D1B0E] border-b-4 border-[#8B4513] px-3 pt-2 pb-2">
         <div className="flex items-center gap-2">
@@ -5750,6 +5755,42 @@ function GameMenuModal({
           Toque em um módulo para abrir · Rebirth continua no topo
         </p>
       </div>
+    </div>
+  );
+}
+
+// ---- LiveOps banner (Fase 3 · Bloco 2) ----
+function LiveOpsBanner({ snap }: { snap: import("@/lib/game/remote-liveops").LiveOpsSnapshot }) {
+  const buffs = snap.activeBuffs;
+  const hasAny = snap.globalMessage || snap.maintenance || buffs.length > 0;
+  if (!hasAny) return null;
+  const buffLabel = (t: string) =>
+    t === "double_xp" ? "XP" : t === "double_gold" ? "Ouro" : "Drop";
+  return (
+    <div className="flex flex-col gap-1 border-b-2 border-[#8B4513] bg-[#1a0f07] px-3 py-1.5 text-[11px]">
+      {snap.maintenance && (
+        <div className={`rounded px-2 py-1 font-semibold ${snap.maintenance.active ? "bg-red-700/80 text-white" : "bg-amber-600/80 text-amber-50"}`}>
+          🛠️ {snap.maintenance.active ? "Manutenção em andamento" : "Manutenção programada"} — {snap.maintenance.message}
+          {snap.maintenance.startsAt && !snap.maintenance.active && (
+            <> · início {new Date(snap.maintenance.startsAt).toLocaleString("pt-BR")}</>
+          )}
+        </div>
+      )}
+      {snap.globalMessage && (
+        <div className="rounded bg-sky-700/80 px-2 py-1 font-medium text-sky-50">
+          📢 {snap.globalMessage}
+        </div>
+      )}
+      {buffs.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {buffs.map((b, i) => (
+            <span key={i} className="rounded bg-emerald-700/80 px-2 py-0.5 font-bold text-emerald-50">
+              ⚡ ×{b.multiplier} {buffLabel(b.type)}
+              {b.endsAt && ` · até ${new Date(b.endsAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
