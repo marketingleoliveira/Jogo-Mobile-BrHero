@@ -14,6 +14,7 @@ import { Route as RoadmapRouteImport } from './routes/roadmap'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as GameRouteImport } from './routes/game'
+import { Route as DownloadRouteImport } from './routes/download'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -58,6 +59,11 @@ const PrivacidadeRoute = PrivacidadeRouteImport.update({
 const GameRoute = GameRouteImport.update({
   id: '/game',
   path: '/game',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -166,6 +172,7 @@ const ApiPublicHooksCloseSeasonRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/download': typeof DownloadRoute
   '/game': typeof GameRoute
   '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
@@ -192,6 +199,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/download': typeof DownloadRoute
   '/game': typeof GameRoute
   '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
@@ -220,6 +228,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/download': typeof DownloadRoute
   '/game': typeof GameRoute
   '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
@@ -249,6 +258,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/download'
     | '/game'
     | '/privacidade'
     | '/ranking'
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/download'
     | '/game'
     | '/privacidade'
     | '/ranking'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/download'
     | '/game'
     | '/privacidade'
     | '/ranking'
@@ -330,6 +342,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  DownloadRoute: typeof DownloadRoute
   GameRoute: typeof GameRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   RankingRoute: typeof RankingRoute
@@ -377,6 +390,13 @@ declare module '@tanstack/react-router' {
       path: '/game'
       fullPath: '/game'
       preLoaderRoute: typeof GameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -559,6 +579,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  DownloadRoute: DownloadRoute,
   GameRoute: GameRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   RankingRoute: RankingRoute,
