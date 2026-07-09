@@ -309,11 +309,11 @@ function PlayOptions({ account, onLogout }: { account: Account; onLogout: () => 
           </div>
         )}
         <div className="flex-1 text-left">
-          <div className="text-xs text-[#e8ecf1]/60">Bem-vindo(a),</div>
-          <div className="text-lg text-[#f5c542]" style={FONT_TITLE}>
+          <div className="text-sm text-[#e8ecf1]/70">Bem-vindo(a),</div>
+          <div className="text-xl text-[#f5c542]" style={FONT_TITLE}>
             {account.name}
           </div>
-          <div className="truncate text-[10px] text-[#e8ecf1]/50">{account.email}</div>
+          <div className="truncate text-xs text-[#e8ecf1]/60">{account.email}</div>
         </div>
       </div>
 
