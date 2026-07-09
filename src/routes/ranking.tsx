@@ -62,10 +62,18 @@ function readLocalSnapshot(): PlayerSnapshot | null {
   }
 }
 
+const SEASONS: { key: SeasonType; label: string; icon: string }[] = [
+  { key: "all-time", label: "Histórico", icon: "🏆" },
+  { key: "weekly",   label: "Semanal",   icon: "📅" },
+  { key: "monthly",  label: "Mensal",    icon: "🗓️" },
+];
+
 function RankingPage() {
   const [category, setCategory] = useState<LeaderboardCategory>("stage");
+  const [seasonType, setSeasonType] = useState<SeasonType>("all-time");
   const [uploading, setUploading] = useState(false);
-  const { rows, loading, refresh } = useLeaderboard(category, 100);
+  const seasonKey = useMemo(() => currentSeasonKey(seasonType), [seasonType]);
+  const { rows, loading, refresh } = useLeaderboard(category, 100, seasonKey);
   const cat = useMemo(() => CATEGORIES.find((c) => c.key === category)!, [category]);
 
   const doUpload = async () => {
