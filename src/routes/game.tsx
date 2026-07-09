@@ -1529,6 +1529,12 @@ function GamePage() {
       const cur = saveRef.current;
       if (!cur) return;
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...cur, lastSeenAt: Date.now() })); } catch {}
+      // Auto-sync opcional (desligado por padrão)
+      if (getAutoSyncEnabled()) {
+        void getCloudUser().then((u) => {
+          if (u) void saveCloudSave(u.id, cur).catch(() => { /* silencioso */ });
+        });
+      }
     };
     window.addEventListener("beforeunload", onHide);
     window.addEventListener("visibilitychange", onHide);
