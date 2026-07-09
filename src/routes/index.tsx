@@ -4,6 +4,7 @@ import brheroLogo from "@/assets/brhero-logo.png.asset.json";
 import brheroApk from "@/assets/brhero-apk.asset.json";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
+import { isBrHeroNativeApp, startNativeGoogleSignIn } from "@/lib/native-auth";
 import {
   Swords,
   Sparkles,
@@ -17,7 +18,6 @@ import {
 } from "lucide-react";
 
 const ACCOUNT_KEY = "hero-rise-account-v1";
-const GOOGLE_CLIENT_ID = "363043719780-cnfdm9g2ror5uh6u48k0avceddvf80ij.apps.googleusercontent.com";
 
 // Palette: Azul Real & Ouro
 // #0a1c3a (deep navy) · #152b5c (royal navy) · #f5c542 (gold) · #e8ecf1 (ice)
@@ -74,17 +74,6 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-function isNativeApp(): boolean {
-  if (typeof window === "undefined") return false;
-  const w = window as unknown as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } };
-  try {
-    if (w.Capacitor?.isNativePlatform?.()) return true;
-    const p = w.Capacitor?.getPlatform?.();
-    if (p && p !== "web") return true;
-  } catch { /* ignore */ }
-  return /(Android|iPhone|iPad).*BRHero/i.test(navigator.userAgent);
-}
-
 function Landing() {
   const navigate = useNavigate();
   const [account, setAccount] = useState<Account | null>(() => loadAccount());
@@ -94,7 +83,7 @@ function Landing() {
   // Se estiver rodando dentro do APK (Capacitor), pular a tela de opções
   // e ir direto para o jogo assim que houver conta.
   useEffect(() => {
-    if (account && isNativeApp()) {
+    if (account && isBrHeroNativeApp()) {
       navigate({ to: "/game", replace: true });
     }
   }, [account, navigate]);
@@ -129,6 +118,11 @@ function Landing() {
     setSignInError(null);
     setSigningIn(true);
     try {
+      if (isBrHeroNativeApp()) {
+        await startNativeGoogleSignIn();
+        return;
+      }
+
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
       });

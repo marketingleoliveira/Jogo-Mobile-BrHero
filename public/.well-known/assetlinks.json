@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.brhero.game",
+      "sha256_cert_fingerprints": [
+        "AC:52:49:23:C7:AB:30:1B:DF:04:31:06:0A:1A:9E:EA:76:09:D0:BA:FF:38:F6:B1:A4:3E:1A:32:6D:67:23:6C"
+      ]
+    }
+  }
+]
