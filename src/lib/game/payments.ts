@@ -119,32 +119,13 @@ export async function beginSandboxCheckout(offer: RemoteOffer): Promise<Checkout
   if (offer.currency !== "brl") {
     return { ok: false, reason: "Oferta não é paga (moeda real)." };
   }
-  const cfg = await getPaymentsConfig(true);
-  if (!cfg.enabled) {
-    return { ok: false, reason: "Pagamentos desativados pelo Admin." };
-  }
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return { ok: false, reason: "Faça login para comprar." };
-
-    const amountCents = Math.round(offer.price * 100);
-    const { data, error } = await supabase
-      .from("payment_transactions")
-      .insert({
-        user_id: session.user.id,
-        offer_id: offer.id,
-        offer_snapshot: offer as never,
-        amount_cents: amountCents,
-        currency: "BRL",
-        status: "pending",
-        provider: cfg.provider,
-      })
-      .select("id")
-      .single();
-    if (error || !data) {
-      return { ok: false, reason: error?.message ?? "Falha ao criar transação." };
-    }
-    return { ok: true, transactionId: data.id };
+    // Delegado à server-fn segura: valida flag+oferta e monta snapshot AUTORITATIVO no backend.
+    // Cliente NÃO envia mais reward/price — envia só o offerId.
+    const { beginSecureSandboxCheckout } = await import("@/lib/game/payments-secure.functions");
+    const res = await beginSecureSandboxCheckout({ data: { offerId: offer.id } });
+    if (!res.ok) return { ok: false, reason: res.reason };
+    return { ok: true, transactionId: res.transactionId };
   } catch (e) {
     return { ok: false, reason: e instanceof Error ? e.message : "Erro desconhecido." };
   }
