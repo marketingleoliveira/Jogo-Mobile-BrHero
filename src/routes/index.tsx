@@ -75,56 +75,53 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const [account, setAccount] = useState<Account | null>(() => loadAccount());
-  const btnRef = useRef<HTMLDivElement>(null);
-  const [gsiReady, setGsiReady] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
+  const [signInError, setSignInError] = useState<string | null>(null);
 
+  // Hydrate session from Supabase and keep in sync
   useEffect(() => {
-    if (account) return;
-    if (!GOOGLE_CLIENT_ID) return;
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      const u = data.session?.user;
+      if (u) {
+        const acc = accountFromUser(u);
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify(acc));
+        setAccount(acc);
+      }
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      const u = session?.user;
+      if (u) {
+        const acc = accountFromUser(u);
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify(acc));
+        setAccount(acc);
+      }
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
-    let cancelled = false;
-    const tryInit = () => {
-      if (cancelled) return;
-      if (!window.google?.accounts?.id) {
-        setTimeout(tryInit, 300);
+  const handleGoogle = async () => {
+    setSignInError(null);
+    setSigningIn(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        setSignInError(result.error.message || "Falha no login com Google.");
+        setSigningIn(false);
         return;
       }
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: (resp: { credential: string }) => {
-          try {
-            const p = decodeJwt(resp.credential);
-            const acc: Account = {
-              name: p.name || p.given_name || "Herói",
-              email: p.email,
-              picture: p.picture,
-              sub: p.sub,
-              createdAt: Date.now(),
-            };
-            localStorage.setItem(ACCOUNT_KEY, JSON.stringify(acc));
-            setAccount(acc);
-          } catch (e) {
-            console.error("Google sign-in decode failed", e);
-          }
-        },
-      });
-      if (btnRef.current) {
-        window.google.accounts.id.renderButton(btnRef.current, {
-          theme: "filled_blue",
-          size: "large",
-          shape: "pill",
-          text: "signup_with",
-          logo_alignment: "left",
-          width: 320,
-        });
-      }
-      setGsiReady(true);
-    };
-    tryInit();
-    return () => {
-      cancelled = true;
-    };
-  }, [account]);
+      // If redirected, browser is leaving; otherwise session set — leave loading on
+    } catch (e) {
+      setSignInError(e instanceof Error ? e.message : "Falha no login com Google.");
+      setSigningIn(false);
+    }
+  };
 
   return (
     <main
