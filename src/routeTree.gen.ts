@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermosRouteImport } from './routes/termos'
+import { Route as RoadmapRouteImport } from './routes/roadmap'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as GameRouteImport } from './routes/game'
@@ -34,6 +35,11 @@ import { Route as ApiPublicHooksCloseSeasonRouteImport } from './routes/api/publ
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
   path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoadmapRoute = RoadmapRouteImport.update({
+  id: '/roadmap',
+  path: '/roadmap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RankingRoute = RankingRouteImport.update({
@@ -144,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/game': typeof GameRoute
   '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
+  '/roadmap': typeof RoadmapRoute
   '/termos': typeof TermosRoute
   '/admin/balancing': typeof AdminBalancingRoute
   '/admin/codes': typeof AdminCodesRoute
@@ -166,6 +173,7 @@ export interface FileRoutesByTo {
   '/game': typeof GameRoute
   '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
+  '/roadmap': typeof RoadmapRoute
   '/termos': typeof TermosRoute
   '/admin/balancing': typeof AdminBalancingRoute
   '/admin/codes': typeof AdminCodesRoute
@@ -190,6 +198,7 @@ export interface FileRoutesById {
   '/game': typeof GameRoute
   '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
+  '/roadmap': typeof RoadmapRoute
   '/termos': typeof TermosRoute
   '/admin/balancing': typeof AdminBalancingRoute
   '/admin/codes': typeof AdminCodesRoute
@@ -215,6 +224,7 @@ export interface FileRouteTypes {
     | '/game'
     | '/privacidade'
     | '/ranking'
+    | '/roadmap'
     | '/termos'
     | '/admin/balancing'
     | '/admin/codes'
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/game'
     | '/privacidade'
     | '/ranking'
+    | '/roadmap'
     | '/termos'
     | '/admin/balancing'
     | '/admin/codes'
@@ -260,6 +271,7 @@ export interface FileRouteTypes {
     | '/game'
     | '/privacidade'
     | '/ranking'
+    | '/roadmap'
     | '/termos'
     | '/admin/balancing'
     | '/admin/codes'
@@ -284,6 +296,7 @@ export interface RootRouteChildren {
   GameRoute: typeof GameRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   RankingRoute: typeof RankingRoute
+  RoadmapRoute: typeof RoadmapRoute
   TermosRoute: typeof TermosRoute
   ApiGenerateBgRoute: typeof ApiGenerateBgRoute
   PerfilUserIdRoute: typeof PerfilUserIdRoute
@@ -297,6 +310,13 @@ declare module '@tanstack/react-router' {
       path: '/termos'
       fullPath: '/termos'
       preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roadmap': {
+      id: '/roadmap'
+      path: '/roadmap'
+      fullPath: '/roadmap'
+      preLoaderRoute: typeof RoadmapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ranking': {
@@ -480,6 +500,7 @@ const rootRouteChildren: RootRouteChildren = {
   GameRoute: GameRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   RankingRoute: RankingRoute,
+  RoadmapRoute: RoadmapRoute,
   TermosRoute: TermosRoute,
   ApiGenerateBgRoute: ApiGenerateBgRoute,
   PerfilUserIdRoute: PerfilUserIdRoute,
