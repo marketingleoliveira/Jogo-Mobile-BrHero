@@ -232,12 +232,12 @@ function Landing() {
                   {signingIn ? "Conectando..." : "Entrar com Google"}
                 </button>
                 {signInError && (
-                  <p className="text-xs text-red-700">{signInError}</p>
+                  <p className="text-sm text-red-700">{signInError}</p>
                 )}
               </div>
             </section>
 
-            <p className="mt-4 text-center text-[10px] text-[#e8ecf1]/50">
+            <p className="mt-4 text-center text-sm text-[#e8ecf1]/60">
               É obrigatório criar conta. Não há modo convidado.
             </p>
           </>
