@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import brheroLogo from "@/assets/brhero-logo.png.asset.json";
-import brheroApk from "@/assets/brhero-apk.asset.json";
+
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import { isBrHeroNativeApp, startNativeGoogleSignIn } from "@/lib/native-auth";
