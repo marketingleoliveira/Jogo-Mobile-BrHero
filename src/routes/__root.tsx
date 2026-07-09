@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { closeNativeAuthBrowser, completeNativeOAuthFromUrl, isBrHeroNativeApp } from "../lib/native-auth";
 
 function NotFoundComponent() {
   return (
@@ -126,6 +127,42 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    if (!isBrHeroNativeApp()) return;
+
+    let cancelled = false;
+
+    const finishNativeLogin = async (url: string) => {
+      try {
+        const handled = await completeNativeOAuthFromUrl(url);
+        if (!handled || cancelled) return;
+        await closeNativeAuthBrowser();
+        window.location.replace("/game");
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    void finishNativeLogin(window.location.href);
+
+    let removeListener: (() => void) | undefined;
+    void import("@capacitor/app").then(async ({ App }) => {
+      const launch = await App.getLaunchUrl();
+      if (launch?.url) void finishNativeLogin(launch.url);
+      const handle = await App.addListener("appUrlOpen", (event) => {
+        void finishNativeLogin(event.url);
+      });
+      removeListener = () => { void handle.remove(); };
+    }).catch(() => {
+      // APKs antigos podem ainda não ter o plugin App registrado.
+    });
+
+    return () => {
+      cancelled = true;
+      removeListener?.();
+    };
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
