@@ -80,13 +80,13 @@ function Landing() {
   const [signingIn, setSigningIn] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
 
-  // Se estiver rodando dentro do APK (Capacitor), pular a tela de opções
-  // e ir direto para o jogo assim que houver conta.
+  // Autologado? Vai direto para o jogo (web-first).
   useEffect(() => {
-    if (account && isBrHeroNativeApp()) {
+    if (account) {
       navigate({ to: "/game", replace: true });
     }
   }, [account, navigate]);
+
 
   // Hydrate session from Supabase and keep in sync
   useEffect(() => {
@@ -311,25 +311,18 @@ function PlayOptions({ account, onLogout }: { account: Account; onLogout: () => 
         </div>
       </div>
 
-      <div
-        className="rounded-2xl border-2 border-[#f5c542]/40 bg-[#0a1c3a]/70 p-3 text-center text-xs text-[#e8ecf1]/80"
-      >
-        BRHero é <b className="text-[#f5c542]">exclusivo para Android</b>.
-        Baixe o APK para jogar no seu celular.
-      </div>
-
-      <a
-        href="/api/public/apk"
-        download="brhero.apk"
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#f5c542] bg-[#152b5c] py-4 text-base text-[#f5c542] shadow-[0_4px_0_#0a1c3a] active:translate-y-0.5 active:shadow-[0_2px_0_#0a1c3a]"
+      <Link
+        to="/game"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#f5c542] bg-gradient-to-b from-[#f5c542] to-[#d4a02a] py-4 text-lg text-[#0a1c3a] shadow-[0_6px_0_#8a6614] active:translate-y-1 active:shadow-[0_2px_0_#8a6614]"
         style={FONT_TITLE}
       >
-        <Download className="h-5 w-5" />
-        BAIXAR O JOGO (APK ANDROID)
-      </a>
+        <Swords className="h-5 w-5" />
+        JOGAR AGORA
+      </Link>
       <p className="text-center text-xs text-[#e8ecf1]/60">
-        Após baixar, permita a instalação de fontes desconhecidas no Android.
+        Roda direto no navegador — desktop, tablet ou celular.
       </p>
+
 
       <button
         onClick={onLogout}
