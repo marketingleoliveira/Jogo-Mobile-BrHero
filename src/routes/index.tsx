@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import brheroLogo from "@/assets/brhero-logo.png.asset.json";
 import { lovable } from "@/integrations/lovable/index";
