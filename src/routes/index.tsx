@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import brheroLogo from "@/assets/brhero-logo.png.asset.json";
 import { lovable } from "@/integrations/lovable/index";
@@ -73,10 +73,30 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
+function isNativeApp(): boolean {
+  if (typeof window === "undefined") return false;
+  const w = window as unknown as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } };
+  try {
+    if (w.Capacitor?.isNativePlatform?.()) return true;
+    const p = w.Capacitor?.getPlatform?.();
+    if (p && p !== "web") return true;
+  } catch { /* ignore */ }
+  return /(Android|iPhone|iPad).*BRHero/i.test(navigator.userAgent);
+}
+
 function Landing() {
+  const navigate = useNavigate();
   const [account, setAccount] = useState<Account | null>(() => loadAccount());
   const [signingIn, setSigningIn] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
+
+  // Se estiver rodando dentro do APK (Capacitor), pular a tela de opções
+  // e ir direto para o jogo assim que houver conta.
+  useEffect(() => {
+    if (account && isNativeApp()) {
+      navigate({ to: "/game", replace: true });
+    }
+  }, [account, navigate]);
 
   // Hydrate session from Supabase and keep in sync
   useEffect(() => {
