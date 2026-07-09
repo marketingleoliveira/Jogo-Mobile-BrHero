@@ -226,7 +226,7 @@ function Landing() {
                   type="button"
                   onClick={handleGoogle}
                   disabled={signingIn}
-                  className="flex w-full max-w-[320px] items-center justify-center gap-3 rounded-full border-2 border-[#0a1c3a] bg-white px-5 py-3 text-sm font-semibold text-[#0a1c3a] shadow-[0_4px_0_#8a6614] transition active:translate-y-0.5 active:shadow-[0_2px_0_#8a6614] disabled:opacity-70"
+                  className="flex w-full max-w-[320px] items-center justify-center gap-3 rounded-full border-2 border-[#0a1c3a] bg-white px-5 py-3 text-base font-semibold text-[#0a1c3a] shadow-[0_4px_0_#8a6614] transition active:translate-y-0.5 active:shadow-[0_2px_0_#8a6614] disabled:opacity-70"
                 >
                   <GoogleGlyph />
                   {signingIn ? "Conectando..." : "Entrar com Google"}
