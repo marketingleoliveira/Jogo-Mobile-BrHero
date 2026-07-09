@@ -5044,17 +5044,80 @@ function ArenaPvpModal({
   const locked = save.level < ARENA_UNLOCK_LEVEL;
   const [opponents, setOpponents] = useState<ArenaOpponent[]>(() => (locked ? [] : generateArenaOpponents(save)));
   const [lastResult, setLastResult] = useState<{ opp: ArenaOpponent; win: boolean } | null>(null);
+  const [loadingReal, setLoadingReal] = useState(false);
+  const [history, setHistory] = useState<ArenaHistoryEntry[]>(() => readArenaHistory());
+  const [showHistory, setShowHistory] = useState(false);
   const tier = arenaTier(save.arena.points);
   const nextTier = ARENA_TIERS.find((t) => t.min > save.arena.points);
   const ticketsLeft = arenaTicketsLeft(save.arena);
   const canClaimDaily = save.arena.lastDailyClaim !== todayKey();
 
+  // Converte snapshot público em ArenaOpponent do jogo
+  const mapReal = useCallback((r: RealArenaOpponent, i: number): ArenaOpponent => {
+    const level = Math.max(1, Math.floor(r.heroPower / 40));
+    return {
+      name: r.name,
+      level,
+      power: r.heroPower,
+      guild: r.guild ?? "Independente",
+      pet: r.skin ? `✨ ${r.skin}` : "🐺 Lobo",
+      rank: r.rank || 999,
+      rewardGold: Math.floor(400 * level),
+      rewardGems: 3 + (i % 5),
+      seed: (Date.now() ^ i) >>> 0,
+      userId: r.userId,
+      avatar: r.avatar,
+      title: r.title,
+      skin: r.skin,
+      real: true,
+    };
+  }, []);
+
+  // Carrega oponentes reais + fallback NPC
+  const loadReal = useCallback(async (force: boolean) => {
+    if (locked) return;
+    setLoadingReal(true);
+    try {
+      const uid = await getCurrentUserId();
+      const hp = heroPower(computeStats(save));
+      const real = await fetchArenaOpponents(uid, hp, 5, force);
+      const npcs = generateArenaOpponents(save);
+      const merged: ArenaOpponent[] = [
+        ...real.map(mapReal),
+        ...npcs,
+      ].slice(0, 5);
+      setOpponents(merged);
+    } finally {
+      setLoadingReal(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locked, mapReal]);
+
+  useEffect(() => { void loadReal(false); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
   const doFight = (opp: ArenaOpponent) => {
     const r = onFight(opp);
     setLastResult({ opp, win: r.win });
-    // regenerate list to avoid same opponent repeat
-    setTimeout(() => setOpponents(generateArenaOpponents({ ...save, arena: { ...save.arena, wins: save.arena.wins + (r.win ? 1 : 0), losses: save.arena.losses + (r.win ? 0 : 1) } })), 300);
+    pushArenaHistory({
+      at: Date.now(),
+      win: r.win,
+      opponentName: opp.name,
+      opponentPower: opp.power,
+      opponentUserId: opp.userId,
+      real: !!opp.real,
+    });
+    setHistory(readArenaHistory());
+    // Regenera lista local (NPC) para variar; recarrega reais só respeitando throttle
+    setTimeout(() => {
+      const next = generateArenaOpponents({ ...save, arena: { ...save.arena, wins: save.arena.wins + (r.win ? 1 : 0), losses: save.arena.losses + (r.win ? 0 : 1) } });
+      setOpponents((prev) => {
+        const reals = prev.filter((o) => o.real);
+        return [...reals, ...next].slice(0, 5);
+      });
+    }, 300);
   };
+
+  const refreshReady = canRefreshOpponents();
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
