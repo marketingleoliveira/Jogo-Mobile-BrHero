@@ -22,7 +22,7 @@ const GOOGLE_CLIENT_ID = "363043719780-cnfdm9g2ror5uh6u48k0avceddvf80ij.apps.goo
 // Palette: Azul Real & Ouro
 // #0a1c3a (deep navy) · #152b5c (royal navy) · #f5c542 (gold) · #e8ecf1 (ice)
 const FONT_TITLE = { fontFamily: "'Lilita One', system-ui, sans-serif" } as const;
-const FONT_BODY = { fontFamily: "'Lilita One', system-ui, sans-serif" } as const;
+const FONT_BODY = { fontFamily: "'Fredoka', system-ui, sans-serif", fontWeight: 500 } as const;
 
 type Account = {
   name: string;
