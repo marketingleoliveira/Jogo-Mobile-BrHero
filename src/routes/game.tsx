@@ -34,6 +34,7 @@ import { resolveRemoteRedeem } from "@/lib/game/remote-codes";
 import { getLiveOpsMultipliers, useLiveOps } from "@/lib/game/remote-liveops";
 import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
 import { CloudSaveModal } from "@/components/game/cloud-save-modal";
+import { WalletHud } from "@/components/game/wallet-hud";
 import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/cloud-save";
 import { beginSandboxCheckout, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
 import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
@@ -2743,6 +2744,7 @@ function GamePage() {
       style={{ fontFamily: "'Fredoka', system-ui, sans-serif" }}
     >
       <LiveOpsBanner snap={liveOps} />
+      <WalletHud />
       {/* ===== Top HUD ===== */}
       <header className="relative bg-gradient-to-b from-[#3E2723] to-[#2D1B0E] border-b-4 border-[#8B4513] px-3 pt-2 pb-2">
         <div className="flex items-center gap-2">
