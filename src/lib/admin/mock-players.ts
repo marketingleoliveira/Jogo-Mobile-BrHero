@@ -42,7 +42,7 @@ export interface AuditLog {
   reason: string;
 }
 
-const STORAGE_KEY = "brhero_admin_mock_v1";
+const STORAGE_KEY = "brhero_admin_mock_v2";
 const CURRENT_ADMIN = "GM.Root";
 
 interface Store {
@@ -50,7 +50,9 @@ interface Store {
   logs: AuditLog[];
 }
 
-const seed = (): MockPlayer[] => [
+// Sem dados fake: a lista fica vazia até integrarmos com player_saves real.
+const seed = (): MockPlayer[] => [];
+
   {
     id: "P-2381", nickname: "GuerreiroBR", email: "guerreiro@brhero.gg", googleId: "gg_1029384",
     status: "active", level: 42, stage: 68, maxStage: 74, rebirths: 2,
