@@ -37,6 +37,16 @@ import { CloudSaveModal } from "@/components/game/cloud-save-modal";
 import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/cloud-save";
 import { beginSandboxCheckout, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
 import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
+import {
+  fetchArenaOpponents,
+  canRefreshOpponents,
+  getCurrentUserId,
+  pushArenaHistory,
+  readArenaHistory,
+  type RealArenaOpponent,
+  type ArenaHistoryEntry,
+} from "@/lib/game/arena-opponents";
+
 
 // -------- Types --------
 type AttrKey =
@@ -446,6 +456,12 @@ function arenaTier(points: number): ArenaTier {
 
 type ArenaOpponent = {
   name: string; level: number; power: number; guild: string; pet: string; rank: number; rewardGold: number; rewardGems: number; seed: number;
+  // Bloco 4.3 — snapshot público (opcional; presente em oponentes reais)
+  userId?: string;
+  avatar?: string | null;
+  title?: string | null;
+  skin?: string | null;
+  real?: boolean;
 };
 
 const ARENA_NAMES = ["Kael", "Vora", "Ryze", "Nyx", "Thara", "Bel", "Cirus", "Draka", "Elyn", "Fenn", "Garro", "Hilda", "Ivar", "Juno", "Krix", "Luma", "Mord", "Nex", "Ora", "Pyra"];
@@ -5029,17 +5045,80 @@ function ArenaPvpModal({
   const locked = save.level < ARENA_UNLOCK_LEVEL;
   const [opponents, setOpponents] = useState<ArenaOpponent[]>(() => (locked ? [] : generateArenaOpponents(save)));
   const [lastResult, setLastResult] = useState<{ opp: ArenaOpponent; win: boolean } | null>(null);
+  const [loadingReal, setLoadingReal] = useState(false);
+  const [history, setHistory] = useState<ArenaHistoryEntry[]>(() => readArenaHistory());
+  const [showHistory, setShowHistory] = useState(false);
   const tier = arenaTier(save.arena.points);
   const nextTier = ARENA_TIERS.find((t) => t.min > save.arena.points);
   const ticketsLeft = arenaTicketsLeft(save.arena);
   const canClaimDaily = save.arena.lastDailyClaim !== todayKey();
 
+  // Converte snapshot público em ArenaOpponent do jogo
+  const mapReal = useCallback((r: RealArenaOpponent, i: number): ArenaOpponent => {
+    const level = Math.max(1, Math.floor(r.heroPower / 40));
+    return {
+      name: r.name,
+      level,
+      power: r.heroPower,
+      guild: r.guild ?? "Independente",
+      pet: r.skin ? `✨ ${r.skin}` : "🐺 Lobo",
+      rank: r.rank || 999,
+      rewardGold: Math.floor(400 * level),
+      rewardGems: 3 + (i % 5),
+      seed: (Date.now() ^ i) >>> 0,
+      userId: r.userId,
+      avatar: r.avatar,
+      title: r.title,
+      skin: r.skin,
+      real: true,
+    };
+  }, []);
+
+  // Carrega oponentes reais + fallback NPC
+  const loadReal = useCallback(async (force: boolean) => {
+    if (locked) return;
+    setLoadingReal(true);
+    try {
+      const uid = await getCurrentUserId();
+      const hp = heroPower(computeStats(save));
+      const real = await fetchArenaOpponents(uid, hp, 5, force);
+      const npcs = generateArenaOpponents(save);
+      const merged: ArenaOpponent[] = [
+        ...real.map(mapReal),
+        ...npcs,
+      ].slice(0, 5);
+      setOpponents(merged);
+    } finally {
+      setLoadingReal(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locked, mapReal]);
+
+  useEffect(() => { void loadReal(false); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
   const doFight = (opp: ArenaOpponent) => {
     const r = onFight(opp);
     setLastResult({ opp, win: r.win });
-    // regenerate list to avoid same opponent repeat
-    setTimeout(() => setOpponents(generateArenaOpponents({ ...save, arena: { ...save.arena, wins: save.arena.wins + (r.win ? 1 : 0), losses: save.arena.losses + (r.win ? 0 : 1) } })), 300);
+    pushArenaHistory({
+      at: Date.now(),
+      win: r.win,
+      opponentName: opp.name,
+      opponentPower: opp.power,
+      opponentUserId: opp.userId,
+      real: !!opp.real,
+    });
+    setHistory(readArenaHistory());
+    // Regenera lista local (NPC) para variar; recarrega reais só respeitando throttle
+    setTimeout(() => {
+      const next = generateArenaOpponents({ ...save, arena: { ...save.arena, wins: save.arena.wins + (r.win ? 1 : 0), losses: save.arena.losses + (r.win ? 0 : 1) } });
+      setOpponents((prev) => {
+        const reals = prev.filter((o) => o.real);
+        return [...reals, ...next].slice(0, 5);
+      });
+    }, 300);
   };
+
+  const refreshReady = canRefreshOpponents();
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={onClose}>
@@ -5098,21 +5177,62 @@ function ArenaPvpModal({
               </div>
             )}
 
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="text-[10px] opacity-70">
+                {loadingReal ? "Buscando heróis reais…" : (opponents.some(o => o.real) ? "Oponentes reais + NPCs" : "Somente NPCs (offline)")}
+              </div>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setShowHistory((s) => !s)}
+                  className="rounded border border-[#1A0F08] bg-black/40 px-2 py-0.5 text-[10px] font-black"
+                >
+                  📜 Histórico
+                </button>
+                <button
+                  onClick={() => void loadReal(true)}
+                  disabled={!refreshReady || loadingReal}
+                  className="rounded border border-[#1A0F08] bg-black/40 px-2 py-0.5 text-[10px] font-black disabled:opacity-40"
+                >
+                  {refreshReady ? "🔄 Atualizar" : "⏳ Aguarde"}
+                </button>
+              </div>
+            </div>
+
+            {showHistory && (
+              <div className="mb-2 max-h-[20vh] overflow-y-auto rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2 text-[10px]">
+                {history.length === 0 ? (
+                  <div className="opacity-60 text-center py-2">Sem batalhas recentes.</div>
+                ) : history.slice(0, 10).map((h, i) => (
+                  <div key={i} className="flex justify-between border-b border-[#1A0F08]/40 py-0.5 last:border-0">
+                    <span>{h.win ? "🏆" : "💀"} vs {h.opponentName} {h.real ? "🌎" : "🤖"}</span>
+                    <span className="opacity-60">⚡{fmt(h.opponentPower)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
               {opponents.map((o, i) => (
-                <div key={i} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
+                <div key={`${o.userId ?? "npc"}-${i}`} className="rounded-lg border-2 border-[#1A0F08] bg-[#2A1810] p-2">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 text-xs font-black text-amber-100">
-                        <span>#{o.rank}</span>
-                        <span className="truncate">{o.name}</span>
-                        <span className="text-[10px] opacity-70">Lv{o.level}</span>
+                    <div className="min-w-0 flex items-center gap-2">
+                      <div className="h-9 w-9 shrink-0 rounded-full bg-[#1A0F08] border border-[#8B4513] flex items-center justify-center text-lg">
+                        {o.avatar || (o.real ? "🦸" : "🤖")}
                       </div>
-                      <div className="text-[10px] opacity-80">
-                        {o.guild} · {o.pet} · ⚡{fmt(o.power)}
-                      </div>
-                      <div className="text-[10px] text-amber-300/90">
-                        Prêmio: 🪙{fmt(o.rewardGold)} · 💎{o.rewardGems}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-amber-100">
+                          <span>#{o.rank}</span>
+                          <span className="truncate">{o.name}</span>
+                          <span className="text-[10px] opacity-70">Lv{o.level}</span>
+                          {o.real && <span className="text-[9px] text-emerald-300">🌎</span>}
+                        </div>
+                        {o.title && <div className="text-[10px] text-yellow-300 truncate">🏆 {o.title}</div>}
+                        <div className="text-[10px] opacity-80 truncate">
+                          {o.guild} · {o.pet} · ⚡{fmt(o.power)}
+                        </div>
+                        <div className="text-[10px] text-amber-300/90">
+                          Prêmio: 🪙{fmt(o.rewardGold)} · 💎{o.rewardGems}
+                        </div>
                       </div>
                     </div>
                     <button
@@ -5126,6 +5246,7 @@ function ArenaPvpModal({
                 </div>
               ))}
             </div>
+
           </>
         )}
 
