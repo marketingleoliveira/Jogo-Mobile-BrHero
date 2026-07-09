@@ -178,7 +178,7 @@ function Landing() {
           />
           <h1 className="sr-only">BRHero</h1>
           <div
-            className="mt-1 inline-block rounded-full border-2 border-[#f5c542]/60 bg-[#0a1c3a]/80 px-4 py-1 text-[11px] uppercase tracking-[0.25em] text-[#f5c542]"
+            className="mt-1 inline-block rounded-full border-2 border-[#f5c542]/60 bg-[#0a1c3a]/80 px-4 py-1 text-xs uppercase tracking-[0.25em] text-[#f5c542]"
             style={FONT_TITLE}
           >
             O 1º RPG IDLE Brasileiro
