@@ -1508,6 +1508,7 @@ function GamePage() {
   const [heroDying, setHeroDying] = useState(false);
   const heroDyingRef = useRef(false);
   const [pickStageOpen, setPickStageOpen] = useState(false);
+  const [deathCountdown, setDeathCountdown] = useState<number | null>(null);
   const [heroLunge, setHeroLunge] = useState(false);
   const [enemyLunge, setEnemyLunge] = useState(false);
   const [deathBanner, setDeathBanner] = useState<null | "hero" | "enemy">(null);
@@ -1776,6 +1777,38 @@ function GamePage() {
     heroCdRef.current = 200;
     enemyCdRef.current = 700;
   };
+
+  // Death countdown: auto-respawn at start of current biome block after 5s
+  useEffect(() => {
+    if (deathBanner !== "hero" || pickStageOpen) {
+      setDeathCountdown(null);
+      return;
+    }
+    setDeathCountdown(5);
+    const tick = setInterval(() => {
+      setDeathCountdown((c) => (c === null ? null : c - 1));
+    }, 1000);
+    const timeout = setTimeout(() => {
+      const s = saveRef.current;
+      if (!s) return;
+      const blockStart = Math.floor((s.stage - 1) / 10) * 10 + 1;
+      setSave((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, stage: blockStart };
+        saveRef.current = next;
+        return next;
+      });
+      setDeathBanner(null);
+      setHeroDying(false);
+      heroDyingRef.current = false;
+      setTimeout(() => respawn(), 0);
+    }, 5000);
+    return () => {
+      clearInterval(tick);
+      clearTimeout(timeout);
+    };
+  }, [deathBanner, pickStageOpen]);
+
 
   const onEnemyKilled = () => {
     const cur = saveRef.current;
@@ -3016,6 +3049,9 @@ function GamePage() {
               style={{ fontFamily: "'Luckiest Guy', cursive", WebkitTextStroke: "2px #1a0000" }}
             >
               MORREU!
+            </span>
+            <span className="text-xs text-slate-300 animate-[fadeInOverlay_600ms_ease-out_400ms_both]">
+              Retornando ao início da fase em <span className="text-amber-300 font-bold">{deathCountdown ?? 5}s</span>
             </span>
             <div className="flex flex-col gap-2 w-56 animate-[fadeInOverlay_600ms_ease-out_400ms_both]">
               <button
