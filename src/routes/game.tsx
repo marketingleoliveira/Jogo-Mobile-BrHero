@@ -1479,6 +1479,11 @@ function GamePage() {
   const [heroHit, setHeroHit] = useState(false);
   const [enemyHit, setEnemyHit] = useState(false);
   const [enemyDying, setEnemyDying] = useState(false);
+  const [heroDying, setHeroDying] = useState(false);
+  const heroDyingRef = useRef(false);
+  const [heroLunge, setHeroLunge] = useState(false);
+  const [enemyLunge, setEnemyLunge] = useState(false);
+  const [deathBanner, setDeathBanner] = useState<null | "hero" | "enemy">(null);
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
