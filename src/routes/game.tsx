@@ -36,7 +36,7 @@ import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
 import { CloudSaveModal } from "@/components/game/cloud-save-modal";
 import { WalletHud } from "@/components/game/wallet-hud";
 import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/cloud-save";
-import { beginSandboxCheckout, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
+import { beginSandboxCheckout, beginInfinitepayCheckoutClient, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
 import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
 import { closeNativeAuthBrowser, completeNativeOAuthFromUrl, isBrHeroNativeApp } from "@/lib/native-auth";
 import { BiomeBackdrop } from "@/components/game/biome-backdrop";
@@ -6300,18 +6300,28 @@ function RemoteOffersPanel({ offers }: { offers: RemoteOffer[] }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const canBuy = !!paymentsCfg?.enabled;
 
-  const buySandbox = async (o: RemoteOffer) => {
+  const isInfinitepay = paymentsCfg?.provider === "infinitepay";
+
+  const buy = async (o: RemoteOffer) => {
     setBusyId(o.id);
-    const res = await beginSandboxCheckout(o);
-    setBusyId(null);
-    if (!res.ok) {
-      // eslint-disable-next-line no-alert
-      alert(res.reason ?? "Falha no checkout");
-      return;
+    try {
+      if (isInfinitepay) {
+        const redirect = typeof window !== "undefined" ? `${window.location.origin}/?payment=success` : undefined;
+        const res = await beginInfinitepayCheckoutClient(o, redirect);
+        if (!res.ok) { alert(res.reason ?? "Falha no checkout"); return; }
+        refresh();
+        if (res.checkoutUrl && typeof window !== "undefined") {
+          window.open(res.checkoutUrl, "_blank", "noopener,noreferrer");
+        }
+        return;
+      }
+      const res = await beginSandboxCheckout(o);
+      if (!res.ok) { alert(res.reason ?? "Falha no checkout"); return; }
+      refresh();
+      alert("🛒 Transação criada como PENDING.\nO Admin precisa confirmar para liberar a recompensa.");
+    } finally {
+      setBusyId(null);
     }
-    refresh();
-    // eslint-disable-next-line no-alert
-    alert("🛒 Transação criada como PENDING.\nO Admin precisa confirmar para liberar a recompensa.");
   };
 
   const currencyIcon = (c: RemoteOffer["currency"]) =>
@@ -6353,11 +6363,11 @@ function RemoteOffersPanel({ offers }: { offers: RemoteOffer[] }) {
               </div>
               {showBuy ? (
                 <button
-                  onClick={() => void buySandbox(o)}
+                  onClick={() => void buy(o)}
                   disabled={busyId === o.id}
                   className="rounded-lg border-2 border-amber-400 bg-gradient-to-b from-amber-400 to-amber-600 px-2 py-1 text-[10px] font-black text-[#0a1c3a] disabled:opacity-60"
                 >
-                  {busyId === o.id ? "..." : "COMPRAR (SANDBOX)"}
+                  {busyId === o.id ? "..." : isInfinitepay ? "COMPRAR (INFINITEPAY)" : "COMPRAR (SANDBOX)"}
                 </button>
               ) : (
                 <span className="rounded border border-amber-400/40 px-2 py-[2px] text-[9px] uppercase text-amber-200/70">
