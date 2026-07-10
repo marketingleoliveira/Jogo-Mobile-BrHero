@@ -33,6 +33,7 @@ import { Route as AdminEconomyRouteImport } from './routes/admin.economy'
 import { Route as AdminCodesRouteImport } from './routes/admin.codes'
 import { Route as AdminBalancingRouteImport } from './routes/admin.balancing'
 import { Route as AdminApkRouteImport } from './routes/admin.apk'
+import { Route as ApiPublicVersionRouteImport } from './routes/api/public/version'
 import { Route as ApiPublicApkRouteImport } from './routes/api/public/apk'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksInfinitepayRouteImport } from './routes/api/public/hooks/infinitepay'
@@ -158,6 +159,11 @@ const AdminApkRoute = AdminApkRouteImport.update({
   path: '/apk',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiPublicVersionRoute = ApiPublicVersionRouteImport.update({
+  id: '/api/public/version',
+  path: '/api/public/version',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicApkRoute = ApiPublicApkRouteImport.update({
   id: '/api/public/apk',
   path: '/api/public/apk',
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/perfil/$userId': typeof PerfilUserIdRoute
   '/admin/': typeof AdminIndexRoute
   '/api/public/apk': typeof ApiPublicApkRoute
+  '/api/public/version': typeof ApiPublicVersionRoute
   '/api/public/hooks/close-season': typeof ApiPublicHooksCloseSeasonRoute
   '/api/public/hooks/infinitepay': typeof ApiPublicHooksInfinitepayRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByTo {
   '/perfil/$userId': typeof PerfilUserIdRoute
   '/admin': typeof AdminIndexRoute
   '/api/public/apk': typeof ApiPublicApkRoute
+  '/api/public/version': typeof ApiPublicVersionRoute
   '/api/public/hooks/close-season': typeof ApiPublicHooksCloseSeasonRoute
   '/api/public/hooks/infinitepay': typeof ApiPublicHooksInfinitepayRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -268,6 +276,7 @@ export interface FileRoutesById {
   '/perfil/$userId': typeof PerfilUserIdRoute
   '/admin/': typeof AdminIndexRoute
   '/api/public/apk': typeof ApiPublicApkRoute
+  '/api/public/version': typeof ApiPublicVersionRoute
   '/api/public/hooks/close-season': typeof ApiPublicHooksCloseSeasonRoute
   '/api/public/hooks/infinitepay': typeof ApiPublicHooksInfinitepayRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -300,6 +309,7 @@ export interface FileRouteTypes {
     | '/perfil/$userId'
     | '/admin/'
     | '/api/public/apk'
+    | '/api/public/version'
     | '/api/public/hooks/close-season'
     | '/api/public/hooks/infinitepay'
     | '/lovable/email/queue/process'
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | '/perfil/$userId'
     | '/admin'
     | '/api/public/apk'
+    | '/api/public/version'
     | '/api/public/hooks/close-season'
     | '/api/public/hooks/infinitepay'
     | '/lovable/email/queue/process'
@@ -359,6 +370,7 @@ export interface FileRouteTypes {
     | '/perfil/$userId'
     | '/admin/'
     | '/api/public/apk'
+    | '/api/public/version'
     | '/api/public/hooks/close-season'
     | '/api/public/hooks/infinitepay'
     | '/lovable/email/queue/process'
@@ -377,6 +389,7 @@ export interface RootRouteChildren {
   ApiGenerateBgRoute: typeof ApiGenerateBgRoute
   PerfilUserIdRoute: typeof PerfilUserIdRoute
   ApiPublicApkRoute: typeof ApiPublicApkRoute
+  ApiPublicVersionRoute: typeof ApiPublicVersionRoute
   ApiPublicHooksCloseSeasonRoute: typeof ApiPublicHooksCloseSeasonRoute
   ApiPublicHooksInfinitepayRoute: typeof ApiPublicHooksInfinitepayRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -552,6 +565,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminApkRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/public/version': {
+      id: '/api/public/version'
+      path: '/api/public/version'
+      fullPath: '/api/public/version'
+      preLoaderRoute: typeof ApiPublicVersionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/apk': {
       id: '/api/public/apk'
       path: '/api/public/apk'
@@ -630,6 +650,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGenerateBgRoute: ApiGenerateBgRoute,
   PerfilUserIdRoute: PerfilUserIdRoute,
   ApiPublicApkRoute: ApiPublicApkRoute,
+  ApiPublicVersionRoute: ApiPublicVersionRoute,
   ApiPublicHooksCloseSeasonRoute: ApiPublicHooksCloseSeasonRoute,
   ApiPublicHooksInfinitepayRoute: ApiPublicHooksInfinitepayRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,

@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { closeNativeAuthBrowser, completeNativeOAuthFromUrl, isBrHeroNativeApp } from "../lib/native-auth";
 import { Toaster } from "@/components/ui/sonner";
+import { VersionGuard } from "@/components/version-guard";
 
 function NotFoundComponent() {
   return (
@@ -171,6 +172,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <VersionGuard />
     </QueryClientProvider>
   );
 }
