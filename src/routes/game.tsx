@@ -257,6 +257,58 @@ const DUNGEON_DEFS: Record<DungeonKind, { label: string; icon: string; desc: str
   essence: { label: "Masmorra de Essência",    icon: "✨", desc: "Essência garantida + baú épico.",    color: "from-fuchsia-500 to-purple-700" },
 };
 
+function HoldButton({
+  onTick,
+  disabled,
+  className,
+  children,
+}: {
+  onTick: () => void;
+  disabled?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tickRef = useRef(onTick);
+  tickRef.current = onTick;
+
+  const stop = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const start = useCallback(() => {
+    if (disabled) return;
+    stop();
+    tickRef.current();
+    let delay = 320;
+    const loop = () => {
+      tickRef.current();
+      delay = Math.max(40, delay - 25);
+      timerRef.current = setTimeout(loop, delay);
+    };
+    timerRef.current = setTimeout(loop, delay);
+  }, [disabled, stop]);
+
+  useEffect(() => stop, [stop]);
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      className={className}
+      onPointerDown={(e) => { e.preventDefault(); start(); }}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
+    >
+      {children}
+    </button>
+  );
+}
+
 function dungeonKeysNow(d: DungeonState): { keys: number; lastKeyAt: number; nextInMs: number } {
   const now = Date.now();
   const elapsed = now - d.lastKeyAt;
