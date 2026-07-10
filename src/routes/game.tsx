@@ -650,14 +650,22 @@ type SkinDef = {
   rarity: "Comum" | "Raro" | "Épico" | "Lendário";
   color: string;
   desc: string;
+  filter?: string;   // CSS filter aplicado ao sprite
+  priceGems?: number; // preço direto na loja de skins (opcional)
 };
 
 const SKIN_DEFS: Record<SkinId, SkinDef> = {
-  classic: { id: "classic", label: "Herói Clássico",     icon: "🧙", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "O visual original — todos começam aqui." },
-  green:   { id: "green",   label: "Guerreiro Verde",    icon: "🥷", rarity: "Raro",     color: "from-emerald-500 to-green-700",   desc: "Furtivo e ágil, camuflado na floresta." },
-  gold:    { id: "gold",    label: "Cavaleiro Dourado",  icon: "🤴", rarity: "Épico",    color: "from-amber-400 to-yellow-700",    desc: "Armadura reluzente forjada em ouro." },
-  brasil:  { id: "brasil",  label: "Guardião do Brasil", icon: "🦸", rarity: "Épico",    color: "from-green-500 to-yellow-500",    desc: "Herói tupiniquim das terras tropicais." },
-  shadow:  { id: "shadow",  label: "Sombra Lendária",    icon: "🥷", rarity: "Lendário", color: "from-purple-700 to-black",        desc: "Rumores dizem que ele nunca é visto." },
+  classic:  { id: "classic",  label: "Herói Clássico",     icon: "🧙", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "O visual original — todos começam aqui." },
+  green:    { id: "green",    label: "Guerreiro Verde",    icon: "🥷", rarity: "Raro",     color: "from-emerald-500 to-green-700",   desc: "Furtivo e ágil, camuflado na floresta.",   filter: "hue-rotate(80deg) saturate(1.3)",           priceGems: 200 },
+  gold:     { id: "gold",     label: "Cavaleiro Dourado",  icon: "🤴", rarity: "Épico",    color: "from-amber-400 to-yellow-700",    desc: "Armadura reluzente forjada em ouro.",       filter: "hue-rotate(30deg) saturate(1.6) brightness(1.15)", priceGems: 500 },
+  brasil:   { id: "brasil",   label: "Guardião do Brasil", icon: "🦸", rarity: "Épico",    color: "from-green-500 to-yellow-500",    desc: "Herói tupiniquim das terras tropicais.",   filter: "hue-rotate(60deg) saturate(1.5)",           priceGems: 400 },
+  shadow:   { id: "shadow",   label: "Sombra Lendária",    icon: "🥷", rarity: "Lendário", color: "from-purple-700 to-black",        desc: "Rumores dizem que ele nunca é visto.",     filter: "brightness(0.35) contrast(1.4) hue-rotate(260deg)", priceGems: 1200 },
+  samurai:  { id: "samurai",  label: "Samurai Carmesim",   icon: "🗡️", rarity: "Épico",    color: "from-rose-600 to-red-800",        desc: "Lâmina afiada, honra inquebrável.",         filter: "hue-rotate(320deg) saturate(1.7)",          priceGems: 600 },
+  mago:     { id: "mago",     label: "Arquimago Azul",     icon: "🧙‍♂️", rarity: "Raro",     color: "from-sky-500 to-indigo-700",      desc: "Domina os elementos arcanos.",              filter: "hue-rotate(200deg) saturate(1.4)",          priceGems: 300 },
+  arqueiro: { id: "arqueiro", label: "Arqueiro Élfico",    icon: "🏹", rarity: "Raro",     color: "from-teal-500 to-emerald-800",    desc: "Precisão sobrenatural da floresta antiga.", filter: "hue-rotate(150deg) saturate(1.3)",          priceGems: 350 },
+  paladino: { id: "paladino", label: "Paladino Sagrado",   icon: "🛡️", rarity: "Épico",    color: "from-yellow-300 to-amber-600",    desc: "Fé inabalável, escudo intransponível.",     filter: "brightness(1.2) saturate(1.4)",             priceGems: 700 },
+  pirata:   { id: "pirata",   label: "Capitão Pirata",     icon: "🏴‍☠️", rarity: "Épico",    color: "from-slate-700 to-red-900",       desc: "Terror dos sete mares.",                    filter: "hue-rotate(340deg) saturate(1.2) brightness(0.9)", priceGems: 550 },
+  vampiro:  { id: "vampiro",  label: "Lorde Vampiro",      icon: "🧛", rarity: "Lendário", color: "from-red-900 to-black",           desc: "Da noite eterna surge o predador.",         filter: "hue-rotate(340deg) saturate(1.8) brightness(0.55) contrast(1.3)", priceGems: 1500 },
 };
 
 function emptySkins(): SkinsState {
