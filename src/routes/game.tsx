@@ -3422,6 +3422,7 @@ function GamePage() {
           onEquip={equipItem}
           onUnequip={unequipItem}
           onSell={sellItem}
+          onBulkSell={bulkSellItems}
         />
       )}
       {modal === "arena" && (
