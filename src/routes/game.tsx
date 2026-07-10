@@ -1688,7 +1688,7 @@ function GamePage() {
 
       // Hero attack
       heroCdRef.current -= TICK;
-      const heroInterval = 1000 / (stats.atkSpeed / 100);
+      const heroInterval = (1000 / (stats.atkSpeed / 100)) * 1.7;
       if (heroCdRef.current <= 0 && enemyHpRef.current > 0 && heroHpRef.current > 0) {
         heroCdRef.current = heroInterval;
         const crit = Math.random() * 100 < Math.min(80, stats.critChance);
@@ -1700,8 +1700,8 @@ function GamePage() {
         setEnemyHp(enemyHpRef.current);
         setEnemyHit(true);
         setHeroLunge(true);
-        setTimeout(() => setEnemyHit(false), 120);
-        setTimeout(() => setHeroLunge(false), 220);
+        setTimeout(() => setEnemyHit(false), 260);
+        setTimeout(() => setHeroLunge(false), 480);
         spawnDamage(dmg, crit, "hero");
         // lifesteal
         if (stats.lifesteal > 0) {
