@@ -347,6 +347,30 @@ export type Database = {
         }
         Relationships: []
       }
+      player_referrals: {
+        Row: {
+          awarded_gems: number
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          awarded_gems?: number
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          awarded_gems?: number
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+        }
+        Relationships: []
+      }
       player_save_backups: {
         Row: {
           client_updated_at: string
@@ -553,6 +577,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_referral: { Args: { _referrer: string }; Returns: Json }
       claim_season_reward: { Args: { _reward_id: string }; Returns: Json }
       claim_super_admin: { Args: { _display_name?: string }; Returns: string }
       delete_email: {
