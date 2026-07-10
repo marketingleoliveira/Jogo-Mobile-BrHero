@@ -4205,6 +4205,13 @@ function StoreModal({
   onClose: () => void;
   onBuy: (id: string) => void;
 }) {
+  const [mode, setMode] = useState<"choice" | "buy" | "spend">("choice");
+  const remoteOffers = useRemoteOffers();
+  // Só pacotes de diamantes pagos (BRL) na aba COMPRAR DIAMANTES
+  const diamondPacks = remoteOffers.filter(
+    (o) => o.currency === "brl" && /diamante|cristal|gem|💎/i.test(`${o.name} ${o.reward}`),
+  );
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end bg-black/70 backdrop-blur-sm sm:items-center sm:justify-center"
@@ -4215,12 +4222,20 @@ function StoreModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h2
-            className="text-2xl text-[#f5c542]"
-            style={{ fontFamily: "'Lilita One', cursive" }}
-          >
-            🛒 Loja
-          </h2>
+          <div className="flex items-center gap-2">
+            {mode !== "choice" && (
+              <button
+                onClick={() => setMode("choice")}
+                className="rounded-full border border-[#f5c542]/40 px-2 py-1 text-xs text-[#f5c542]"
+                aria-label="Voltar"
+              >
+                ←
+              </button>
+            )}
+            <h2 className="text-2xl text-[#f5c542]" style={{ fontFamily: "'Lilita One', cursive" }}>
+              {mode === "choice" ? "🛒 Loja" : mode === "buy" ? "💎 Comprar Diamantes" : "🛍️ Gastar Diamantes"}
+            </h2>
+          </div>
           <button
             onClick={onClose}
             className="rounded-full border border-[#f5c542]/40 px-3 py-1 text-xs text-[#f5c542]"
@@ -4234,55 +4249,97 @@ function StoreModal({
           <span>🪙 Ouro: <b className="text-[#f5c542]">{fmt(save.gold)}</b></span>
         </div>
 
-        <p className="mb-3 rounded-lg border border-emerald-400/40 bg-emerald-500/10 p-2 text-[11px] text-emerald-200">
-          ⚖️ <b>100% Pay-to-Fast:</b> a loja só vende ouro, baús e acelerações
-          — nunca atributos, XP direto ou avanço automático de estágio. Todo
-          jogador free pode chegar aos mesmos stats.
-        </p>
+        {mode === "choice" && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              onClick={() => setMode("buy")}
+              className="flex flex-col items-center gap-2 rounded-2xl border-4 border-emerald-400 bg-gradient-to-b from-emerald-500 to-emerald-700 p-5 text-center text-white shadow-lg transition hover:scale-[1.02]"
+              style={{ fontFamily: "'Lilita One', cursive" }}
+            >
+              <div className="text-5xl">💎</div>
+              <div className="text-lg">COMPRAR DIAMANTES</div>
+              <div className="text-[11px] font-normal opacity-90">Recarregue com dinheiro real</div>
+            </button>
+            <button
+              onClick={() => setMode("spend")}
+              className="flex flex-col items-center gap-2 rounded-2xl border-4 border-[#f5c542] bg-gradient-to-b from-[#f5c542] to-[#c98a1a] p-5 text-center text-[#0a1c3a] shadow-lg transition hover:scale-[1.02]"
+              style={{ fontFamily: "'Lilita One', cursive" }}
+            >
+              <div className="text-5xl">🛍️</div>
+              <div className="text-lg">GASTAR DIAMANTES</div>
+              <div className="text-[11px] font-normal opacity-90">Ouro, baús e acelerações</div>
+            </button>
+          </div>
+        )}
 
-        <div className="space-y-2">
-          {STORE_ITEMS.map((item) => {
-            const cantAfford = save.gems < item.cost;
-            return (
-              <div
-                key={item.id}
-                className="flex items-center gap-3 rounded-xl border-2 border-[#f5c542]/30 bg-[#152b5c]/60 p-3"
-              >
-                <div className="text-3xl">{item.icon}</div>
-                <div className="flex-1">
-                  <div
-                    className="flex items-center gap-2 text-sm text-[#f5c542]"
-                    style={{ fontFamily: "'Lilita One', cursive" }}
-                  >
-                    {item.title}
-                    {item.tag && (
-                      <span className="rounded-full bg-[#f5c542] px-2 py-[1px] text-[9px] uppercase text-[#0a1c3a]">
-                        {item.tag}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-[11px] text-[#e8ecf1]/70">{item.desc}</div>
-                </div>
-                <button
-                  onClick={() => onBuy(item.id)}
-                  disabled={cantAfford}
-                  className={`rounded-lg border-2 px-3 py-2 text-xs ${
-                    cantAfford
-                      ? "border-slate-600 bg-slate-800 text-slate-500"
-                      : "border-[#f5c542] bg-gradient-to-b from-[#f5c542] to-[#d4a02a] text-[#0a1c3a]"
-                  }`}
-                  style={{ fontFamily: "'Lilita One', cursive" }}
-                >
-                  💎 {item.cost}
-                </button>
+        {mode === "buy" && (
+          <>
+            <p className="mb-3 rounded-lg border border-emerald-400/40 bg-emerald-500/10 p-2 text-[11px] text-emerald-200">
+              💎 Escolha o pacote ideal. O pagamento é processado com segurança pelo InfinitePay.
+              Diamantes são creditados após confirmação.
+            </p>
+            {diamondPacks.length > 0 ? (
+              <RemoteOffersPanel offers={diamondPacks} />
+            ) : (
+              <div className="rounded-xl border-2 border-amber-400/30 bg-[#0a1c3a]/70 p-4 text-center text-sm text-amber-200/80">
+                Nenhum pacote de diamantes disponível no momento.
+                <br />
+                <span className="text-[11px] opacity-70">Volte mais tarde ou fale com o suporte.</span>
               </div>
-            );
-          })}
-        </div>
+            )}
+          </>
+        )}
 
-        <p className="mt-4 text-center text-[10px] text-[#e8ecf1]/50">
-          Ganhe 💎 derrotando chefões (a cada 10 estágios) e vencendo no PvP.
-        </p>
+        {mode === "spend" && (
+          <>
+            <p className="mb-3 rounded-lg border border-emerald-400/40 bg-emerald-500/10 p-2 text-[11px] text-emerald-200">
+              ⚖️ <b>100% Pay-to-Fast:</b> a loja só vende ouro, baús e acelerações
+              — nunca atributos, XP direto ou avanço automático de estágio.
+            </p>
+            <div className="space-y-2">
+              {STORE_ITEMS.map((item) => {
+                const cantAfford = save.gems < item.cost;
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 rounded-xl border-2 border-[#f5c542]/30 bg-[#152b5c]/60 p-3"
+                  >
+                    <div className="text-3xl">{item.icon}</div>
+                    <div className="flex-1">
+                      <div
+                        className="flex items-center gap-2 text-sm text-[#f5c542]"
+                        style={{ fontFamily: "'Lilita One', cursive" }}
+                      >
+                        {item.title}
+                        {item.tag && (
+                          <span className="rounded-full bg-[#f5c542] px-2 py-[1px] text-[9px] uppercase text-[#0a1c3a]">
+                            {item.tag}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-[#e8ecf1]/70">{item.desc}</div>
+                    </div>
+                    <button
+                      onClick={() => onBuy(item.id)}
+                      disabled={cantAfford}
+                      className={`rounded-lg border-2 px-3 py-2 text-xs ${
+                        cantAfford
+                          ? "border-slate-600 bg-slate-800 text-slate-500"
+                          : "border-[#f5c542] bg-gradient-to-b from-[#f5c542] to-[#d4a02a] text-[#0a1c3a]"
+                      }`}
+                      style={{ fontFamily: "'Lilita One', cursive" }}
+                    >
+                      💎 {item.cost}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-4 text-center text-[10px] text-[#e8ecf1]/50">
+              Ganhe 💎 derrotando chefões (a cada 10 estágios) e vencendo no PvP.
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
