@@ -1782,9 +1782,9 @@ function GamePage() {
     if (cloudDebounceRef.current) clearTimeout(cloudDebounceRef.current);
     cloudDebounceRef.current = setTimeout(() => {
       if (Date.now() < autoSavePausedUntilRef.current) return; // trava ativa
-      const stamp = new Date(save.lastSeenAt ?? Date.now()).toISOString();
-      lastOwnWriteAtRef.current = stamp;
-      void saveCloudSave(uid, save).catch(() => { /* silencioso */ });
+      void saveCloudSave(uid, save)
+        .then((canonicalStamp) => { lastOwnWriteAtRef.current = canonicalStamp; })
+        .catch(() => { /* silencioso */ });
     }, 1200);
     return () => {
       if (cloudDebounceRef.current) clearTimeout(cloudDebounceRef.current);
@@ -1808,7 +1808,11 @@ function GamePage() {
           const remoteStamp = row?.client_updated_at ?? null;
           const ownStamp = lastOwnWriteAtRef.current;
           if (!remoteStamp) return;
-          if (ownStamp && remoteStamp === ownStamp) return; // eco do próprio write
+          if (ownStamp) {
+            const dr = new Date(remoteStamp).getTime();
+            const dl = new Date(ownStamp).getTime();
+            if (Number.isFinite(dr) && Number.isFinite(dl) && Math.abs(dr - dl) < 2000) return; // eco do próprio write
+          }
           if (lastAppliedRemoteStampRef.current === remoteStamp) return;
           if (!row || row.save_data === undefined) return;
 

@@ -135,7 +135,7 @@ export async function loadCloudSave(userId: string): Promise<CloudSaveRow | null
   return (data as CloudSaveRow | null) ?? null;
 }
 
-export async function saveCloudSave(userId: string, save: unknown): Promise<void> {
+export async function saveCloudSave(userId: string, save: unknown): Promise<string> {
   const s = summarize(save);
   const payload = {
     user_id: userId,
@@ -145,10 +145,13 @@ export async function saveCloudSave(userId: string, save: unknown): Promise<void
     prestige_level: s.prestigeLevel, gems: s.gems, essence: s.essence,
     client_updated_at: s.updatedAt,
   };
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("player_saves")
-    .upsert(payload, { onConflict: "user_id" });
+    .upsert(payload, { onConflict: "user_id" })
+    .select("client_updated_at")
+    .maybeSingle();
   if (error) throw error;
+  return (data?.client_updated_at as string | undefined) ?? s.updatedAt;
 }
 
 export async function createCloudBackup(userId: string, save: unknown, reason: string): Promise<void> {
