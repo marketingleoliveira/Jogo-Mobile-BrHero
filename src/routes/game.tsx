@@ -3050,6 +3050,9 @@ function GamePage() {
             >
               MORREU!
             </span>
+            <span className="text-xs text-slate-300 animate-[fadeInOverlay_600ms_ease-out_400ms_both]">
+              Retornando ao início da fase em <span className="text-amber-300 font-bold">{deathCountdown ?? 5}s</span>
+            </span>
             <div className="flex flex-col gap-2 w-56 animate-[fadeInOverlay_600ms_ease-out_400ms_both]">
               <button
                 onClick={() => {
