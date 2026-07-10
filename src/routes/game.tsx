@@ -3001,6 +3001,7 @@ function GamePage() {
           @keyframes heroBounce{0%,100%{transform:translateY(0) scale(1)}20%{transform:translateY(-18px) scale(1.15)}45%{transform:translateY(0) scale(0.92)}65%{transform:translateY(-8px) scale(1.05)}85%{transform:translateY(0) scale(0.98)}}
           @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
           @keyframes levelPop{0%{transform:scale(0.5) rotate(-8deg);opacity:0}60%{transform:scale(1.15) rotate(4deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+          @keyframes deathPop{0%{transform:scale(0.2) rotate(-15deg);opacity:0}25%{transform:scale(1.4) rotate(6deg);opacity:1}45%{transform:scale(1) rotate(-3deg);opacity:1}80%{transform:scale(1.05) rotate(0);opacity:1}100%{transform:scale(1.2) rotate(0);opacity:0}}
         `}</style>
       </section>
 
