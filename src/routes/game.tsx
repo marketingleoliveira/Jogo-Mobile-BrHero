@@ -1816,7 +1816,8 @@ function GamePage() {
             cloudDebounceRef.current = null;
           }
 
-          const next = ensureEventStarted(mergeSave(row.save_data));
+          const next = mergeSave(row.save_data);
+          next.event = ensureEventStarted(next);
           lastAppliedRemoteStampRef.current = remoteStamp;
           saveRef.current = next;
           setSave(next);
