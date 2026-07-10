@@ -1726,24 +1726,11 @@ function GamePage() {
         onEnemyKilled();
       }
 
-      // Hero died — show MORREU banner, then respawn with full hp, retreat 1 stage
+      // Hero died — show MORREU banner + action buttons; wait for user
       if (heroHpRef.current <= 0 && !heroDyingRef.current) {
         heroDyingRef.current = true;
         setHeroDying(true);
         setDeathBanner("hero");
-        setTimeout(() => {
-          const cur = saveRef.current;
-          if (cur) {
-            const newStage = Math.max(1, cur.stage - 1);
-            const next = { ...cur, stage: newStage };
-            setSave(next);
-            saveRef.current = next;
-          }
-          respawn();
-          setHeroDying(false);
-          setDeathBanner(null);
-          heroDyingRef.current = false;
-        }, 1200);
       }
     }, TICK);
     return () => clearInterval(interval);
