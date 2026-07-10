@@ -79,7 +79,7 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const navigate = useNavigate();
-  const [account, setAccount] = useState<Account | null>(() => loadAccount());
+  const [account, setAccount] = useState<Account | null>(null);
   const [signingIn, setSigningIn] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
 
@@ -95,6 +95,8 @@ function Landing() {
   // Hydrate session from Supabase and keep in sync
   useEffect(() => {
     let mounted = true;
+    const storedAccount = loadAccount();
+    if (storedAccount) setAccount(storedAccount);
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
       if (localStorage.getItem(LOGOUT_INTENT_KEY) === "1") {
