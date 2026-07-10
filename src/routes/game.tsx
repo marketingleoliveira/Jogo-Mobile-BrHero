@@ -31,6 +31,8 @@ import skeletonSprite from "@/assets/sprite-skeleton.png";
 import bossDragonSprite from "@/assets/sprite-boss-dragon.png";
 import woodTexture from "@/assets/wood-texture.jpg";
 import { resolveRemoteRedeem } from "@/lib/game/remote-codes";
+import { captureReferralFromUrl, tryClaimPendingReferral, buildInviteLink, useReferralStats } from "@/lib/game/referrals";
+import { supabase as _supaClient } from "@/integrations/supabase/client";
 import { getLiveOpsMultipliers, useLiveOps } from "@/lib/game/remote-liveops";
 import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
 import { CloudSaveModal } from "@/components/game/cloud-save-modal";
