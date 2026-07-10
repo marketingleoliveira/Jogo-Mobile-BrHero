@@ -3005,9 +3005,9 @@ function GamePage() {
 
         {/* Enemy */}
         <div
-          className={`absolute bottom-10 right-6 flex flex-col items-center transition-transform duration-150 ease-out ${
+          className={`absolute bottom-10 right-6 sm:right-16 md:right-24 flex flex-col items-center transition-transform duration-[380ms] ease-in-out ${
             enemyDying ? "opacity-0 scale-50 rotate-12" : ""
-          } ${enemyLunge ? "-translate-x-16" : enemyHit ? "-translate-x-1" : ""}`}
+          } ${enemyLunge ? "-translate-x-24 sm:-translate-x-40" : enemyHit ? "-translate-x-2" : ""}`}
         >
           <div className="mb-1 h-2 w-20 overflow-hidden rounded-full border-2 border-black/60 bg-black/50">
             <div
