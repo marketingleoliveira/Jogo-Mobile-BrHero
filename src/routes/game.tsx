@@ -6590,7 +6590,7 @@ function RemoteOffersPanel({ offers }: { offers: RemoteOffer[] }) {
           🎁 Ofertas do Admin
         </h3>
         <span className="rounded-full bg-amber-500/20 px-2 py-[1px] text-[9px] uppercase text-amber-300">
-          {canBuy ? "sandbox ativo" : "somente leitura"}
+          {canBuy ? (isInfinitepay ? "infinitepay ativo" : "sandbox ativo") : "somente leitura"}
         </span>
       </div>
       {offers.map((o) => {
@@ -6612,7 +6612,7 @@ function RemoteOffersPanel({ offers }: { offers: RemoteOffer[] }) {
             <div className="flex flex-col items-end gap-1">
               <div className="text-[11px] text-amber-100">
                 {paid
-                  ? `R$ ${(o.price / 100).toFixed(2).replace(".", ",")}`
+                  ? `R$ ${o.price.toFixed(2).replace(".", ",")}`
                   : `${currencyIcon(o.currency)} ${o.price.toLocaleString("pt-BR")}`}
               </div>
               {showBuy ? (
