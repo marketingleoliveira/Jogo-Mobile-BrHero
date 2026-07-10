@@ -3378,7 +3378,7 @@ function GamePage() {
                   <div className="h-2.5 w-2.5 rotate-45 rounded-sm bg-amber-400" />
                   {fmt(cost)}
                 </div>
-              </button>
+              </HoldButton>
             </div>
           );
         })}
