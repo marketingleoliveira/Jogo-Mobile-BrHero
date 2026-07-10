@@ -5,6 +5,7 @@ import brheroLogo from "@/assets/brhero-logo.png.asset.json";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import { startNativeGoogleSignIn, isBrHeroNativeApp } from "@/lib/native-auth";
+import { LOGOUT_INTENT_KEY } from "@/lib/game/single-session";
 import {
   Swords,
   Sparkles,
@@ -32,6 +33,10 @@ type Account = {
 
 function loadAccount(): Account | null {
   if (typeof window === "undefined") return null;
+  if (localStorage.getItem(LOGOUT_INTENT_KEY) === "1") {
+    localStorage.removeItem(ACCOUNT_KEY);
+    return null;
+  }
   try {
     const raw = localStorage.getItem(ACCOUNT_KEY);
     return raw ? (JSON.parse(raw) as Account) : null;
@@ -74,12 +79,13 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const navigate = useNavigate();
-  const [account, setAccount] = useState<Account | null>(() => loadAccount());
+  const [account, setAccount] = useState<Account | null>(null);
   const [signingIn, setSigningIn] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
 
   // Autologado? Vai direto para o jogo (web-first).
   useEffect(() => {
+    if (localStorage.getItem(LOGOUT_INTENT_KEY) === "1") return;
     if (account) {
       navigate({ to: "/game", replace: true });
     }
@@ -89,8 +95,18 @@ function Landing() {
   // Hydrate session from Supabase and keep in sync
   useEffect(() => {
     let mounted = true;
+    const storedAccount = loadAccount();
+    if (storedAccount) setAccount(storedAccount);
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
+      if (localStorage.getItem(LOGOUT_INTENT_KEY) === "1") {
+        localStorage.removeItem(ACCOUNT_KEY);
+        setAccount(null);
+        void supabase.auth.signOut().finally(() => {
+          localStorage.removeItem(LOGOUT_INTENT_KEY);
+        });
+        return;
+      }
       const u = data.session?.user;
       if (u) {
         const acc = accountFromUser(u);
@@ -99,6 +115,12 @@ function Landing() {
       }
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (localStorage.getItem(LOGOUT_INTENT_KEY) === "1") {
+        localStorage.removeItem(ACCOUNT_KEY);
+        setAccount(null);
+        if (!session) localStorage.removeItem(LOGOUT_INTENT_KEY);
+        return;
+      }
       const u = session?.user;
       if (u) {
         const acc = accountFromUser(u);
@@ -113,6 +135,7 @@ function Landing() {
   }, []);
 
   const handleGoogle = async () => {
+    localStorage.removeItem(LOGOUT_INTENT_KEY);
     setSignInError(null);
     setSigningIn(true);
     try {
