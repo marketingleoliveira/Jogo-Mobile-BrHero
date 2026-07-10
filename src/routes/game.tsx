@@ -3572,21 +3572,40 @@ function GamePage() {
               </button>
             );
           })}
-          {PASSIVE_SLOTS.map((ps) => (
-            <button
-              key={ps.name}
-              disabled
-              title={`${ps.name} — libera no Lv ${ps.unlock}`}
-              aria-label={`${ps.name} bloqueada até Lv ${ps.unlock}`}
-              onClick={() => flashToast(`🔒 ${ps.name} libera no Lv ${ps.unlock}`)}
-              className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl border-4 border-[#1A0F08] bg-[#2A1810] p-1 shadow-lg"
-            >
-              <Lock className="h-4 w-4 text-amber-200/40" />
-              <span className="mt-0.5 rounded-full bg-black/60 px-1.5 text-[9px] font-bold text-amber-200 leading-tight">
-                Lv {ps.unlock}
-              </span>
-            </button>
-          ))}
+          {PASSIVE_SLOTS.map((ps) => {
+            const unlocked = save.level >= ps.unlock;
+            return (
+              <button
+                key={ps.name}
+                disabled={!unlocked}
+                title={unlocked ? `${ps.name} — ${ps.desc}` : `${ps.name} — libera no Lv ${ps.unlock}`}
+                aria-label={unlocked ? `${ps.name} ativa` : `${ps.name} bloqueada até Lv ${ps.unlock}`}
+                onClick={() =>
+                  flashToast(unlocked ? `✨ ${ps.name}: ${ps.desc}` : `🔒 ${ps.name} libera no Lv ${ps.unlock}`)
+                }
+                className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl border-4 border-[#1A0F08] p-1 shadow-lg ${
+                  unlocked ? "bg-gradient-to-br from-fuchsia-500 to-purple-700" : "bg-[#2A1810]"
+                }`}
+              >
+                {unlocked ? (
+                  <>
+                    <Crown className="h-5 w-5 text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.7)]" strokeWidth={2.6} />
+                    <span className="mt-0.5 text-[9px] font-bold uppercase text-white/95 leading-none drop-shadow-[0_1px_0_rgba(0,0,0,0.7)]">
+                      {ps.name}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4 text-amber-200/40" />
+                    <span className="mt-0.5 rounded-full bg-black/60 px-1.5 text-[9px] font-bold text-amber-200 leading-tight">
+                      Lv {ps.unlock}
+                    </span>
+                  </>
+                )}
+              </button>
+            );
+          })}
+
         </div>
       </section>
 
