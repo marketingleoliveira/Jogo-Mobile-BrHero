@@ -257,6 +257,58 @@ const DUNGEON_DEFS: Record<DungeonKind, { label: string; icon: string; desc: str
   essence: { label: "Masmorra de Essência",    icon: "✨", desc: "Essência garantida + baú épico.",    color: "from-fuchsia-500 to-purple-700" },
 };
 
+function HoldButton({
+  onTick,
+  disabled,
+  className,
+  children,
+}: {
+  onTick: () => void;
+  disabled?: boolean;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tickRef = useRef(onTick);
+  tickRef.current = onTick;
+
+  const stop = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const start = useCallback(() => {
+    if (disabled) return;
+    stop();
+    tickRef.current();
+    let delay = 320;
+    const loop = () => {
+      tickRef.current();
+      delay = Math.max(40, delay - 25);
+      timerRef.current = setTimeout(loop, delay);
+    };
+    timerRef.current = setTimeout(loop, delay);
+  }, [disabled, stop]);
+
+  useEffect(() => stop, [stop]);
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      className={className}
+      onPointerDown={(e) => { e.preventDefault(); start(); }}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
+    >
+      {children}
+    </button>
+  );
+}
+
 function dungeonKeysNow(d: DungeonState): { keys: number; lastKeyAt: number; nextInMs: number } {
   const now = Date.now();
   const elapsed = now - d.lastKeyAt;
@@ -3361,8 +3413,8 @@ function GamePage() {
               </div>
 
               {/* Upgrade button */}
-              <button
-                onClick={() => upgrade(key)}
+              <HoldButton
+                onTick={() => upgrade(key)}
                 disabled={!can}
                 className={`flex h-14 shrink-0 flex-col items-center justify-center rounded-2xl border-b-4 px-3 transition-transform active:translate-y-1 active:border-b-0 ${
                   can
@@ -3378,7 +3430,7 @@ function GamePage() {
                   <div className="h-2.5 w-2.5 rotate-45 rounded-sm bg-amber-400" />
                   {fmt(cost)}
                 </div>
-              </button>
+              </HoldButton>
             </div>
           );
         })}
