@@ -204,9 +204,9 @@ function AdminDashboard() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
           <Link key={k.label} to={k.to} className="block">
-            <Card className="border-slate-800 bg-slate-900/60 text-slate-100 transition hover:border-amber-500/40 hover:bg-slate-900">
+            <Card className="border-slate-200 bg-white text-slate-900 transition hover:border-amber-500/40 hover:bg-white">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-600">
                   {k.label}
                 </CardTitle>
                 <k.icon className="h-4 w-4 text-amber-400" />
@@ -222,7 +222,7 @@ function AdminDashboard() {
 
       {/* Alerts */}
       {alerts.length > 0 && (
-        <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+        <Card className="border-slate-200 bg-white text-slate-900">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-bold">
               <AlertTriangle className="h-4 w-4 text-amber-400" /> Alertas ({alerts.length})
@@ -251,7 +251,7 @@ function AdminDashboard() {
 
       {/* Charts row 1 */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+        <Card className="border-slate-200 bg-white text-slate-900">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm font-bold">
               <TrendingUp className="h-4 w-4 text-amber-400" /> Crescimento de jogadores (7d)
@@ -278,7 +278,7 @@ function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+        <Card className="border-slate-200 bg-white text-slate-900">
           <CardHeader>
             <CardTitle className="text-sm font-bold">Distribuição por nível</CardTitle>
           </CardHeader>
@@ -300,7 +300,7 @@ function AdminDashboard() {
 
       {/* Charts row 2 */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="border-slate-800 bg-slate-900/60 text-slate-100 lg:col-span-2">
+        <Card className="border-slate-200 bg-white text-slate-900 lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm font-bold">
               <Coins className="h-4 w-4 text-amber-400" /> Economia (24h) — ouro/cristais
@@ -322,7 +322,7 @@ function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+        <Card className="border-slate-200 bg-white text-slate-900">
           <CardHeader>
             <CardTitle className="text-sm font-bold">Uso de códigos</CardTitle>
           </CardHeader>
@@ -344,7 +344,7 @@ function AdminDashboard() {
 
       {/* Admin activity + Feed */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+        <Card className="border-slate-200 bg-white text-slate-900">
           <CardHeader>
             <CardTitle className="text-sm font-bold">Atividade administrativa</CardTitle>
           </CardHeader>
@@ -363,11 +363,11 @@ function AdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-800 bg-slate-900/60 text-slate-100 lg:col-span-2">
+        <Card className="border-slate-200 bg-white text-slate-900 lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-bold">Feed de auditoria consolidado</CardTitle>
             <Link to="/admin/logs">
-              <Button size="sm" variant="outline" className="h-7 border-slate-700 bg-slate-800 text-xs text-slate-200 hover:bg-slate-700">
+              <Button size="sm" variant="outline" className="h-7 border-slate-300 bg-slate-800 text-xs text-slate-200 hover:bg-slate-700">
                 Ver todos
               </Button>
             </Link>
@@ -378,17 +378,17 @@ function AdminDashboard() {
             ) : (
               <ul className="space-y-2 text-xs">
                 {feed.map((e, i) => (
-                  <li key={i} className="rounded border border-slate-800 bg-slate-950/40 p-2">
+                  <li key={i} className="rounded border border-slate-200 bg-slate-50 p-2">
                     <div className="flex items-center justify-between text-slate-300">
                       <span className="font-mono">{new Date(e.date).toLocaleString("pt-BR")}</span>
-                      <Badge variant="outline" className="border-slate-700 bg-slate-800/60 text-[10px] uppercase tracking-widest text-slate-300">
+                      <Badge variant="outline" className="border-slate-300 bg-slate-800/60 text-[10px] uppercase tracking-widest text-slate-300">
                         {e.source}
                       </Badge>
                     </div>
                     <div className="mt-1 text-slate-200">
                       <span className="font-bold uppercase">{e.action}</span> — {e.target}
                     </div>
-                    {e.reason && <div className="text-slate-400">Motivo: {e.reason}</div>}
+                    {e.reason && <div className="text-slate-600">Motivo: {e.reason}</div>}
                   </li>
                 ))}
               </ul>

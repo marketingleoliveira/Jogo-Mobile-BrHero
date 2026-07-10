@@ -101,7 +101,7 @@ function ItemsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-800 bg-gradient-to-br from-slate-900/80 to-slate-900/40 text-slate-100">
+      <Card className="border-slate-200 bg-gradient-to-br from-slate-900/80 to-slate-900/40 text-slate-900">
         <CardContent className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-lg bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30">
@@ -109,7 +109,7 @@ function ItemsPage() {
             </div>
             <div>
               <h2 className="text-lg font-black tracking-tight">Itens · Catálogo Geral</h2>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-slate-600">
                 Equipamentos, pets, runas, cosméticos, baús, títulos e mais. Mock local.
               </p>
             </div>
@@ -121,7 +121,7 @@ function ItemsPage() {
       </Card>
 
       {/* Filters */}
-      <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+      <Card className="border-slate-200 bg-white text-slate-900">
         <CardContent className="grid gap-3 p-4 md:grid-cols-5">
           <div className="relative md:col-span-2">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -129,13 +129,13 @@ function ItemsPage() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar por nome…"
-              className="border-slate-700 bg-slate-950 pl-8 text-slate-100"
+              className="border-slate-300 bg-slate-50 pl-8 text-slate-900"
             />
           </div>
 
           <Select value={fType} onValueChange={(v) => setFType(v as ItemType | "all")}>
-            <SelectTrigger className="border-slate-700 bg-slate-950 text-slate-100"><SelectValue placeholder="Tipo" /></SelectTrigger>
-            <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+            <SelectTrigger className="border-slate-300 bg-slate-50 text-slate-900"><SelectValue placeholder="Tipo" /></SelectTrigger>
+            <SelectContent className="border-slate-300 bg-white text-slate-900">
               <SelectItem value="all">Todos os tipos</SelectItem>
               {ITEM_TYPES.map((t) => (
                 <SelectItem key={t} value={t}>{ITEM_TYPE_LABEL[t]}</SelectItem>
@@ -144,8 +144,8 @@ function ItemsPage() {
           </Select>
 
           <Select value={fRarity} onValueChange={(v) => setFRarity(v as ItemRarity | "all")}>
-            <SelectTrigger className="border-slate-700 bg-slate-950 text-slate-100"><SelectValue placeholder="Raridade" /></SelectTrigger>
-            <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+            <SelectTrigger className="border-slate-300 bg-slate-50 text-slate-900"><SelectValue placeholder="Raridade" /></SelectTrigger>
+            <SelectContent className="border-slate-300 bg-white text-slate-900">
               <SelectItem value="all">Todas as raridades</SelectItem>
               {RARITIES.map((r) => (
                 <SelectItem key={r} value={r}>{RARITY_LABEL[r]}</SelectItem>
@@ -154,8 +154,8 @@ function ItemsPage() {
           </Select>
 
           <Select value={fActive} onValueChange={(v) => setFActive(v as "all" | "on" | "off")}>
-            <SelectTrigger className="border-slate-700 bg-slate-950 text-slate-100"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+            <SelectTrigger className="border-slate-300 bg-slate-50 text-slate-900"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent className="border-slate-300 bg-white text-slate-900">
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="on">Ativos</SelectItem>
               <SelectItem value="off">Inativos</SelectItem>
@@ -163,8 +163,8 @@ function ItemsPage() {
           </Select>
 
           <Select value={fSource || "all"} onValueChange={(v) => setFSource(v === "all" ? "" : v)}>
-            <SelectTrigger className="border-slate-700 bg-slate-950 text-slate-100"><SelectValue placeholder="Origem" /></SelectTrigger>
-            <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+            <SelectTrigger className="border-slate-300 bg-slate-50 text-slate-900"><SelectValue placeholder="Origem" /></SelectTrigger>
+            <SelectContent className="border-slate-300 bg-white text-slate-900">
               <SelectItem value="all">Todas as origens</SelectItem>
               {sources.map((s) => (
                 <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -174,7 +174,7 @@ function ItemsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+      <Card className="border-slate-200 bg-white text-slate-900">
         <CardHeader>
           <CardTitle className="text-sm font-bold">
             Itens ({filtered.length}/{items.length})
@@ -183,20 +183,20 @@ function ItemsPage() {
         <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-slate-800">
-                <TableHead className="text-slate-400">Item</TableHead>
-                <TableHead className="text-slate-400">Tipo</TableHead>
-                <TableHead className="text-slate-400">Raridade</TableHead>
-                <TableHead className="text-slate-400">Origem</TableHead>
-                <TableHead className="text-slate-400">Drop</TableHead>
-                <TableHead className="text-slate-400">Atributos</TableHead>
-                <TableHead className="text-slate-400">Status</TableHead>
-                <TableHead className="text-right text-slate-400">Ações</TableHead>
+              <TableRow className="border-slate-200">
+                <TableHead className="text-slate-600">Item</TableHead>
+                <TableHead className="text-slate-600">Tipo</TableHead>
+                <TableHead className="text-slate-600">Raridade</TableHead>
+                <TableHead className="text-slate-600">Origem</TableHead>
+                <TableHead className="text-slate-600">Drop</TableHead>
+                <TableHead className="text-slate-600">Atributos</TableHead>
+                <TableHead className="text-slate-600">Status</TableHead>
+                <TableHead className="text-right text-slate-600">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((i) => (
-                <TableRow key={i.id} className="border-slate-800 hover:bg-slate-800/40">
+                <TableRow key={i.id} className="border-slate-200 hover:bg-slate-800/40">
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{i.icon}</span>
@@ -262,7 +262,7 @@ function ItemsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+      <Card className="border-slate-200 bg-white text-slate-900">
         <CardHeader>
           <CardTitle className="text-sm font-bold">Audit Logs ({logs.length})</CardTitle>
         </CardHeader>
@@ -272,7 +272,7 @@ function ItemsPage() {
           ) : (
             <ul className="space-y-2 text-xs">
               {logs.map((l) => (
-                <li key={l.id} className="rounded border border-slate-800 bg-slate-950/40 p-2">
+                <li key={l.id} className="rounded border border-slate-200 bg-slate-50 p-2">
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="font-mono">{new Date(l.date).toLocaleString("pt-BR")}</span>
                     <span className="text-amber-300">{l.admin}</span>
@@ -280,7 +280,7 @@ function ItemsPage() {
                   <div className="mt-1 text-slate-200">
                     <span className="font-bold uppercase">{l.action}</span> — {l.item}
                   </div>
-                  <div className="text-slate-400">Motivo: {l.reason}</div>
+                  <div className="text-slate-600">Motivo: {l.reason}</div>
                 </li>
               ))}
             </ul>
@@ -296,14 +296,14 @@ function ItemsPage() {
       )}
 
       <AlertDialog open={!!pending} onOpenChange={(o) => { if (!o) { setPending(null); setReason(""); } }}>
-        <AlertDialogContent className="border-slate-800 bg-slate-900 text-slate-100">
+        <AlertDialogContent className="border-slate-200 bg-white text-slate-900">
           <AlertDialogHeader>
             <AlertDialogTitle>
               {pending?.kind === "toggle"
                 ? (pending.item.active ? "Desativar item?" : "Ativar item?")
                 : "Excluir item?"}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-slate-600">
               Esta ação será registrada no log de auditoria.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -313,11 +313,11 @@ function ItemsPage() {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Descreva o motivo"
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="border-slate-300 bg-slate-800 text-slate-900 hover:bg-slate-700">Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDestructive} className="bg-amber-500 text-slate-950 hover:bg-amber-400">
               Confirmar
             </AlertDialogAction>
@@ -369,10 +369,10 @@ function EditorDialog({
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-2xl border-slate-800 bg-slate-900 text-slate-100">
+      <DialogContent className="max-w-2xl border-slate-200 bg-white text-slate-900">
         <DialogHeader>
           <DialogTitle>{initial ? "Editar item" : "Novo item"}</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-slate-600">
             Toda alteração registra motivo em audit log.
           </DialogDescription>
         </DialogHeader>
@@ -383,15 +383,15 @@ function EditorDialog({
             <Input
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
 
           <div>
             <Label className="text-slate-300">Tipo</Label>
             <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as ItemType })}>
-              <SelectTrigger className="border-slate-700 bg-slate-950 text-slate-100"><SelectValue /></SelectTrigger>
-              <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+              <SelectTrigger className="border-slate-300 bg-slate-50 text-slate-900"><SelectValue /></SelectTrigger>
+              <SelectContent className="border-slate-300 bg-white text-slate-900">
                 {ITEM_TYPES.map((t) => (
                   <SelectItem key={t} value={t}>{ITEM_TYPE_LABEL[t]}</SelectItem>
                 ))}
@@ -402,8 +402,8 @@ function EditorDialog({
           <div>
             <Label className="text-slate-300">Raridade</Label>
             <Select value={form.rarity} onValueChange={(v) => setForm({ ...form, rarity: v as ItemRarity })}>
-              <SelectTrigger className="border-slate-700 bg-slate-950 text-slate-100"><SelectValue /></SelectTrigger>
-              <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+              <SelectTrigger className="border-slate-300 bg-slate-50 text-slate-900"><SelectValue /></SelectTrigger>
+              <SelectContent className="border-slate-300 bg-white text-slate-900">
                 {RARITIES.map((r) => (
                   <SelectItem key={r} value={r}>{RARITY_LABEL[r]}</SelectItem>
                 ))}
@@ -416,7 +416,7 @@ function EditorDialog({
             <Input
               value={form.icon}
               onChange={(e) => setForm({ ...form, icon: e.target.value })}
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
 
@@ -426,7 +426,7 @@ function EditorDialog({
               value={form.source}
               onChange={(e) => setForm({ ...form, source: e.target.value })}
               placeholder="Ex.: Baú Épico, Arena S1"
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
 
@@ -436,7 +436,7 @@ function EditorDialog({
               type="number" min={0} max={100} step={0.1}
               value={form.dropRate}
               onChange={(e) => setForm({ ...form, dropRate: Number(e.target.value) || 0 })}
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
 
@@ -452,24 +452,24 @@ function EditorDialog({
             <Textarea
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
 
           {hasAttributes(form.type) && (
-            <div className="md:col-span-2 rounded-md border border-slate-800 bg-slate-950/40 p-3">
+            <div className="md:col-span-2 rounded-md border border-slate-200 bg-slate-50 p-3">
               <div className="mb-2 text-xs font-bold uppercase tracking-widest text-amber-300">
                 Atributos
               </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                 {(["atk", "def", "hp", "crit", "speed"] as const).map((k) => (
                   <div key={k}>
-                    <Label className="text-[11px] uppercase text-slate-400">{k}</Label>
+                    <Label className="text-[11px] uppercase text-slate-600">{k}</Label>
                     <Input
                       type="number" min={0}
                       value={form.attributes[k] ?? 0}
                       onChange={(e) => setAttr(k, Number(e.target.value) || 0)}
-                      className="border-slate-700 bg-slate-950 text-slate-100"
+                      className="border-slate-300 bg-slate-50 text-slate-900"
                     />
                   </div>
                 ))}
@@ -484,7 +484,7 @@ function EditorDialog({
                 value={form.visualCategory}
                 onChange={(e) => setForm({ ...form, visualCategory: e.target.value })}
                 placeholder="Ex.: Aura, Traje completo, Nameplate"
-                className="border-slate-700 bg-slate-950 text-slate-100"
+                className="border-slate-300 bg-slate-50 text-slate-900"
               />
             </div>
           )}
@@ -495,13 +495,13 @@ function EditorDialog({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Ex.: rebalanceamento pós-torneio"
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700">
+          <Button variant="outline" onClick={onClose} className="border-slate-300 bg-slate-800 text-slate-900 hover:bg-slate-700">
             Cancelar
           </Button>
           <Button onClick={submit} className="bg-amber-500 text-slate-950 hover:bg-amber-400">

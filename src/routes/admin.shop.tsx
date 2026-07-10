@@ -88,7 +88,7 @@ function ShopPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-800 bg-gradient-to-br from-slate-900/80 to-slate-900/40 text-slate-100">
+      <Card className="border-slate-200 bg-gradient-to-br from-slate-900/80 to-slate-900/40 text-slate-900">
         <CardContent className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-lg bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30">
@@ -96,7 +96,7 @@ function ShopPage() {
             </div>
             <div>
               <h2 className="text-lg font-black tracking-tight">Loja</h2>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-slate-600">
                 CMS de ofertas. Mock local — sem pagamento real.
               </p>
             </div>
@@ -132,22 +132,22 @@ function ShopPage() {
         </div>
       )}
 
-      <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+      <Card className="border-slate-200 bg-white text-slate-900">
         <CardHeader>
           <CardTitle className="text-sm font-bold">Itens ({items.length})</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-slate-800">
-                <TableHead className="text-slate-400">Nome</TableHead>
-                <TableHead className="text-slate-400">Tipo</TableHead>
-                <TableHead className="text-slate-400">Preço</TableHead>
-                <TableHead className="text-slate-400">Raridade</TableHead>
-                <TableHead className="text-slate-400">Estoque</TableHead>
-                <TableHead className="text-slate-400">Vendidos</TableHead>
-                <TableHead className="text-slate-400">Status</TableHead>
-                <TableHead className="text-right text-slate-400">Ações</TableHead>
+              <TableRow className="border-slate-200">
+                <TableHead className="text-slate-600">Nome</TableHead>
+                <TableHead className="text-slate-600">Tipo</TableHead>
+                <TableHead className="text-slate-600">Preço</TableHead>
+                <TableHead className="text-slate-600">Raridade</TableHead>
+                <TableHead className="text-slate-600">Estoque</TableHead>
+                <TableHead className="text-slate-600">Vendidos</TableHead>
+                <TableHead className="text-slate-600">Status</TableHead>
+                <TableHead className="text-right text-slate-600">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -155,7 +155,7 @@ function ShopPage() {
                 const st = shopStatus(i);
                 const b = statusBadge[st];
                 return (
-                  <TableRow key={i.id} className="border-slate-800 hover:bg-slate-800/40">
+                  <TableRow key={i.id} className="border-slate-200 hover:bg-slate-800/40">
                     <TableCell className="font-semibold">
                       <div className="flex items-center gap-2">
                         {i.featured && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />}
@@ -206,7 +206,7 @@ function ShopPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+      <Card className="border-slate-200 bg-white text-slate-900">
         <CardHeader>
           <CardTitle className="text-sm font-bold">Audit Logs ({logs.length})</CardTitle>
         </CardHeader>
@@ -216,7 +216,7 @@ function ShopPage() {
           ) : (
             <ul className="space-y-2 text-xs">
               {logs.map((l) => (
-                <li key={l.id} className="rounded border border-slate-800 bg-slate-950/40 p-2">
+                <li key={l.id} className="rounded border border-slate-200 bg-slate-50 p-2">
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="font-mono">{new Date(l.date).toLocaleString("pt-BR")}</span>
                     <span className="text-amber-300">{l.admin}</span>
@@ -224,7 +224,7 @@ function ShopPage() {
                   <div className="mt-1 text-slate-200">
                     <span className="font-bold uppercase">{l.action}</span> — {l.item}
                   </div>
-                  <div className="text-slate-400">Motivo: {l.reason}</div>
+                  <div className="text-slate-600">Motivo: {l.reason}</div>
                 </li>
               ))}
             </ul>
@@ -240,14 +240,14 @@ function ShopPage() {
       )}
 
       <AlertDialog open={!!pending} onOpenChange={(o) => { if (!o) { setPending(null); setReason(""); } }}>
-        <AlertDialogContent className="border-slate-800 bg-slate-900 text-slate-100">
+        <AlertDialogContent className="border-slate-200 bg-white text-slate-900">
           <AlertDialogHeader>
             <AlertDialogTitle>
               {pending?.kind === "toggle"
                 ? (pending.item.active ? "Desativar item?" : "Ativar item?")
                 : "Excluir item?"}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-slate-600">
               Esta ação será registrada no log de auditoria.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -257,11 +257,11 @@ function ShopPage() {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Descreva o motivo"
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="border-slate-300 bg-slate-800 text-slate-900 hover:bg-slate-700">Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDestructive} className="bg-amber-500 text-slate-950 hover:bg-amber-400">
               Confirmar
             </AlertDialogAction>
@@ -316,10 +316,10 @@ function EditorDialog({
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-2xl border-slate-800 bg-slate-900 text-slate-100">
+      <DialogContent className="max-w-2xl border-slate-200 bg-white text-slate-900">
         <DialogHeader>
           <DialogTitle>{initial ? "Editar item" : "Novo item"}</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-slate-600">
             Toda alteração registra motivo em audit log.
           </DialogDescription>
         </DialogHeader>
@@ -330,15 +330,15 @@ function EditorDialog({
             <Input
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
 
           <div>
             <Label className="text-slate-300">Tipo</Label>
             <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as ShopItemType })}>
-              <SelectTrigger className="border-slate-700 bg-slate-950 text-slate-100"><SelectValue /></SelectTrigger>
-              <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+              <SelectTrigger className="border-slate-300 bg-slate-50 text-slate-900"><SelectValue /></SelectTrigger>
+              <SelectContent className="border-slate-300 bg-white text-slate-900">
                 {SHOP_TYPES.map((t) => (
                   <SelectItem key={t} value={t}>{SHOP_TYPE_LABEL[t]}</SelectItem>
                 ))}
@@ -349,8 +349,8 @@ function EditorDialog({
           <div>
             <Label className="text-slate-300">Raridade</Label>
             <Select value={form.rarity} onValueChange={(v) => setForm({ ...form, rarity: v as ShopRarity })}>
-              <SelectTrigger className="border-slate-700 bg-slate-950 text-slate-100"><SelectValue /></SelectTrigger>
-              <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+              <SelectTrigger className="border-slate-300 bg-slate-50 text-slate-900"><SelectValue /></SelectTrigger>
+              <SelectContent className="border-slate-300 bg-white text-slate-900">
                 {RARITIES.map((r) => (
                   <SelectItem key={r} value={r}>{RARITY_LABEL[r]}</SelectItem>
                 ))}
@@ -364,15 +364,15 @@ function EditorDialog({
               type="number" min={0}
               value={form.price}
               onChange={(e) => setForm({ ...form, price: Number(e.target.value) || 0 })}
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
 
           <div>
             <Label className="text-slate-300">Moeda</Label>
             <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v as ShopCurrency })}>
-              <SelectTrigger className="border-slate-700 bg-slate-950 text-slate-100"><SelectValue /></SelectTrigger>
-              <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+              <SelectTrigger className="border-slate-300 bg-slate-50 text-slate-900"><SelectValue /></SelectTrigger>
+              <SelectContent className="border-slate-300 bg-white text-slate-900">
                 {CURRENCIES.map((c) => (
                   <SelectItem key={c} value={c}>{CURRENCY_LABEL[c]}</SelectItem>
                 ))}
@@ -386,7 +386,7 @@ function EditorDialog({
               type="number" min={0}
               value={form.quantity}
               onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) || 0 })}
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
 
@@ -396,7 +396,7 @@ function EditorDialog({
               type="number" min={1}
               value={form.perPlayerLimit}
               onChange={(e) => setForm({ ...form, perPlayerLimit: Number(e.target.value) || 1 })}
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
 
@@ -406,7 +406,7 @@ function EditorDialog({
               type="datetime-local"
               value={toLocalInput(form.startsAt)}
               onChange={(e) => setForm({ ...form, startsAt: fromLocalInput(e.target.value) })}
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
 
@@ -416,7 +416,7 @@ function EditorDialog({
               type="datetime-local"
               value={toLocalInput(form.endsAt)}
               onChange={(e) => setForm({ ...form, endsAt: fromLocalInput(e.target.value) })}
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
 
@@ -437,7 +437,7 @@ function EditorDialog({
               value={form.reward}
               onChange={(e) => setForm({ ...form, reward: e.target.value })}
               placeholder="Ex.: 500 cristais + 1 Baú Épico"
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
 
@@ -447,13 +447,13 @@ function EditorDialog({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Ex.: início da promoção de fim de semana"
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-slate-300 bg-slate-50 text-slate-900"
             />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} className="border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700">
+          <Button variant="outline" onClick={onClose} className="border-slate-300 bg-slate-800 text-slate-900 hover:bg-slate-700">
             Cancelar
           </Button>
           <Button onClick={submit} className="bg-amber-500 text-slate-950 hover:bg-amber-400">

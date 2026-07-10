@@ -121,14 +121,14 @@ function Page() {
         <CreditCard className="h-6 w-6 text-emerald-400" />
         <div>
           <h1 className="text-2xl font-semibold">Pagamentos (Sandbox)</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-600">
             Feature flag global. Recompensas só são entregues após marcar a transação como <b>paid</b>.
           </p>
         </div>
       </header>
 
-      <Card className="border-slate-800 bg-slate-900/60">
-        <CardHeader><CardTitle className="text-slate-100">Configuração</CardTitle></CardHeader>
+      <Card className="border-slate-200 bg-white">
+        <CardHeader><CardTitle className="text-slate-900">Configuração</CardTitle></CardHeader>
         <CardContent className="flex flex-wrap items-center gap-6">
           <div className="flex items-center gap-3">
             <Switch
@@ -141,13 +141,13 @@ function Page() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400">Provider</span>
+            <span className="text-xs text-slate-600">Provider</span>
             <Select
               value={cfg?.provider ?? "sandbox"}
               onValueChange={(v) => cfg && save({ ...cfg, provider: v as PaymentsConfig["provider"] })}
               disabled={!cfg || saving}
             >
-              <SelectTrigger className="w-40 bg-slate-950 border-slate-700"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-40 bg-slate-50 border-slate-300"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="sandbox">Sandbox</SelectItem>
                 <SelectItem value="stripe">Stripe (futuro)</SelectItem>
@@ -161,10 +161,10 @@ function Page() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900/60">
+      <Card className="border-slate-200 bg-white">
         <CardHeader>
-          <CardTitle className="text-slate-100">Providers de pagamento (feature flags)</CardTitle>
-          <p className="text-xs text-slate-400 mt-1">
+          <CardTitle className="text-slate-900">Providers de pagamento (feature flags)</CardTitle>
+          <p className="text-xs text-slate-600 mt-1">
             Ativo agora: <b className="text-emerald-300">{providers ? (resolveActiveProvider(providers) ?? "nenhum") : "…"}</b>.
             Integração real do Stripe/Google Play ainda não implementada — ligar não cria checkout real.
           </p>
@@ -175,7 +175,7 @@ function Page() {
               const key = `${p}_enabled` as const;
               const on = providers?.[key] ?? false;
               return (
-                <div key={p} className="flex items-center justify-between rounded-md border border-slate-800 bg-slate-950/60 px-3 py-2">
+                <div key={p} className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
                   <div>
                     <div className="text-sm font-medium capitalize">{p.replace("_", " ")}</div>
                     <div className="text-xs text-slate-500">
@@ -195,10 +195,10 @@ function Page() {
           </div>
 
           <div>
-            <div className="text-xs text-slate-400 mb-2">Prioridade (primeiro habilitado vence):</div>
+            <div className="text-xs text-slate-600 mb-2">Prioridade (primeiro habilitado vence):</div>
             <div className="flex flex-wrap gap-2">
               {providers?.priority.map((p, idx) => (
-                <div key={p} className="flex items-center gap-1 rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1">
+                <div key={p} className="flex items-center gap-1 rounded-md border border-slate-300 bg-slate-50 px-2 py-1">
                   <span className="text-xs text-slate-500">{idx + 1}.</span>
                   <span className="text-sm capitalize">{p.replace("_", " ")}</span>
                   <Button size="sm" variant="ghost" className="h-6 w-6 p-0" disabled={idx === 0 || savingProviders} onClick={() => moveInPriority(p, -1)}>↑</Button>
@@ -212,20 +212,20 @@ function Page() {
 
 
 
-      <Card className="border-slate-800 bg-slate-900/60">
+      <Card className="border-slate-200 bg-white">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-slate-100">Transações recentes</CardTitle>
+          <CardTitle className="text-slate-900">Transações recentes</CardTitle>
           <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Atualizar
           </Button>
         </CardHeader>
         <CardContent>
           {txs.length === 0 ? (
-            <p className="text-sm text-slate-400">Nenhuma transação registrada.</p>
+            <p className="text-sm text-slate-600">Nenhuma transação registrada.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-slate-400 border-b border-slate-800">
+                <thead className="text-left text-slate-600 border-b border-slate-200">
                   <tr>
                     <th className="py-2 pr-3">Quando</th>
                     <th className="py-2 pr-3">Oferta</th>
@@ -237,8 +237,8 @@ function Page() {
                 </thead>
                 <tbody>
                   {txs.map((tx) => (
-                    <tr key={tx.id} className="border-b border-slate-800/60">
-                      <td className="py-2 pr-3 text-slate-400">{new Date(tx.created_at).toLocaleString()}</td>
+                    <tr key={tx.id} className="border-b border-slate-200">
+                      <td className="py-2 pr-3 text-slate-600">{new Date(tx.created_at).toLocaleString()}</td>
                       <td className="py-2 pr-3 font-mono text-xs">{tx.offer_id}</td>
                       <td className="py-2 pr-3">R$ {(tx.amount_cents / 100).toFixed(2)}</td>
                       <td className="py-2 pr-3">

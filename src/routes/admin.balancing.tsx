@@ -61,7 +61,7 @@ function BalancingPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-800 bg-gradient-to-br from-slate-900/80 to-slate-900/40 text-slate-100">
+      <Card className="border-slate-200 bg-gradient-to-br from-slate-900/80 to-slate-900/40 text-slate-900">
         <CardContent className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-lg bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30">
@@ -69,7 +69,7 @@ function BalancingPage() {
             </div>
             <div>
               <h2 className="text-lg font-black tracking-tight">Balanceamento</h2>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-slate-600">
                 Curvas, custos, rebirth e simulador. Mock local — não afeta o jogo.
               </p>
             </div>
@@ -93,7 +93,7 @@ function BalancingPage() {
 
       <Simulator config={config} />
 
-      <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+      <Card className="border-slate-200 bg-white text-slate-900">
         <CardHeader>
           <CardTitle className="text-sm font-bold">Audit Logs ({logs.length})</CardTitle>
         </CardHeader>
@@ -103,7 +103,7 @@ function BalancingPage() {
           ) : (
             <ul className="space-y-2 text-xs">
               {logs.map((l) => (
-                <li key={l.id} className="rounded border border-slate-800 bg-slate-950/40 p-2">
+                <li key={l.id} className="rounded border border-slate-200 bg-slate-50 p-2">
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="font-mono">{new Date(l.date).toLocaleString("pt-BR")}</span>
                     <span className="text-amber-300">{l.admin}</span>
@@ -111,7 +111,7 @@ function BalancingPage() {
                   <div className="mt-1 text-slate-200">
                     <span className="font-bold uppercase">{l.section}</span>
                   </div>
-                  <div className="text-slate-400">Motivo: {l.reason}</div>
+                  <div className="text-slate-600">Motivo: {l.reason}</div>
                 </li>
               ))}
             </ul>
@@ -120,20 +120,20 @@ function BalancingPage() {
       </Card>
 
       <AlertDialog open={resetOpen} onOpenChange={(o) => { if (!o) { setResetOpen(false); setResetReason(""); } }}>
-        <AlertDialogContent className="border-slate-800 bg-slate-900 text-slate-100">
+        <AlertDialogContent className="border-slate-200 bg-white text-slate-900">
           <AlertDialogHeader>
             <AlertDialogTitle>Restaurar padrões?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-slate-600">
               Todas as curvas e custos voltarão ao padrão. Ação registrada em log.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
             <Label className="text-slate-300">Motivo (obrigatório)</Label>
             <Textarea value={resetReason} onChange={(e) => setResetReason(e.target.value)}
-              className="border-slate-700 bg-slate-950 text-slate-100" />
+              className="border-slate-300 bg-slate-50 text-slate-900" />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="border-slate-300 bg-slate-800 text-slate-900 hover:bg-slate-700">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 try {
@@ -169,43 +169,43 @@ function CurveCard({ title, section, value }: { title: string; section: CurveKey
   };
 
   return (
-    <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+    <Card className="border-slate-200 bg-white text-slate-900">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-bold">{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <Label className="text-[11px] text-slate-400">Base</Label>
+            <Label className="text-[11px] text-slate-600">Base</Label>
             <Input type="number" value={form.base}
               onChange={(e) => setForm({ ...form, base: Number(e.target.value) || 0 })}
-              className="h-8 border-slate-700 bg-slate-950 text-slate-100" />
+              className="h-8 border-slate-300 bg-slate-50 text-slate-900" />
           </div>
           <div>
-            <Label className="text-[11px] text-slate-400">Growth</Label>
+            <Label className="text-[11px] text-slate-600">Growth</Label>
             <Input type="number" step={0.01} value={form.growth}
               onChange={(e) => setForm({ ...form, growth: Number(e.target.value) || 1 })}
-              className="h-8 border-slate-700 bg-slate-950 text-slate-100" />
+              className="h-8 border-slate-300 bg-slate-50 text-slate-900" />
           </div>
           <div>
-            <Label className="text-[11px] text-slate-400">Exp.</Label>
+            <Label className="text-[11px] text-slate-600">Exp.</Label>
             <Input type="number" step={0.01} value={form.exponent}
               onChange={(e) => setForm({ ...form, exponent: Number(e.target.value) || 1 })}
-              className="h-8 border-slate-700 bg-slate-950 text-slate-100" />
+              className="h-8 border-slate-300 bg-slate-50 text-slate-900" />
           </div>
         </div>
-        <div className="grid grid-cols-5 gap-1 rounded border border-slate-800 bg-slate-950/40 p-2 text-center text-[10px]">
+        <div className="grid grid-cols-5 gap-1 rounded border border-slate-200 bg-slate-50 p-2 text-center text-[10px]">
           {preview.map((p) => (
             <div key={p.l}>
               <div className="text-slate-500">lvl {p.l}</div>
-              <div className="font-mono font-bold text-slate-100">{fmt(p.v)}</div>
+              <div className="font-mono font-bold text-slate-900">{fmt(p.v)}</div>
             </div>
           ))}
         </div>
         <div className="flex items-center gap-2">
           <Input value={reason} onChange={(e) => setReason(e.target.value)}
             placeholder="Motivo da alteração"
-            className="h-8 flex-1 border-slate-700 bg-slate-950 text-xs text-slate-100" />
+            className="h-8 flex-1 border-slate-300 bg-slate-50 text-xs text-slate-900" />
           <Button size="sm" disabled={!dirty} onClick={submit}
             className="h-8 bg-amber-500 text-slate-950 hover:bg-amber-400 disabled:opacity-40">
             <Save className="mr-1 h-3.5 w-3.5" /> Salvar
@@ -233,37 +233,37 @@ function CostCard({ title, section, value }: { title: string; section: CostKey; 
   };
 
   return (
-    <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+    <Card className="border-slate-200 bg-white text-slate-900">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-bold">{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <Label className="text-[11px] text-slate-400">Base</Label>
+            <Label className="text-[11px] text-slate-600">Base</Label>
             <Input type="number" value={form.base}
               onChange={(e) => setForm({ ...form, base: Number(e.target.value) || 0 })}
-              className="h-8 border-slate-700 bg-slate-950 text-slate-100" />
+              className="h-8 border-slate-300 bg-slate-50 text-slate-900" />
           </div>
           <div>
-            <Label className="text-[11px] text-slate-400">Growth</Label>
+            <Label className="text-[11px] text-slate-600">Growth</Label>
             <Input type="number" step={0.01} value={form.growth}
               onChange={(e) => setForm({ ...form, growth: Number(e.target.value) || 1 })}
-              className="h-8 border-slate-700 bg-slate-950 text-slate-100" />
+              className="h-8 border-slate-300 bg-slate-50 text-slate-900" />
           </div>
         </div>
-        <div className="grid grid-cols-5 gap-1 rounded border border-slate-800 bg-slate-950/40 p-2 text-center text-[10px]">
+        <div className="grid grid-cols-5 gap-1 rounded border border-slate-200 bg-slate-50 p-2 text-center text-[10px]">
           {preview.map((p) => (
             <div key={p.l}>
               <div className="text-slate-500">lvl {p.l}</div>
-              <div className="font-mono font-bold text-slate-100">{fmt(p.v)}</div>
+              <div className="font-mono font-bold text-slate-900">{fmt(p.v)}</div>
             </div>
           ))}
         </div>
         <div className="flex items-center gap-2">
           <Input value={reason} onChange={(e) => setReason(e.target.value)}
             placeholder="Motivo da alteração"
-            className="h-8 flex-1 border-slate-700 bg-slate-950 text-xs text-slate-100" />
+            className="h-8 flex-1 border-slate-300 bg-slate-50 text-xs text-slate-900" />
           <Button size="sm" disabled={!dirty} onClick={submit}
             className="h-8 bg-amber-500 text-slate-950 hover:bg-amber-400 disabled:opacity-40">
             <Save className="mr-1 h-3.5 w-3.5" /> Salvar
@@ -292,35 +292,35 @@ function RebirthCard({ value }: { value: RebirthRewards }) {
   };
 
   return (
-    <Card className="border-slate-800 bg-slate-900/60 text-slate-100 lg:col-span-2">
+    <Card className="border-slate-200 bg-white text-slate-900 lg:col-span-2">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-bold">Recompensas de Rebirth</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <Label className="text-[11px] text-slate-400">Essência por Rebirth</Label>
+            <Label className="text-[11px] text-slate-600">Essência por Rebirth</Label>
             <Input type="number" value={form.essencePerRebirth}
               onChange={(e) => setForm({ ...form, essencePerRebirth: Number(e.target.value) || 0 })}
-              className="h-8 border-slate-700 bg-slate-950 text-slate-100" />
+              className="h-8 border-slate-300 bg-slate-50 text-slate-900" />
           </div>
           <div>
-            <Label className="text-[11px] text-slate-400">Mult. Ouro</Label>
+            <Label className="text-[11px] text-slate-600">Mult. Ouro</Label>
             <Input type="number" step={0.05} value={form.goldMultiplier}
               onChange={(e) => setForm({ ...form, goldMultiplier: Number(e.target.value) || 1 })}
-              className="h-8 border-slate-700 bg-slate-950 text-slate-100" />
+              className="h-8 border-slate-300 bg-slate-50 text-slate-900" />
           </div>
           <div>
-            <Label className="text-[11px] text-slate-400">Mult. XP</Label>
+            <Label className="text-[11px] text-slate-600">Mult. XP</Label>
             <Input type="number" step={0.05} value={form.xpMultiplier}
               onChange={(e) => setForm({ ...form, xpMultiplier: Number(e.target.value) || 1 })}
-              className="h-8 border-slate-700 bg-slate-950 text-slate-100" />
+              className="h-8 border-slate-300 bg-slate-50 text-slate-900" />
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Input value={reason} onChange={(e) => setReason(e.target.value)}
             placeholder="Motivo da alteração"
-            className="h-8 flex-1 border-slate-700 bg-slate-950 text-xs text-slate-100" />
+            className="h-8 flex-1 border-slate-300 bg-slate-50 text-xs text-slate-900" />
           <Button size="sm" disabled={!dirty} onClick={submit}
             className="h-8 bg-amber-500 text-slate-950 hover:bg-amber-400 disabled:opacity-40">
             <Save className="mr-1 h-3.5 w-3.5" /> Salvar
@@ -359,7 +359,7 @@ function Simulator({ config }: { config: BalancingConfig }) {
   ];
 
   return (
-    <Card className="border-amber-500/30 bg-gradient-to-br from-slate-900/80 to-slate-900/40 text-slate-100">
+    <Card className="border-amber-500/30 bg-gradient-to-br from-slate-900/80 to-slate-900/40 text-slate-900">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm font-bold text-amber-300">
           <Play className="h-4 w-4" /> Simulador
@@ -369,11 +369,11 @@ function Simulator({ config }: { config: BalancingConfig }) {
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
           {fields.map((f) => (
             <div key={f.k}>
-              <Label className="text-[11px] text-slate-400">{f.label}</Label>
+              <Label className="text-[11px] text-slate-600">{f.label}</Label>
               <Input type="number" min={f.min ?? 0} max={f.max}
                 value={input[f.k]}
                 onChange={(e) => set(f.k, Number(e.target.value) || 0)}
-                className="h-8 border-slate-700 bg-slate-950 text-slate-100" />
+                className="h-8 border-slate-300 bg-slate-50 text-slate-900" />
             </div>
           ))}
         </div>
@@ -384,11 +384,11 @@ function Simulator({ config }: { config: BalancingConfig }) {
           <Kpi label="Kill chefe" value={fmtMs(result.killBossMs)} />
           <Kpi label="Ouro/hora" value={fmt(result.goldPerHour)} />
           <Kpi label="XP/hora" value={fmt(result.xpPerHour)} />
-          <div className="rounded border border-slate-800 bg-slate-950/40 p-3">
+          <div className="rounded border border-slate-200 bg-slate-50 p-3">
             <div className="text-[10px] uppercase tracking-widest text-slate-500">Dificuldade</div>
             <div className="mt-1 flex items-center justify-between">
               <Badge variant="outline" className={diffColor}>{result.difficulty}</Badge>
-              <span className="font-mono text-xs text-slate-400">
+              <span className="font-mono text-xs text-slate-600">
                 ratio {result.ratio.toFixed(2)}x
               </span>
             </div>
@@ -401,9 +401,9 @@ function Simulator({ config }: { config: BalancingConfig }) {
 
 function Kpi({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded border border-slate-800 bg-slate-950/40 p-3">
+    <div className="rounded border border-slate-200 bg-slate-50 p-3">
       <div className="text-[10px] uppercase tracking-widest text-slate-500">{label}</div>
-      <div className="mt-1 font-mono text-lg font-black text-slate-100">{value}</div>
+      <div className="mt-1 font-mono text-lg font-black text-slate-900">{value}</div>
     </div>
   );
 }
