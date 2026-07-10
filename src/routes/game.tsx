@@ -2897,15 +2897,16 @@ function GamePage() {
       {/* ===== Battle arena ===== */}
       <section
         className={`relative h-56 overflow-hidden bg-gradient-to-b ${biome.bg} border-b-4 border-[#1A0F08]`}
-        style={
-          bgCache[biome.name]
+        style={(() => {
+          const src = BIOME_BG[biome.name] ?? bgCache[biome.name];
+          return src
             ? {
-                backgroundImage: `url(${bgCache[biome.name]})`,
+                backgroundImage: `url(${src})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }
-            : undefined
-        }
+            : undefined;
+        })()}
         aria-label="Campo de batalha"
       >
         {/* stage banner */}
