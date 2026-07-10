@@ -752,6 +752,22 @@ function equippedSkinDef(save: SaveState): SkinDef {
   return SKIN_DEFS[id] ?? SKIN_DEFS.classic;
 }
 
+function isSkinId(value: unknown): value is SkinId {
+  return typeof value === "string" && value in SKIN_DEFS;
+}
+
+function normalizeSkins(raw: unknown): SkinsState {
+  const parsed = raw && typeof raw === "object" ? (raw as Partial<SkinsState>) : {};
+  const owned = Array.isArray(parsed.owned)
+    ? parsed.owned.filter(isSkinId)
+    : [];
+  const uniqueOwned = Array.from(new Set<SkinId>(["classic", ...owned]));
+  const equipped = isSkinId(parsed.equipped) && uniqueOwned.includes(parsed.equipped)
+    ? parsed.equipped
+    : "classic";
+  return { owned: uniqueOwned, equipped };
+}
+
 // ===== Conquistas / Achievements (Fase 3 — Bloco 9) =====
 type AchievementCategory = "combate" | "progressao" | "colecao" | "social";
 type AchievementReward = { gold?: number; gems?: number; essence?: number; chest?: 0 | 1 | 2; petFragKind?: PetKind; petFrags?: number; runeFrags?: number; cosmetic?: CosmeticId };
@@ -963,6 +979,7 @@ type RedeemReward = {
   essence?: number;
   epicChest?: boolean;
   cosmetic?: CosmeticId;
+  skin?: SkinId;
 };
 type RedeemDef = { label: string; desc: string; reward: RedeemReward };
 
@@ -1479,12 +1496,7 @@ function mergeSave(parsed: unknown): SaveState {
       ...(p.event ?? {}),
       missions: Array.isArray(p.event?.missions) ? p.event.missions : [],
     },
-    skins: {
-      owned: Array.isArray(p.skins?.owned) && p.skins.owned.length > 0
-        ? (p.skins.owned.filter((x: string) => (x as SkinId) in SKIN_DEFS) as SkinId[])
-        : ["classic"],
-      equipped: (p.skins?.equipped as SkinId) in SKIN_DEFS ? p.skins.equipped : "classic",
-    },
+    skins: normalizeSkins(p.skins),
     achievements: {
       claimed: Array.isArray(p.achievements?.claimed) ? p.achievements.claimed : [],
     },
@@ -2896,6 +2908,10 @@ function GamePage() {
     setSave((prev) => {
       if (!prev) return prev;
       if (!prev.skins.owned.includes(id)) { flashToast("Skin não desbloqueada"); return prev; }
+      setHeroLunge(false);
+      setHeroHit(false);
+      setHeroDying(false);
+      heroDyingRef.current = false;
       flashToast(`${SKIN_DEFS[id].icon} ${SKIN_DEFS[id].label} equipada`);
       return { ...prev, skins: { ...prev.skins, equipped: id } };
     });
@@ -2908,6 +2924,10 @@ function GamePage() {
       if (!def?.priceGems) { flashToast("Skin indisponível na loja"); return prev; }
       if (prev.skins.owned.includes(id)) { flashToast("Você já tem"); return prev; }
       if (prev.gems < def.priceGems) { flashToast("Gemas insuficientes"); return prev; }
+      setHeroLunge(false);
+      setHeroHit(false);
+      setHeroDying(false);
+      heroDyingRef.current = false;
       flashToast(`✨ ${def.label} desbloqueado(a)!`);
       return {
         ...prev,
@@ -3041,6 +3061,9 @@ function GamePage() {
       if (r.cosmetic && COSMETIC_DEFS[r.cosmetic] && !next.cosmetics.owned.includes(r.cosmetic)) {
         next = { ...next, cosmetics: { ...next.cosmetics, owned: [...next.cosmetics.owned, r.cosmetic] } };
       }
+      if (isSkinId(r.skin) && !next.skins.owned.includes(r.skin)) {
+        next = { ...next, skins: { owned: [...next.skins.owned, r.skin], equipped: r.skin } };
+      }
       return next;
     });
 
@@ -3067,6 +3090,7 @@ function GamePage() {
 
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
+  const heroSkin = useMemo(() => (save ? equippedSkinDef(save) : SKIN_DEFS.classic), [save?.skins.equipped]);
   const biome = useMemo(() => biomeFor(save?.stage ?? 1), [save?.stage]);
   const nextUnlock = useMemo(
     () => UNLOCKS.find((u) => u.level > (save?.level ?? 1)),
@@ -3294,13 +3318,17 @@ function GamePage() {
             />
           </div>
           <img
-            key={equippedSkinDef(save).id}
+            key={heroSkin.id}
             src={heroSprite}
             alt="Herói"
             className={`h-20 w-20 object-contain drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] ${levelFlash ? "animate-[heroBounce_0.9s_ease-out]" : ""}`}
-            style={{ filter: equippedSkinDef(save).filter ?? "none" }}
+            style={{ filter: heroSkin.filter ?? "none" }}
             draggable={false}
           />
+
+          <div className="-mt-2 rounded-full border-2 border-black/60 bg-black/65 px-2 py-0.5 text-[10px] font-black text-amber-100 shadow">
+            <span className="mr-1">{heroSkin.icon}</span>{heroSkin.label}
+          </div>
 
           <div className="mt-0.5 text-[9px] tabular-nums text-white/90 font-bold">
             {fmt(heroHp)}/{fmt(stats.hp)}
