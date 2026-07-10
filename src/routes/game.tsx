@@ -3373,7 +3373,7 @@ function GamePage() {
         />
       )}
       {modal === "skins" && (
-        <SkinsModal save={save} onClose={() => setModal(null)} onEquip={equipSkin} />
+        <SkinsModal save={save} onClose={() => setModal(null)} onEquip={equipSkin} onBuy={buySkin} />
       )}
       {modal === "achievements" && (
         <AchievementsModal save={save} onClose={() => setModal(null)} onClaim={claimAchievement} />
