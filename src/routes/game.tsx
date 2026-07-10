@@ -3245,7 +3245,7 @@ function GamePage() {
               className="flex items-center gap-1 rounded-md border border-sky-500/60 bg-sky-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-sky-200 hover:bg-sky-900/70 hover:text-sky-100 active:scale-95"
             >
               {isFullscreen ? <Minimize className="h-3 w-3" strokeWidth={2.5} /> : <Maximize className="h-3 w-3" strokeWidth={2.5} />}
-            </Link>
+            </button>
             <button
               type="button"
               onClick={() => { setChatOpen(true); setChatUnread(0); }}
