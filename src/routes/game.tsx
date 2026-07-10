@@ -3846,26 +3846,6 @@ function ModalShell({
   );
 }
 
-function EquipmentModal({
-  save,
-  onClose,
-  onEquip,
-  onUnequip,
-  onSell,
-}: {
-  save: SaveState;
-  onClose: () => void;
-  onEquip: (item: Item) => void;
-  onUnequip: (slot: SlotKey) => void;
-  onSell: (id: string) => void;
-}) {
-  const bonus = equipmentBonus(save.equipment);
-  return (
-    <ModalShell title="Equipamentos" onClose={onClose}>
-      {/* equipped slots */}
-      <div className="mb-4 grid grid-cols-3 gap-2">
-        {SLOTS.map((s) => {
-          const item = save.equipment[s.key];
 function itemPower(item: Item) {
   return item.bonus.atk + item.bonus.hp + item.bonus.def;
 }
