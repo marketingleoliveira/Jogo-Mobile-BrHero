@@ -56,7 +56,7 @@ function WalletCornerOverlay() {
     </div>
   );
 }
-import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/cloud-save";
+import { getCloudUser, saveCloudSave, loadCloudSave } from "@/lib/game/cloud-save";
 import { useSingleSessionGuard, forceSignOut } from "@/lib/game/single-session";
 import { beginSandboxCheckout, beginInfinitepayCheckoutClient, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
 import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
