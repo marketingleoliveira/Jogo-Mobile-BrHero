@@ -3154,14 +3154,20 @@ function GamePage() {
             >
               ROADMAP
             </Link>
-            <Link
-              to="/chat"
+            <button
+              type="button"
+              onClick={() => { setChatOpen(true); setChatUnread(0); }}
               aria-label="Chat Global"
               title="Chat Global"
-              className="flex items-center gap-1 rounded-md border border-emerald-500/60 bg-emerald-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-emerald-200 hover:bg-emerald-900/70 hover:text-emerald-100 active:scale-95"
+              className="relative flex items-center gap-1 rounded-md border border-emerald-500/60 bg-emerald-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-emerald-200 hover:bg-emerald-900/70 hover:text-emerald-100 active:scale-95"
             >
               💬 CHAT
-            </Link>
+              {chatUnread > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 min-w-[16px] rounded-full border border-black/60 bg-rose-500 px-1 text-[9px] font-black text-white shadow">
+                  {chatUnread > 99 ? "99+" : chatUnread}
+                </span>
+              )}
+            </button>
             <button
               type="button"
               onClick={async () => {
