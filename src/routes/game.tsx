@@ -3043,9 +3043,9 @@ function GamePage() {
 
         {/* Hero death overlay — MORREU 5s fade + action buttons */}
         {deathBanner === "hero" && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/70 backdrop-blur-sm animate-[fadeInOverlay_400ms_ease-out_forwards]">
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 overflow-y-auto py-4 bg-black/70 backdrop-blur-sm animate-[fadeInOverlay_400ms_ease-out_forwards]">
             <span
-              className="animate-[morreu5s_5s_ease-in-out_forwards] text-6xl font-black tracking-widest text-red-500 drop-shadow-[0_4px_0_rgba(0,0,0,0.9)]"
+              className="animate-[morreu5s_5s_ease-in-out_forwards] text-4xl sm:text-6xl font-black tracking-widest text-red-500 drop-shadow-[0_4px_0_rgba(0,0,0,0.9)]"
               style={{ fontFamily: "'Luckiest Guy', cursive", WebkitTextStroke: "2px #1a0000" }}
             >
               MORREU!
