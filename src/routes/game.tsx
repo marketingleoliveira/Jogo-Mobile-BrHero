@@ -39,6 +39,7 @@ import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
 import { CloudSaveModal } from "@/components/game/cloud-save-modal";
 import { WalletHud } from "@/components/game/wallet-hud";
 import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/cloud-save";
+import { useSingleSessionGuard, forceSignOut } from "@/lib/game/single-session";
 import { beginSandboxCheckout, beginInfinitepayCheckoutClient, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
 import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
 import { closeNativeAuthBrowser, completeNativeOAuthFromUrl, isBrHeroNativeApp } from "@/lib/native-auth";
