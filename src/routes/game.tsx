@@ -31,6 +31,8 @@ import skeletonSprite from "@/assets/sprite-skeleton.png";
 import bossDragonSprite from "@/assets/sprite-boss-dragon.png";
 import woodTexture from "@/assets/wood-texture.jpg";
 import { resolveRemoteRedeem } from "@/lib/game/remote-codes";
+import { captureReferralFromUrl, tryClaimPendingReferral, buildInviteLink, useReferralStats } from "@/lib/game/referrals";
+import { supabase as _supaClient } from "@/integrations/supabase/client";
 import { getLiveOpsMultipliers, useLiveOps } from "@/lib/game/remote-liveops";
 import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
 import { CloudSaveModal } from "@/components/game/cloud-save-modal";
@@ -1515,6 +1517,32 @@ function GamePage() {
   const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | "runes" | "cosmetics" | "codes" | "menu" | "cloud" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const refStats = useReferralStats(currentUserId);
+
+  // Convites: captura ?ref= da URL e tenta creditar 10💎 ao convidante quando o jogador loga
+  useEffect(() => {
+    captureReferralFromUrl();
+    let disposed = false;
+    const run = async () => {
+      const { data } = await _supaClient.auth.getSession();
+      const uid = data.session?.user.id ?? null;
+      if (disposed) return;
+      setCurrentUserId(uid);
+      if (uid) {
+        const res = await tryClaimPendingReferral(uid);
+        if (res?.ok && !disposed) {
+          try { window.dispatchEvent(new CustomEvent("brhero:toast", { detail: `🎁 Convite ativado! +${res.gems ?? 10}💎 para quem te convidou` })); } catch { /* noop */ }
+        }
+      }
+    };
+    void run();
+    const { data: sub } = _supaClient.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN") { setCurrentUserId(session?.user.id ?? null); void run(); }
+      if (event === "SIGNED_OUT") setCurrentUserId(null);
+    });
+    return () => { disposed = true; sub.subscription.unsubscribe(); };
+  }, []);
 
 
   // Init
@@ -3529,7 +3557,13 @@ function GamePage() {
         <CosmeticsModal save={save} onClose={() => setModal(null)} onEquip={equipCosmetic} />
       )}
       {modal === "codes" && (
-        <CodesModal save={save} onClose={() => setModal(null)} onRedeem={redeemCode} />
+        <CodesModal
+          save={save}
+          onClose={() => setModal(null)}
+          onRedeem={redeemCode}
+          inviteLink={currentUserId ? buildInviteLink(currentUserId) : null}
+          referralCount={refStats.count}
+        />
       )}
       {modal === "cloud" && (
         <CloudSaveModal
@@ -6176,19 +6210,42 @@ function CodesModal({
   save,
   onClose,
   onRedeem,
+  inviteLink,
+  referralCount,
 }: {
   save: SaveState;
   onClose: () => void;
   onRedeem: (code: string) => { ok: boolean; msg: string };
+  inviteLink?: string | null;
+  referralCount?: number;
 }) {
   const [code, setCode] = useState("");
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const used = save.redeem.used;
 
   const submit = () => {
     const res = onRedeem(code);
     setFeedback(res);
     if (res.ok) setCode("");
+  };
+
+  const copyInvite = async () => {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* noop */ }
+  };
+
+  const shareInvite = async () => {
+    if (!inviteLink) return;
+    const text = `🎮 Joga BR Hero comigo! Use meu link e ganhe recompensas: ${inviteLink}`;
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try { await navigator.share({ title: "BR Hero", text, url: inviteLink }); return; } catch { /* fallback */ }
+    }
+    void copyInvite();
   };
 
   return (
@@ -6234,6 +6291,45 @@ function CodesModal({
             {feedback.ok ? "✅ " : "⚠️ "} {feedback.msg}
           </div>
         )}
+
+        {/* Painel de convite — 10💎 por amigo que loga pelo link */}
+        <div className="mb-2 rounded-lg border-2 border-[#1A0F08] bg-gradient-to-b from-sky-100 to-sky-200 p-2">
+          <div className="mb-1 flex items-center justify-between">
+            <div className="text-xs font-black text-[#1A0F08]">🎁 Convide amigos · +10 💎 por convite</div>
+            {typeof referralCount === "number" && (
+              <span className="rounded bg-emerald-600 px-2 py-[1px] text-[10px] font-bold text-white">
+                {referralCount} convidado{referralCount === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
+          {inviteLink ? (
+            <>
+              <div className="mb-1 truncate rounded border border-[#1A0F08]/40 bg-white px-2 py-1 font-mono text-[11px] text-[#1A0F08]">
+                {inviteLink}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={copyInvite}
+                  className="flex-1 rounded-lg border-2 border-[#1A0F08] bg-amber-400 px-2 py-1 text-[11px] font-black text-[#1A0F08] active:scale-95"
+                >
+                  {copied ? "✅ COPIADO" : "📋 COPIAR"}
+                </button>
+                <button
+                  onClick={shareInvite}
+                  className="flex-1 rounded-lg border-2 border-[#1A0F08] bg-emerald-500 px-2 py-1 text-[11px] font-black text-white active:scale-95"
+                >
+                  📤 COMPARTILHAR
+                </button>
+              </div>
+              <p className="mt-1 text-[10px] text-[#3A2415]">
+                Cada amigo que entrar pelo seu link e logar te dá <b>+10 💎</b>. 1 recompensa por amigo.
+              </p>
+            </>
+          ) : (
+            <p className="text-[11px] text-[#3A2415]">Faça login para gerar seu link de convite.</p>
+          )}
+        </div>
+
 
         {Object.keys(REDEEM_CODES).length > 0 && (
           <div className="rounded-lg border-2 border-[#1A0F08] bg-amber-50 p-2">
