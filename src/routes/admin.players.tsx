@@ -207,7 +207,13 @@ function EditPlayerDialog({ player, onClose }: { player: AdminPlayerRow | null; 
         if (v !== undefined && v !== original[k]) patch[k] = v;
       }
       if (Object.keys(patch).length === 0) throw new Error("Nada foi alterado");
+      const finalStage = patch.stage ?? original.stage;
+      const finalMax = patch.maxStage ?? original.maxStage;
+      if (finalMax < finalStage) {
+        throw new Error("Stage máximo não pode ser menor que o stage atual");
+      }
       await update({ data: { userId: player.userId, patch, reason } });
+
     },
     onSuccess: () => {
       toast.success("Jogador atualizado");
