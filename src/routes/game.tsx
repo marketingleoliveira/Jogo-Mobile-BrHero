@@ -1443,86 +1443,80 @@ function defaultSave(): SaveState {
   };
 }
 
-function loadSave(): SaveState {
-  if (typeof window === "undefined") return defaultSave();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultSave();
-    const parsed = JSON.parse(raw);
-    // Migração aditiva: qualquer save anterior (v1..v18) é preservado.
-    // Campos novos herdam defaults; a versão é reescrita ao salvar.
-    const base = defaultSave();
-    const merged: SaveState = {
-      ...base,
-      ...parsed,
-      attrs: { ...base.attrs, ...(parsed.attrs ?? {}) } as Record<AttrKey, Attr>,
-      equipment: { ...emptyEquipment(), ...(parsed.equipment ?? {}) },
-      inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
-      globalUp: { ...emptyGlobalUp(), ...(parsed.globalUp ?? {}) },
-      daily: { ...base.daily, ...(parsed.daily ?? {}), streakClaimed: Array.isArray(parsed.daily?.streakClaimed) ? parsed.daily.streakClaimed : [] },
-      freeChest: { ...base.freeChest, ...(parsed.freeChest ?? {}) },
-      lastSeenAt: typeof parsed.lastSeenAt === "number" ? parsed.lastSeenAt : Date.now(),
-      counters: { ...emptyCounters(), ...(parsed.counters ?? {}) },
-      missions: {
-        ...emptyMissions(),
-        ...(parsed.missions ?? {}),
-        daily: Array.isArray(parsed.missions?.daily) ? parsed.missions.daily : [],
-        weekly: Array.isArray(parsed.missions?.weekly) ? parsed.missions.weekly : [],
-      },
-      dungeon: { ...emptyDungeon(), ...(parsed.dungeon ?? {}) },
-      pets: Array.isArray(parsed.pets) ? parsed.pets : [],
-      equippedPetId: typeof parsed.equippedPetId === "string" ? parsed.equippedPetId : null,
-      petFragments: { ...emptyPetFragments(), ...(parsed.petFragments ?? {}) },
-      tower: { ...emptyTower(), ...(parsed.tower ?? {}) },
-      blessings: { ...emptyBlessings(), ...(parsed.blessings ?? {}) },
-      guild: { ...emptyGuild(), ...(parsed.guild ?? {}) },
-      arena: { ...emptyArena(), ...(parsed.arena ?? {}) },
-      event: {
-        ...emptyEvent(),
-        ...(parsed.event ?? {}),
-        missions: Array.isArray(parsed.event?.missions) ? parsed.event.missions : [],
-      },
-      skins: {
-        owned: Array.isArray(parsed.skins?.owned) && parsed.skins.owned.length > 0
-          ? (parsed.skins.owned.filter((x: string) => (x as SkinId) in SKIN_DEFS) as SkinId[])
-          : ["classic"],
-        equipped: (parsed.skins?.equipped as SkinId) in SKIN_DEFS ? parsed.skins.equipped : "classic",
-      },
-      achievements: {
-        claimed: Array.isArray(parsed.achievements?.claimed) ? parsed.achievements.claimed : [],
-      },
-      runes: {
-        fragments: typeof parsed.runes?.fragments === "number" ? parsed.runes.fragments : 0,
-        levels: { ...emptyRunes().levels, ...(parsed.runes?.levels ?? {}) },
-        equipped: Array.isArray(parsed.runes?.equipped)
-          ? (parsed.runes.equipped.filter((k: string) => (RUNE_ORDER as string[]).includes(k)) as RuneKind[]).slice(0, RUNE_MAX_EQUIPPED)
-          : [],
-      },
-      cosmetics: (() => {
-        const base = emptyCosmetics();
-        const parsedOwned: string[] = Array.isArray(parsed.cosmetics?.owned) ? parsed.cosmetics.owned : [];
-        const ownedSet = new Set<string>([...base.owned, ...parsedOwned.filter((id) => id in COSMETIC_DEFS)]);
-        const eq: Partial<Record<CosmeticCategory, CosmeticId | null>> = { ...base.equipped };
-        const pe = (parsed.cosmetics?.equipped ?? {}) as Record<string, unknown>;
-        for (const c of COSMETIC_CATEGORIES) {
-          const v = pe[c.key];
-          if (typeof v === "string" && v in COSMETIC_DEFS && ownedSet.has(v) && COSMETIC_DEFS[v].category === c.key) {
-            eq[c.key] = v;
-          }
+function mergeSave(parsed: unknown): SaveState {
+  const base = defaultSave();
+  if (!parsed || typeof parsed !== "object") return base;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const p = parsed as any;
+  const merged: SaveState = {
+    ...base,
+    ...p,
+    attrs: { ...base.attrs, ...(p.attrs ?? {}) } as Record<AttrKey, Attr>,
+    equipment: { ...emptyEquipment(), ...(p.equipment ?? {}) },
+    inventory: Array.isArray(p.inventory) ? p.inventory : [],
+    globalUp: { ...emptyGlobalUp(), ...(p.globalUp ?? {}) },
+    daily: { ...base.daily, ...(p.daily ?? {}), streakClaimed: Array.isArray(p.daily?.streakClaimed) ? p.daily.streakClaimed : [] },
+    freeChest: { ...base.freeChest, ...(p.freeChest ?? {}) },
+    lastSeenAt: typeof p.lastSeenAt === "number" ? p.lastSeenAt : Date.now(),
+    counters: { ...emptyCounters(), ...(p.counters ?? {}) },
+    missions: {
+      ...emptyMissions(),
+      ...(p.missions ?? {}),
+      daily: Array.isArray(p.missions?.daily) ? p.missions.daily : [],
+      weekly: Array.isArray(p.missions?.weekly) ? p.missions.weekly : [],
+    },
+    dungeon: { ...emptyDungeon(), ...(p.dungeon ?? {}) },
+    pets: Array.isArray(p.pets) ? p.pets : [],
+    equippedPetId: typeof p.equippedPetId === "string" ? p.equippedPetId : null,
+    petFragments: { ...emptyPetFragments(), ...(p.petFragments ?? {}) },
+    tower: { ...emptyTower(), ...(p.tower ?? {}) },
+    blessings: { ...emptyBlessings(), ...(p.blessings ?? {}) },
+    guild: { ...emptyGuild(), ...(p.guild ?? {}) },
+    arena: { ...emptyArena(), ...(p.arena ?? {}) },
+    event: {
+      ...emptyEvent(),
+      ...(p.event ?? {}),
+      missions: Array.isArray(p.event?.missions) ? p.event.missions : [],
+    },
+    skins: {
+      owned: Array.isArray(p.skins?.owned) && p.skins.owned.length > 0
+        ? (p.skins.owned.filter((x: string) => (x as SkinId) in SKIN_DEFS) as SkinId[])
+        : ["classic"],
+      equipped: (p.skins?.equipped as SkinId) in SKIN_DEFS ? p.skins.equipped : "classic",
+    },
+    achievements: {
+      claimed: Array.isArray(p.achievements?.claimed) ? p.achievements.claimed : [],
+    },
+    runes: {
+      fragments: typeof p.runes?.fragments === "number" ? p.runes.fragments : 0,
+      levels: { ...emptyRunes().levels, ...(p.runes?.levels ?? {}) },
+      equipped: Array.isArray(p.runes?.equipped)
+        ? (p.runes.equipped.filter((k: string) => (RUNE_ORDER as string[]).includes(k)) as RuneKind[]).slice(0, RUNE_MAX_EQUIPPED)
+        : [],
+    },
+    cosmetics: (() => {
+      const b = emptyCosmetics();
+      const parsedOwned: string[] = Array.isArray(p.cosmetics?.owned) ? p.cosmetics.owned : [];
+      const ownedSet = new Set<string>([...b.owned, ...parsedOwned.filter((id) => id in COSMETIC_DEFS)]);
+      const eq: Partial<Record<CosmeticCategory, CosmeticId | null>> = { ...b.equipped };
+      const pe = (p.cosmetics?.equipped ?? {}) as Record<string, unknown>;
+      for (const c of COSMETIC_CATEGORIES) {
+        const v = pe[c.key];
+        if (typeof v === "string" && v in COSMETIC_DEFS && ownedSet.has(v) && COSMETIC_DEFS[v].category === c.key) {
+          eq[c.key] = v;
         }
-        return { owned: Array.from(ownedSet), equipped: eq };
-      })(),
-      redeem: { used: Array.isArray(parsed.redeem?.used) ? parsed.redeem.used.filter((c: unknown) => typeof c === "string") : [] },
-      version: SAVE_VERSION,
-    };
-    for (const k of ATTR_ORDER) {
-      if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
-    }
-    return merged;
-  } catch {
-    return defaultSave();
+      }
+      return { owned: Array.from(ownedSet), equipped: eq };
+    })(),
+    redeem: { used: Array.isArray(p.redeem?.used) ? p.redeem.used.filter((c: unknown) => typeof c === "string") : [] },
+    version: SAVE_VERSION,
+  };
+  for (const k of ATTR_ORDER) {
+    if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
   }
+  return merged;
 }
+
 
 // -------- Route --------
 export const Route = createFileRoute("/game")({
