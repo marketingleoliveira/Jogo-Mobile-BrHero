@@ -6590,7 +6590,7 @@ function RemoteOffersPanel({ offers }: { offers: RemoteOffer[] }) {
           🎁 Ofertas do Admin
         </h3>
         <span className="rounded-full bg-amber-500/20 px-2 py-[1px] text-[9px] uppercase text-amber-300">
-          {canBuy ? "sandbox ativo" : "somente leitura"}
+          {canBuy ? (isInfinitepay ? "infinitepay ativo" : "sandbox ativo") : "somente leitura"}
         </span>
       </div>
       {offers.map((o) => {
