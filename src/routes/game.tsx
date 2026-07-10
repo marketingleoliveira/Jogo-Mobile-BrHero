@@ -3131,7 +3131,7 @@ function GamePage() {
     >
       <LiveOpsBanner snap={liveOps} />
       <WalletHud gemsOverride={save.gems} goldOverride={save.gold} />
-      <WalletCornerOverlay />
+      
       <ChatPopup open={chatOpen} onClose={() => setChatOpen(false)} onUnreadChange={handleChatUnread} />
       {/* ===== Top HUD ===== */}
       <header className="relative z-[80] bg-gradient-to-b from-[#3E2723] to-[#2D1B0E] border-b-4 border-[#8B4513] px-3 pt-2 pb-2">
