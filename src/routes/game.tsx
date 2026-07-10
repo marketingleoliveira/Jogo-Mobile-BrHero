@@ -2765,9 +2765,10 @@ function GamePage() {
   const redeemCode = useCallback((raw: string): { ok: boolean; msg: string } => {
     const code = raw.trim().toUpperCase();
     if (!code) return { ok: false, msg: "Digite um código" };
-    // Fase 3 · Bloco 1 — tenta registro remoto primeiro (Supabase → cache local);
-    // se o código não existir remotamente, usa o fallback local REDEEM_CODES.
-    const remote = resolveRemoteRedeem(code, save?.redeem.used ?? []);
+    if (!save) return { ok: false, msg: "Carregando save..." };
+
+    // Fase 3 · Bloco 1 — tenta registro remoto primeiro; fallback local.
+    const remote = resolveRemoteRedeem(code, save.redeem.used);
     if (remote && !remote.ok) {
       flashToast(`❌ ${remote.error}`);
       return { ok: false, msg: remote.error };
@@ -2777,21 +2778,20 @@ function GamePage() {
       flashToast("❌ Código inválido");
       return { ok: false, msg: "Código inválido" };
     }
-    let result: { ok: boolean; msg: string } = { ok: false, msg: "" };
+    if (save.redeem.used.includes(code)) {
+      flashToast("⚠️ Código já usado");
+      return { ok: false, msg: "Código já resgatado" };
+    }
+
     setSave((prev) => {
       if (!prev) return prev;
-      if (prev.redeem.used.includes(code)) {
-        result = { ok: false, msg: "Código já resgatado" };
-        flashToast("⚠️ Código já usado");
-        return prev;
-      }
+      if (prev.redeem.used.includes(code)) return prev;
       let next: SaveState = { ...prev, redeem: { used: [...prev.redeem.used, code] } };
       const r = def.reward;
       if (r.gold) next = { ...next, gold: next.gold + r.gold };
       if (r.gems) next = { ...next, gems: next.gems + r.gems };
       if (r.essence) next = { ...next, essence: next.essence + r.essence };
       if (r.epicChest) {
-        // Baú épico: 1 equipamento de slot aleatório baseado no stage atual
         const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
         const item = rollItem(slot, next.stage);
         next = { ...next, inventory: [...next.inventory, item].slice(-60) };
@@ -2799,12 +2799,12 @@ function GamePage() {
       if (r.cosmetic && COSMETIC_DEFS[r.cosmetic] && !next.cosmetics.owned.includes(r.cosmetic)) {
         next = { ...next, cosmetics: { ...next.cosmetics, owned: [...next.cosmetics.owned, r.cosmetic] } };
       }
-      flashToast(`🎁 ${def.label} resgatado!`);
-      result = { ok: true, msg: `${def.label}: ${def.desc}` };
       return next;
     });
-    return result;
-  }, [flashToast]);
+
+    flashToast(`🎁 ${def.label} resgatado!`);
+    return { ok: true, msg: `${def.label}: ${def.desc}` };
+  }, [save, flashToast]);
 
 
 
