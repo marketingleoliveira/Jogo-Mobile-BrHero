@@ -3336,41 +3336,67 @@ function GamePage() {
         `}</style>
       </section>
 
-      {/* ===== Skill bar (wood frames) ===== */}
-      <section className="relative -mt-4 z-10 flex gap-2 overflow-x-auto px-3 pb-2 no-scrollbar">
-        {SKILLS.map((sk, i) => {
-          const locked = save.level < sk.unlock;
-          const colors = ["bg-orange-400", "bg-red-400", "bg-blue-400", "bg-purple-400"];
-          return (
-            <button
-              key={sk.name}
-              disabled={locked}
-              onClick={() => flashToast(`${sk.name} (auto)`)}
-              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-4 p-1 shadow-lg active:translate-y-0.5 ${
-                locked
-                  ? "border-[#1A0F08] bg-[#3E2723]"
-                  : `border-[#5D2E0C] bg-[#8B4513] ${i === 3 ? "animate-pulse ring-2 ring-amber-300" : ""}`
-              }`}
-              aria-label={sk.name}
-            >
-              {locked ? (
-                <Lock className="h-4 w-4 text-amber-900/50" />
-              ) : (
-                <div className={`h-full w-full rounded-md ${colors[i] ?? "bg-emerald-400"} shadow-inner grid place-items-center`}>
-                  <Sparkles className="h-4 w-4 text-white/90" strokeWidth={2.5} />
-                </div>
-              )}
-            </button>
-          );
-        })}
-        {/* passive slots */}
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-4 border-[#1A0F08] bg-[#3E2723]">
-          <Lock className="h-4 w-4 text-amber-900/50" />
+      {/* ===== Skill bar (mais didática) ===== */}
+      <section className="relative -mt-4 z-10 px-3 pb-2">
+        <div className="flex items-center justify-between mb-1.5 px-0.5">
+          <span className="text-[10px] uppercase tracking-wider text-amber-300/80" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+            Habilidades
+          </span>
+          <span className="text-[10px] text-amber-200/60">Toque para ver • auto-cast</span>
         </div>
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-4 border-[#1A0F08] bg-[#3E2723]">
-          <Lock className="h-4 w-4 text-amber-900/50" />
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          {SKILLS.map((sk) => {
+            const locked = save.level < sk.unlock;
+            const IconCmp = sk.icon === "sword" ? Sword : sk.icon === "zap" ? Zap : sk.icon === "flame" ? Flame : Crown;
+            return (
+              <button
+                key={sk.name}
+                disabled={locked}
+                onClick={() => flashToast(locked ? `🔒 ${sk.name} libera no Lv ${sk.unlock}` : `⚡ ${sk.name}: ${sk.desc}`)}
+                title={locked ? `${sk.name} — libera no Lv ${sk.unlock}` : `${sk.name} — ${sk.desc}`}
+                aria-label={`${sk.name}${locked ? ` bloqueada até Lv ${sk.unlock}` : ""}`}
+                className={`group relative flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl border-4 p-1 shadow-lg transition active:translate-y-0.5 ${
+                  locked
+                    ? "border-[#1A0F08] bg-[#2A1810]"
+                    : `${sk.border} bg-gradient-to-br ${sk.color}`
+                }`}
+              >
+                {locked ? (
+                  <>
+                    <Lock className="h-4 w-4 text-amber-200/40" />
+                    <span className="mt-0.5 rounded-full bg-black/60 px-1.5 text-[9px] font-bold text-amber-200 leading-tight">
+                      Lv {sk.unlock}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <IconCmp className="h-5 w-5 text-white drop-shadow-[0_1px_0_rgba(0,0,0,0.7)]" strokeWidth={2.6} />
+                    <span className="mt-0.5 text-[9px] font-bold uppercase text-white/95 leading-none drop-shadow-[0_1px_0_rgba(0,0,0,0.7)]">
+                      {sk.name}
+                    </span>
+                  </>
+                )}
+              </button>
+            );
+          })}
+          {PASSIVE_SLOTS.map((ps) => (
+            <button
+              key={ps.name}
+              disabled
+              title={`${ps.name} — libera no Lv ${ps.unlock}`}
+              aria-label={`${ps.name} bloqueada até Lv ${ps.unlock}`}
+              onClick={() => flashToast(`🔒 ${ps.name} libera no Lv ${ps.unlock}`)}
+              className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl border-4 border-[#1A0F08] bg-[#2A1810] p-1 shadow-lg"
+            >
+              <Lock className="h-4 w-4 text-amber-200/40" />
+              <span className="mt-0.5 rounded-full bg-black/60 px-1.5 text-[9px] font-bold text-amber-200 leading-tight">
+                Lv {ps.unlock}
+              </span>
+            </button>
+          ))}
         </div>
       </section>
+
 
       {/* ===== Tabs ===== */}
       <div className="flex gap-2 px-3 mb-2">
