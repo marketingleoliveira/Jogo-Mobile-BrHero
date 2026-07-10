@@ -15,7 +15,7 @@ const FLAG_KEY = "payments.config";
 
 export interface PaymentsConfig {
   enabled: boolean;
-  provider: "sandbox" | "stripe" | "google_play";
+  provider: "sandbox" | "stripe" | "google_play" | "infinitepay";
 }
 
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
@@ -126,6 +126,26 @@ export async function beginSandboxCheckout(offer: RemoteOffer): Promise<Checkout
     const res = await beginSecureSandboxCheckout({ data: { offerId: offer.id } });
     if (!res.ok) return { ok: false, reason: res.reason };
     return { ok: true, transactionId: res.transactionId };
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : "Erro desconhecido." };
+  }
+}
+
+/**
+ * Inicia checkout InfinitePay (modo B: link + webhook).
+ * Retorna a URL do checkout — a UI deve abrir em nova aba.
+ * A entrega da recompensa acontece via webhook + polling em useSandboxDelivery.
+ */
+export async function beginInfinitepayCheckoutClient(
+  offer: RemoteOffer,
+  redirectUrl?: string,
+): Promise<CheckoutResult & { checkoutUrl?: string }> {
+  if (offer.currency !== "brl") return { ok: false, reason: "Oferta não é paga (moeda real)." };
+  try {
+    const { beginInfinitepayCheckout } = await import("@/lib/game/infinitepay.functions");
+    const res = await beginInfinitepayCheckout({ data: { offerId: offer.id, redirectUrl } });
+    if (!res.ok) return { ok: false, reason: res.reason };
+    return { ok: true, transactionId: res.transactionId, checkoutUrl: res.checkoutUrl };
   } catch (e) {
     return { ok: false, reason: e instanceof Error ? e.message : "Erro desconhecido." };
   }
