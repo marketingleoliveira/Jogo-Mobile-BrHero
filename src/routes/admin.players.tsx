@@ -228,14 +228,17 @@ function EditPlayerDialog({ player, onClose }: { player: AdminPlayerRow | null; 
         </DialogHeader>
         {player && (
           <div className="grid grid-cols-2 gap-3 py-2">
+            <div className="col-span-2 rounded-md border border-border/60 bg-muted/30 p-2 text-xs text-muted-foreground">
+              <strong>Stage:</strong> "Atual" é o andar em que o jogador está agora. "Máximo" é o recorde já alcançado (usado no ranking). O máximo nunca deve ser menor que o atual.
+            </div>
             {[
-              { k: "level", label: "Nível" },
-              { k: "stage", label: "Stage atual" },
-              { k: "maxStage", label: "Stage máximo" },
+              { k: "level", label: "Nível do herói" },
               { k: "prestigeLevel", label: "Prestígio" },
-              { k: "essence", label: "Essência" },
+              { k: "stage", label: "Stage atual (andar agora)" },
+              { k: "maxStage", label: "Stage máximo (recorde)" },
               { k: "gems", label: "Cristais (diamantes)" },
               { k: "gold", label: "Ouro (moedas)" },
+              { k: "essence", label: "Essência" },
             ].map(({ k, label }) => (
               <div key={k} className="space-y-1">
                 <Label htmlFor={`f-${k}`} className="text-xs">{label}</Label>
@@ -260,6 +263,7 @@ function EditPlayerDialog({ player, onClose }: { player: AdminPlayerRow | null; 
             </div>
           </div>
         )}
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>Cancelar</Button>
           <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
