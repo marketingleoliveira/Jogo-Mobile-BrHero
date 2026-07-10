@@ -6366,7 +6366,18 @@ function SkinsModal({
                 <div key={id} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-2 ${owned ? "" : "opacity-90"}`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <div className="text-3xl" style={{ filter: def.filter }}>{owned ? def.icon : "🔒"}</div>
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border-2 border-black/50 bg-black/30">
+                        {owned ? (
+                          <img
+                            src={def.sprite}
+                            alt={def.label}
+                            loading="lazy"
+                            className="h-full w-full object-contain"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-2xl">🔒</div>
+                        )}
+                      </div>
                       <div>
                         <div className="text-xs font-black text-amber-50 drop-shadow">{def.label}</div>
                         <div className="text-[10px] text-amber-50/90">{def.rarity} · {def.desc}</div>
