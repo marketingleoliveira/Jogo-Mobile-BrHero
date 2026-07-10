@@ -1507,6 +1507,7 @@ function GamePage() {
   const [enemyDying, setEnemyDying] = useState(false);
   const [heroDying, setHeroDying] = useState(false);
   const heroDyingRef = useRef(false);
+  const [pickStageOpen, setPickStageOpen] = useState(false);
   const [heroLunge, setHeroLunge] = useState(false);
   const [enemyLunge, setEnemyLunge] = useState(false);
   const [deathBanner, setDeathBanner] = useState<null | "hero" | "enemy">(null);
