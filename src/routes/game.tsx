@@ -752,14 +752,18 @@ function equippedSkinDef(save: SaveState): SkinDef {
   return SKIN_DEFS[id] ?? SKIN_DEFS.classic;
 }
 
+function isSkinId(value: unknown): value is SkinId {
+  return typeof value === "string" && value in SKIN_DEFS;
+}
+
 function normalizeSkins(raw: unknown): SkinsState {
   const parsed = raw && typeof raw === "object" ? (raw as Partial<SkinsState>) : {};
   const owned = Array.isArray(parsed.owned)
-    ? (parsed.owned.filter((x): x is SkinId => typeof x === "string" && x in SKIN_DEFS) as SkinId[])
+    ? parsed.owned.filter(isSkinId)
     : [];
   const uniqueOwned = Array.from(new Set<SkinId>(["classic", ...owned]));
-  const equipped = typeof parsed.equipped === "string" && parsed.equipped in SKIN_DEFS && uniqueOwned.includes(parsed.equipped as SkinId)
-    ? (parsed.equipped as SkinId)
+  const equipped = isSkinId(parsed.equipped) && uniqueOwned.includes(parsed.equipped)
+    ? parsed.equipped
     : "classic";
   return { owned: uniqueOwned, equipped };
 }
@@ -3057,7 +3061,7 @@ function GamePage() {
       if (r.cosmetic && COSMETIC_DEFS[r.cosmetic] && !next.cosmetics.owned.includes(r.cosmetic)) {
         next = { ...next, cosmetics: { ...next.cosmetics, owned: [...next.cosmetics.owned, r.cosmetic] } };
       }
-      if (r.skin && SKIN_DEFS[r.skin] && !next.skins.owned.includes(r.skin)) {
+      if (isSkinId(r.skin) && !next.skins.owned.includes(r.skin)) {
         next = { ...next, skins: { owned: [...next.skins.owned, r.skin], equipped: r.skin } };
       }
       return next;
