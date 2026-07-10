@@ -133,6 +133,7 @@ function Landing() {
   }, []);
 
   const handleGoogle = async () => {
+    localStorage.removeItem(LOGOUT_INTENT_KEY);
     setSignInError(null);
     setSigningIn(true);
     try {

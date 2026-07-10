@@ -3064,7 +3064,7 @@ function GamePage() {
               }}
               aria-label="Sair da conta"
               title="Sair da conta"
-              className="flex items-center gap-1 rounded-md border border-rose-500/60 bg-rose-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-200 hover:bg-rose-900/70 hover:text-rose-100 active:scale-95"
+              className="relative z-[70] flex items-center gap-1 rounded-md border border-rose-500/60 bg-rose-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-200 hover:bg-rose-900/70 hover:text-rose-100 active:scale-95"
             >
               <LogOut className="h-3 w-3" strokeWidth={2.5} />
               SAIR
