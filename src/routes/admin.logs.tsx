@@ -49,7 +49,7 @@ function LogsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-800 bg-gradient-to-br from-slate-900/80 to-slate-900/40 text-slate-100">
+      <Card className="border-slate-200 bg-gradient-to-br from-slate-900/80 to-slate-900/40 text-slate-900">
         <CardContent className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-lg bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30">
@@ -57,7 +57,7 @@ function LogsPage() {
             </div>
             <div>
               <h2 className="text-lg font-black tracking-tight">Logs de Auditoria</h2>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-slate-600">
                 Log centralizado. Todas as ações administrativas com perfil (RBAC), motivo e diff antes/depois.
               </p>
             </div>
@@ -69,15 +69,15 @@ function LogsPage() {
                 <Trash2 className="mr-1 h-4 w-4" /> Limpar logs
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="border-slate-800 bg-slate-900 text-slate-100">
+            <AlertDialogContent className="border-slate-200 bg-white text-slate-900">
               <AlertDialogHeader>
                 <AlertDialogTitle>Apagar todos os logs?</AlertDialogTitle>
-                <AlertDialogDescription className="text-slate-400">
+                <AlertDialogDescription className="text-slate-600">
                   Esta ação é irreversível no mock local.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className="border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700">
+                <AlertDialogCancel className="border-slate-300 bg-slate-800 text-slate-900 hover:bg-slate-700">
                   Cancelar
                 </AlertDialogCancel>
                 <AlertDialogAction onClick={() => { clearAudit(); toast.success("Logs apagados"); }}
@@ -90,16 +90,16 @@ function LogsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+      <Card className="border-slate-200 bg-white text-slate-900">
         <CardContent className="grid gap-3 p-4 md:grid-cols-4">
           <Input value={q} onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar por alvo, ação ou motivo…"
-            className="border-slate-700 bg-slate-950 text-slate-100 md:col-span-2" />
+            className="border-slate-300 bg-slate-50 text-slate-900 md:col-span-2" />
           <Select value={fMod} onValueChange={(v) => setFMod(v as AdminModule | "all")}>
-            <SelectTrigger className="border-slate-700 bg-slate-950 text-slate-100">
+            <SelectTrigger className="border-slate-300 bg-slate-50 text-slate-900">
               <SelectValue placeholder="Módulo" />
             </SelectTrigger>
-            <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+            <SelectContent className="border-slate-300 bg-white text-slate-900">
               <SelectItem value="all">Todos os módulos</SelectItem>
               {(Object.keys(MODULE_LABEL) as AdminModule[]).map((m) => (
                 <SelectItem key={m} value={m}>{MODULE_LABEL[m]}</SelectItem>
@@ -107,10 +107,10 @@ function LogsPage() {
             </SelectContent>
           </Select>
           <Select value={fAdmin} onValueChange={setFAdmin}>
-            <SelectTrigger className="border-slate-700 bg-slate-950 text-slate-100">
+            <SelectTrigger className="border-slate-300 bg-slate-50 text-slate-900">
               <SelectValue placeholder="Admin" />
             </SelectTrigger>
-            <SelectContent className="border-slate-700 bg-slate-900 text-slate-100">
+            <SelectContent className="border-slate-300 bg-white text-slate-900">
               <SelectItem value="all">Todos os admins</SelectItem>
               {admins.map((a) => (
                 <SelectItem key={a} value={a}>{a}</SelectItem>
@@ -120,7 +120,7 @@ function LogsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900/60 text-slate-100">
+      <Card className="border-slate-200 bg-white text-slate-900">
         <CardHeader>
           <CardTitle className="text-sm font-bold">
             Entradas ({filtered.length}/{entries.length})
@@ -129,32 +129,32 @@ function LogsPage() {
         <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-slate-800">
-                <TableHead className="text-slate-400">Data</TableHead>
-                <TableHead className="text-slate-400">Admin</TableHead>
-                <TableHead className="text-slate-400">Perfil</TableHead>
-                <TableHead className="text-slate-400">Módulo</TableHead>
-                <TableHead className="text-slate-400">Ação</TableHead>
-                <TableHead className="text-slate-400">Alvo</TableHead>
-                <TableHead className="text-slate-400">Motivo</TableHead>
+              <TableRow className="border-slate-200">
+                <TableHead className="text-slate-600">Data</TableHead>
+                <TableHead className="text-slate-600">Admin</TableHead>
+                <TableHead className="text-slate-600">Perfil</TableHead>
+                <TableHead className="text-slate-600">Módulo</TableHead>
+                <TableHead className="text-slate-600">Ação</TableHead>
+                <TableHead className="text-slate-600">Alvo</TableHead>
+                <TableHead className="text-slate-600">Motivo</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((e) => (
-                <TableRow key={e.id} className="border-slate-800 hover:bg-slate-800/40">
-                  <TableCell className="font-mono text-[11px] text-slate-400">
+                <TableRow key={e.id} className="border-slate-200 hover:bg-slate-800/40">
+                  <TableCell className="font-mono text-[11px] text-slate-600">
                     {new Date(e.date).toLocaleString("pt-BR")}
                   </TableCell>
                   <TableCell className="text-sm text-amber-300">{e.adminName}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="border-slate-700 bg-slate-800/60 text-[10px] uppercase tracking-widest text-slate-300">
+                    <Badge variant="outline" className="border-slate-300 bg-slate-800/60 text-[10px] uppercase tracking-widest text-slate-300">
                       {e.roleLabel}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-slate-300">{MODULE_LABEL[e.module]}</TableCell>
-                  <TableCell className="font-bold uppercase text-slate-100">{e.action}</TableCell>
+                  <TableCell className="font-bold uppercase text-slate-900">{e.action}</TableCell>
                   <TableCell className="text-slate-300">{e.target}</TableCell>
-                  <TableCell className="max-w-[280px] truncate text-slate-400" title={e.reason}>
+                  <TableCell className="max-w-[280px] truncate text-slate-600" title={e.reason}>
                     {e.reason}
                   </TableCell>
                 </TableRow>
