@@ -756,6 +756,7 @@ const SKIN_DEFS: Record<SkinId, SkinDef> = {
   paladino: { id: "paladino", label: "Paladino Sagrado",   icon: "🛡️", rarity: "Épico",    color: "from-yellow-300 to-amber-600",    desc: "Fé inabalável, escudo intransponível.",     sprite: skinPaladinoSprite, priceGems: 700 },
   pirata:   { id: "pirata",   label: "Capitão Pirata",     icon: "🏴‍☠️", rarity: "Épico",    color: "from-slate-700 to-red-900",       desc: "Terror dos sete mares.",                    sprite: skinPirataSprite,   priceGems: 550 },
   vampiro:  { id: "vampiro",  label: "Lorde Vampiro",      icon: "🧛", rarity: "Lendário", color: "from-red-900 to-black",           desc: "Da noite eterna surge o predador.",         sprite: skinVampiroSprite,  priceGems: 1500 },
+  gabi:     { id: "gabi",     label: "Gabi Xavier",        icon: "⚔️", rarity: "Lendário", color: "from-emerald-600 to-amber-700",   desc: "Guerreira destemida de cachos indomáveis e coração de leoa.", sprite: skinGabiSprite, priceGems: 1800 },
 };
 
 function emptySkins(): SkinsState {
