@@ -135,6 +135,10 @@ export function resolveRemoteRedeem(rawCode: string, usedList: string[]): Remote
   if (alreadyUsed && entry.perPlayerLimit >= 1)
     return { ok: false, error: "Código já resgatado" };
 
+  if (!hasReward(entry.rewards))
+    return { ok: false, error: "Cupom sem recompensa configurada" };
+
+
   return {
     ok: true,
     def: {
