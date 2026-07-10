@@ -25,6 +25,8 @@ import {
   Users,
   LogOut,
   Pencil,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 import heroSprite from "@/assets/sprite-hero.png";
 import skinClassicSprite from "@/assets/skins/hero-classic.png";
@@ -1630,6 +1632,23 @@ function GamePage() {
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (e) {
+      console.error("fullscreen error", e);
+    }
+  }, []);
   const handleChatUnread = useCallback((n: number) => {
     // sentinela: n === -1 significa "incrementa 1"
     setChatUnread((prev) => (n < 0 ? prev + 1 : n));
@@ -3218,6 +3237,15 @@ function GamePage() {
             >
               ROADMAP
             </Link>
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              aria-label={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
+              title={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
+              className="flex items-center gap-1 rounded-md border border-sky-500/60 bg-sky-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-sky-200 hover:bg-sky-900/70 hover:text-sky-100 active:scale-95"
+            >
+              {isFullscreen ? <Minimize className="h-3 w-3" strokeWidth={2.5} /> : <Maximize className="h-3 w-3" strokeWidth={2.5} />}
+            </button>
             <button
               type="button"
               onClick={() => { setChatOpen(true); setChatUnread(0); }}
