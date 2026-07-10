@@ -2917,9 +2917,9 @@ function GamePage() {
 
         {/* Hero */}
         <div
-          className={`absolute bottom-10 left-6 flex flex-col items-center ${
-            heroHit ? "translate-x-1" : ""
-          } transition-transform`}
+          className={`absolute bottom-10 left-6 flex flex-col items-center transition-transform duration-150 ease-out ${
+            heroDying ? "opacity-0 scale-75 rotate-12 translate-y-2" : ""
+          } ${heroLunge ? "translate-x-16" : heroHit ? "-translate-x-1" : ""}`}
         >
           <div className="mb-1 h-2 w-16 overflow-hidden rounded-full border-2 border-black/60 bg-black/50">
             <div
@@ -2940,9 +2940,9 @@ function GamePage() {
 
         {/* Enemy */}
         <div
-          className={`absolute bottom-10 right-6 flex flex-col items-center ${
-            enemyHit ? "-translate-x-1" : ""
-          } ${enemyDying ? "opacity-0 scale-50" : ""} transition-all duration-200`}
+          className={`absolute bottom-10 right-6 flex flex-col items-center transition-transform duration-150 ease-out ${
+            enemyDying ? "opacity-0 scale-50 rotate-12" : ""
+          } ${enemyLunge ? "-translate-x-16" : enemyHit ? "-translate-x-1" : ""}`}
         >
           <div className="mb-1 h-2 w-20 overflow-hidden rounded-full border-2 border-black/60 bg-black/50">
             <div
@@ -2960,6 +2960,21 @@ function GamePage() {
             {fmt(enemyHp)}/{fmt(enemy.hp)}
           </div>
         </div>
+
+        {/* Death banner */}
+        {deathBanner && (
+          <div
+            key={deathBanner + Date.now()}
+            className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
+          >
+            <span
+              className="animate-[deathPop_1.1s_ease-out_forwards] text-5xl font-black tracking-widest text-red-500 drop-shadow-[0_4px_0_rgba(0,0,0,0.8)]"
+              style={{ fontFamily: "'Luckiest Guy', cursive", WebkitTextStroke: "2px #1a0000" }}
+            >
+              {deathBanner === "hero" ? "MORREU!" : "DERROTADO!"}
+            </span>
+          </div>
+        )}
 
         {/* ground grass strip */}
         <div className="absolute bottom-6 left-0 right-0 h-2 bg-emerald-400/70 rounded-full scale-x-110" />
