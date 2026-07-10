@@ -2942,7 +2942,7 @@ function GamePage() {
 
       {/* ===== Battle arena ===== */}
       <section
-        className={`relative h-56 overflow-hidden bg-gradient-to-b ${biome.bg} border-b-4 border-[#1A0F08]`}
+        className={`relative h-72 sm:h-[420px] md:h-[480px] overflow-hidden bg-gradient-to-b ${biome.bg} border-b-4 border-[#1A0F08]`}
         style={(() => {
           const src = BIOME_BG[biome.name] ?? bgCache[biome.name];
           return src
