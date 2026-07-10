@@ -1761,7 +1761,9 @@ function GamePage() {
       const uid = cloudUserIdRef.current;
       if (!cur || !uid) return;
       if (Date.now() < autoSavePausedUntilRef.current) return;
-      void saveCloudSave(uid, { ...cur, lastSeenAt: Date.now() }).catch(() => { /* silencioso */ });
+      const next = { ...cur, lastSeenAt: Date.now() };
+      lastOwnWriteAtRef.current = new Date(next.lastSeenAt).toISOString();
+      void saveCloudSave(uid, next).catch(() => { /* silencioso */ });
     };
     window.addEventListener("beforeunload", flush);
     window.addEventListener("visibilitychange", flush);
