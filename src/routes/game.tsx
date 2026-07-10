@@ -40,6 +40,23 @@ import { beginSandboxCheckout, usePaymentsConfig, usePlayerTransactions, type Pa
 import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
 import { closeNativeAuthBrowser, completeNativeOAuthFromUrl, isBrHeroNativeApp } from "@/lib/native-auth";
 import { BiomeBackdrop } from "@/components/game/biome-backdrop";
+import biomeFloresta from "@/assets/biome-floresta.jpg";
+import biomeCaverna from "@/assets/biome-caverna.jpg";
+import biomeDeserto from "@/assets/biome-deserto.jpg";
+import biomeVulcao from "@/assets/biome-vulcao.jpg";
+import biomeCastelo from "@/assets/biome-castelo.jpg";
+import biomeInferno from "@/assets/biome-inferno.jpg";
+import biomeCeu from "@/assets/biome-ceu.jpg";
+
+const BIOME_BG: Record<string, string> = {
+  Floresta: biomeFloresta,
+  Caverna: biomeCaverna,
+  Deserto: biomeDeserto,
+  Vulcão: biomeVulcao,
+  Castelo: biomeCastelo,
+  Inferno: biomeInferno,
+  Céu: biomeCeu,
+};
 import {
   fetchArenaOpponents,
   canRefreshOpponents,
