@@ -2981,9 +2981,9 @@ function GamePage() {
 
         {/* Hero */}
         <div
-          className={`absolute bottom-10 left-6 flex flex-col items-center transition-transform duration-150 ease-out ${
+          className={`absolute bottom-10 left-6 sm:left-16 md:left-24 flex flex-col items-center transition-transform duration-[380ms] ease-in-out ${
             heroDying ? "opacity-0 scale-75 rotate-12 translate-y-2" : ""
-          } ${heroLunge ? "translate-x-16" : heroHit ? "-translate-x-1" : ""}`}
+          } ${heroLunge ? "translate-x-24 sm:translate-x-40" : heroHit ? "-translate-x-2" : ""}`}
         >
           <div className="mb-1 h-2 w-16 overflow-hidden rounded-full border-2 border-black/60 bg-black/50">
             <div
