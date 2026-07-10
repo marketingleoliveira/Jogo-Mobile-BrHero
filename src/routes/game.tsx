@@ -235,7 +235,7 @@ type EventState = {
 };
 
 // ===== Skins / Cosméticos =====
-type SkinId = "classic" | "green" | "gold" | "brasil" | "shadow";
+type SkinId = "classic" | "green" | "gold" | "brasil" | "shadow" | "samurai" | "mago" | "arqueiro" | "paladino" | "pirata" | "vampiro";
 type SkinsState = { owned: SkinId[]; equipped: SkinId };
 
 // ===== Conquistas / Achievements (Fase 3 — Bloco 9) =====
