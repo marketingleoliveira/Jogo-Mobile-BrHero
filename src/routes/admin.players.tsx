@@ -123,7 +123,12 @@ function PlayersPage() {
                     {!p.hasSave && <span className="ml-2 text-[10px] uppercase text-muted-foreground">sem save</span>}
                   </TableCell>
                   <TableCell>Lv {p.level}</TableCell>
-                  <TableCell>{p.stage} / {p.maxStage}</TableCell>
+                  <TableCell title={`Stage bruto ${p.stage} · Máx ${p.maxStage}`}>
+                    {p.stage} <span className="text-xs text-muted-foreground">({formatStage(p.stage)})</span>
+                    {" / "}
+                    {p.maxStage} <span className="text-xs text-muted-foreground">({formatStage(p.maxStage)})</span>
+                  </TableCell>
+
                   <TableCell>P{p.prestigeLevel}</TableCell>
                   <TableCell>{p.gems.toLocaleString("pt-BR")}</TableCell>
                   <TableCell>{p.gold.toLocaleString("pt-BR")}</TableCell>
