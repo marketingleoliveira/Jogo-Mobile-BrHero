@@ -3191,7 +3191,7 @@ function GamePage() {
             className="text-sm tracking-wider text-amber-100 drop-shadow-[0_2px_0_rgba(0,0,0,0.6)]"
             style={{ fontFamily: "'Luckiest Guy', cursive" }}
           >
-            {biome.name.toUpperCase()}: {Math.floor((save.stage - 1) / 10) + 1}-{((save.stage - 1) % 10) + 1}
+            {biome.name.toUpperCase()}: {formatStage(save.stage)}
           </span>
         </div>
         {enemy.isBoss && (
