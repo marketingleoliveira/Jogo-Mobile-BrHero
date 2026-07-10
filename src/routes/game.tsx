@@ -6210,19 +6210,42 @@ function CodesModal({
   save,
   onClose,
   onRedeem,
+  inviteLink,
+  referralCount,
 }: {
   save: SaveState;
   onClose: () => void;
   onRedeem: (code: string) => { ok: boolean; msg: string };
+  inviteLink?: string | null;
+  referralCount?: number;
 }) {
   const [code, setCode] = useState("");
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const used = save.redeem.used;
 
   const submit = () => {
     const res = onRedeem(code);
     setFeedback(res);
     if (res.ok) setCode("");
+  };
+
+  const copyInvite = async () => {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* noop */ }
+  };
+
+  const shareInvite = async () => {
+    if (!inviteLink) return;
+    const text = `🎮 Joga BR Hero comigo! Use meu link e ganhe recompensas: ${inviteLink}`;
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try { await navigator.share({ title: "BR Hero", text, url: inviteLink }); return; } catch { /* fallback */ }
+    }
+    void copyInvite();
   };
 
   return (
