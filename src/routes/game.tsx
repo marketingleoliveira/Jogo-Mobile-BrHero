@@ -3031,6 +3031,13 @@ function GamePage() {
                 🔁 TENTAR NOVAMENTE
               </button>
               <button
+                onClick={() => setPickStageOpen(true)}
+                className="rounded-xl border-2 border-indigo-900 bg-gradient-to-b from-indigo-500 to-indigo-700 px-4 py-2 text-sm font-bold text-white shadow-lg active:translate-y-0.5"
+                style={{ fontFamily: "'Luckiest Guy', cursive" }}
+              >
+                🗺️ ESCOLHER ETAPA
+              </button>
+              <button
                 onClick={() => {
                   setDeathBanner(null);
                   setHeroDying(false);
