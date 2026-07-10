@@ -6,7 +6,15 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const LS_KEY = "brhero_session_id_v1";
+const ACCOUNT_KEY = "hero-rise-account-v1";
+const DISPLAY_NAME_KEY = "brhero_display_name_v1";
 const POLL_MS = 15_000;
+
+function clearLocalAuthState() {
+  try { localStorage.removeItem(LS_KEY); } catch { /* noop */ }
+  try { localStorage.removeItem(ACCOUNT_KEY); } catch { /* noop */ }
+  try { localStorage.removeItem(DISPLAY_NAME_KEY); } catch { /* noop */ }
+}
 
 function newSessionId(): string {
   try { return crypto.randomUUID(); } catch { /* fallback */ }
@@ -36,7 +44,7 @@ export function useSingleSessionGuard(onKick?: (reason: string) => void) {
     const kick = async (reason: string) => {
       if (kickedRef.current) return;
       kickedRef.current = true;
-      try { localStorage.removeItem(LS_KEY); } catch { /* noop */ }
+      clearLocalAuthState();
       try { await supabase.auth.signOut(); } catch { /* noop */ }
       if (onKick) onKick(reason);
       else alert(reason);
@@ -98,7 +106,7 @@ export function useSingleSessionGuard(onKick?: (reason: string) => void) {
         await claimSession(myUserId, sid);
       }
       if (event === "SIGNED_OUT") {
-        try { localStorage.removeItem(LS_KEY); } catch { /* noop */ }
+        clearLocalAuthState();
       }
     });
 
@@ -112,6 +120,10 @@ export function useSingleSessionGuard(onKick?: (reason: string) => void) {
 }
 
 export async function forceSignOut() {
-  try { localStorage.removeItem(LS_KEY); } catch { /* noop */ }
-  await supabase.auth.signOut();
+  clearLocalAuthState();
+  try {
+    await supabase.auth.signOut();
+  } finally {
+    clearLocalAuthState();
+  }
 }
