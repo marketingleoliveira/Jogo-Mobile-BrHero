@@ -235,7 +235,7 @@ type EventState = {
 };
 
 // ===== Skins / Cosméticos =====
-type SkinId = "classic" | "green" | "gold" | "brasil" | "shadow";
+type SkinId = "classic" | "green" | "gold" | "brasil" | "shadow" | "samurai" | "mago" | "arqueiro" | "paladino" | "pirata" | "vampiro";
 type SkinsState = { owned: SkinId[]; equipped: SkinId };
 
 // ===== Conquistas / Achievements (Fase 3 — Bloco 9) =====
@@ -650,14 +650,22 @@ type SkinDef = {
   rarity: "Comum" | "Raro" | "Épico" | "Lendário";
   color: string;
   desc: string;
+  filter?: string;   // CSS filter aplicado ao sprite
+  priceGems?: number; // preço direto na loja de skins (opcional)
 };
 
 const SKIN_DEFS: Record<SkinId, SkinDef> = {
-  classic: { id: "classic", label: "Herói Clássico",     icon: "🧙", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "O visual original — todos começam aqui." },
-  green:   { id: "green",   label: "Guerreiro Verde",    icon: "🥷", rarity: "Raro",     color: "from-emerald-500 to-green-700",   desc: "Furtivo e ágil, camuflado na floresta." },
-  gold:    { id: "gold",    label: "Cavaleiro Dourado",  icon: "🤴", rarity: "Épico",    color: "from-amber-400 to-yellow-700",    desc: "Armadura reluzente forjada em ouro." },
-  brasil:  { id: "brasil",  label: "Guardião do Brasil", icon: "🦸", rarity: "Épico",    color: "from-green-500 to-yellow-500",    desc: "Herói tupiniquim das terras tropicais." },
-  shadow:  { id: "shadow",  label: "Sombra Lendária",    icon: "🥷", rarity: "Lendário", color: "from-purple-700 to-black",        desc: "Rumores dizem que ele nunca é visto." },
+  classic:  { id: "classic",  label: "Herói Clássico",     icon: "🧙", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "O visual original — todos começam aqui." },
+  green:    { id: "green",    label: "Guerreiro Verde",    icon: "🥷", rarity: "Raro",     color: "from-emerald-500 to-green-700",   desc: "Furtivo e ágil, camuflado na floresta.",   filter: "hue-rotate(80deg) saturate(1.3)",           priceGems: 200 },
+  gold:     { id: "gold",     label: "Cavaleiro Dourado",  icon: "🤴", rarity: "Épico",    color: "from-amber-400 to-yellow-700",    desc: "Armadura reluzente forjada em ouro.",       filter: "hue-rotate(30deg) saturate(1.6) brightness(1.15)", priceGems: 500 },
+  brasil:   { id: "brasil",   label: "Guardião do Brasil", icon: "🦸", rarity: "Épico",    color: "from-green-500 to-yellow-500",    desc: "Herói tupiniquim das terras tropicais.",   filter: "hue-rotate(60deg) saturate(1.5)",           priceGems: 400 },
+  shadow:   { id: "shadow",   label: "Sombra Lendária",    icon: "🥷", rarity: "Lendário", color: "from-purple-700 to-black",        desc: "Rumores dizem que ele nunca é visto.",     filter: "brightness(0.35) contrast(1.4) hue-rotate(260deg)", priceGems: 1200 },
+  samurai:  { id: "samurai",  label: "Samurai Carmesim",   icon: "🗡️", rarity: "Épico",    color: "from-rose-600 to-red-800",        desc: "Lâmina afiada, honra inquebrável.",         filter: "hue-rotate(320deg) saturate(1.7)",          priceGems: 600 },
+  mago:     { id: "mago",     label: "Arquimago Azul",     icon: "🧙‍♂️", rarity: "Raro",     color: "from-sky-500 to-indigo-700",      desc: "Domina os elementos arcanos.",              filter: "hue-rotate(200deg) saturate(1.4)",          priceGems: 300 },
+  arqueiro: { id: "arqueiro", label: "Arqueiro Élfico",    icon: "🏹", rarity: "Raro",     color: "from-teal-500 to-emerald-800",    desc: "Precisão sobrenatural da floresta antiga.", filter: "hue-rotate(150deg) saturate(1.3)",          priceGems: 350 },
+  paladino: { id: "paladino", label: "Paladino Sagrado",   icon: "🛡️", rarity: "Épico",    color: "from-yellow-300 to-amber-600",    desc: "Fé inabalável, escudo intransponível.",     filter: "brightness(1.2) saturate(1.4)",             priceGems: 700 },
+  pirata:   { id: "pirata",   label: "Capitão Pirata",     icon: "🏴‍☠️", rarity: "Épico",    color: "from-slate-700 to-red-900",       desc: "Terror dos sete mares.",                    filter: "hue-rotate(340deg) saturate(1.2) brightness(0.9)", priceGems: 550 },
+  vampiro:  { id: "vampiro",  label: "Lorde Vampiro",      icon: "🧛", rarity: "Lendário", color: "from-red-900 to-black",           desc: "Da noite eterna surge o predador.",         filter: "hue-rotate(340deg) saturate(1.8) brightness(0.55) contrast(1.3)", priceGems: 1500 },
 };
 
 function emptySkins(): SkinsState {
@@ -2600,6 +2608,22 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  const buySkin = useCallback((id: SkinId) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const def = SKIN_DEFS[id];
+      if (!def?.priceGems) { flashToast("Skin indisponível na loja"); return prev; }
+      if (prev.skins.owned.includes(id)) { flashToast("Você já tem"); return prev; }
+      if (prev.gems < def.priceGems) { flashToast("Gemas insuficientes"); return prev; }
+      flashToast(`✨ ${def.label} desbloqueado(a)!`);
+      return {
+        ...prev,
+        gems: prev.gems - def.priceGems,
+        skins: { owned: [...prev.skins.owned, id], equipped: id },
+      };
+    });
+  }, [flashToast]);
+
   // ==== Conquistas / Achievements (Fase 3 — Bloco 9) ====
   const claimAchievement = useCallback((id: AchievementId) => {
     setSave((prev) => {
@@ -2937,6 +2961,7 @@ function GamePage() {
             src={heroSprite}
             alt="Herói"
             className={`h-20 w-20 object-contain drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] ${levelFlash ? "animate-[heroBounce_0.9s_ease-out]" : ""}`}
+            style={{ filter: equippedSkinDef(save).filter }}
             draggable={false}
           />
           <div className="mt-0.5 text-[9px] tabular-nums text-white/90 font-bold">
@@ -3348,7 +3373,7 @@ function GamePage() {
         />
       )}
       {modal === "skins" && (
-        <SkinsModal save={save} onClose={() => setModal(null)} onEquip={equipSkin} />
+        <SkinsModal save={save} onClose={() => setModal(null)} onEquip={equipSkin} onBuy={buySkin} />
       )}
       {modal === "achievements" && (
         <AchievementsModal save={save} onClose={() => setModal(null)} onClaim={claimAchievement} />
@@ -5555,10 +5580,12 @@ function SkinsModal({
   save,
   onClose,
   onEquip,
+  onBuy,
 }: {
   save: SaveState;
   onClose: () => void;
   onEquip: (id: SkinId) => void;
+  onBuy: (id: SkinId) => void;
 }) {
   const locked = save.level < SKIN_UNLOCK_LEVEL;
   const allIds = Object.keys(SKIN_DEFS) as SkinId[];
@@ -5571,8 +5598,8 @@ function SkinsModal({
         style={{ animation: "slideUp 200ms ease" }}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>👗 Skins</h2>
-          <div className="text-[10px] opacity-70">Apenas cosmético · sem bônus</div>
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>👗 Personagens</h2>
+          <div className="text-[10px] opacity-70">💎 {save.gems}</div>
         </div>
 
         {locked && (
@@ -5588,28 +5615,47 @@ function SkinsModal({
               const def = SKIN_DEFS[id];
               const owned = save.skins.owned.includes(id);
               const equipped = save.skins.equipped === id;
+              const canBuy = !owned && !!def.priceGems;
+              const affordable = canBuy && save.gems >= (def.priceGems ?? 0);
               return (
-                <div key={id} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-2 ${owned ? "" : "opacity-60"}`}>
+                <div key={id} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-2 ${owned ? "" : "opacity-90"}`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <div className="text-3xl">{owned ? def.icon : "🔒"}</div>
+                      <div className="text-3xl" style={{ filter: def.filter }}>{owned ? def.icon : "🔒"}</div>
                       <div>
                         <div className="text-xs font-black text-amber-50 drop-shadow">{def.label}</div>
                         <div className="text-[10px] text-amber-50/90">{def.rarity} · {def.desc}</div>
-                        {!owned && (
+                        {!owned && !def.priceGems && (
                           <div className="mt-0.5 text-[10px] font-black text-amber-50/80">
                             Obtenha em baús raros ou na loja do evento.
                           </div>
                         )}
                       </div>
                     </div>
-                    <button
-                      onClick={() => onEquip(id)}
-                      disabled={!owned || equipped}
-                      className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2.5 py-1.5 text-[11px] font-black text-amber-100 disabled:opacity-50"
-                    >
-                      {equipped ? "Equipada" : owned ? "Equipar" : "Bloqueada"}
-                    </button>
+                    {owned ? (
+                      <button
+                        onClick={() => onEquip(id)}
+                        disabled={equipped}
+                        className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2.5 py-1.5 text-[11px] font-black text-amber-100 disabled:opacity-50"
+                      >
+                        {equipped ? "Equipada" : "Equipar"}
+                      </button>
+                    ) : canBuy ? (
+                      <button
+                        onClick={() => onBuy(id)}
+                        disabled={!affordable}
+                        className="rounded-md border-2 border-[#1A0F08] bg-amber-500/90 px-2.5 py-1.5 text-[11px] font-black text-amber-950 disabled:opacity-50"
+                      >
+                        💎 {def.priceGems}
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2.5 py-1.5 text-[11px] font-black text-amber-100 opacity-50"
+                      >
+                        Bloqueada
+                      </button>
+                    )}
                   </div>
                 </div>
               );
