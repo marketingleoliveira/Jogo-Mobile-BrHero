@@ -4165,6 +4165,22 @@ function pickEnemySprite(stage: number) {
   return pool[stage % pool.length];
 }
 
+// Chefes temáticos por bioma — cada mapa tem seu próprio boss visual e nome.
+// Usa emoji grande sobre um halo para não depender de novos assets de imagem.
+const BOSS_BY_BIOME: Record<string, { emoji: string; name: string; halo: string }> = {
+  Floresta: { emoji: "🌳", name: "Ent Ancestral",     halo: "from-emerald-400/60 to-transparent" },
+  Caverna:  { emoji: "🕷️", name: "Aranha da Fenda",   halo: "from-slate-300/60 to-transparent" },
+  Deserto:  { emoji: "🦂", name: "Escorpião de Ouro", halo: "from-amber-300/70 to-transparent" },
+  Vulcão:   { emoji: "🐉", name: "Dragão de Rubi",    halo: "from-red-400/70 to-transparent" },
+  Castelo:  { emoji: "🤴", name: "Rei Caído",         halo: "from-indigo-300/60 to-transparent" },
+  Inferno:  { emoji: "👹", name: "Senhor Demoníaco",  halo: "from-rose-400/70 to-transparent" },
+  Céu:      { emoji: "👼", name: "Serafim Corrompido",halo: "from-sky-200/70 to-transparent" },
+};
+function bossForBiome(biomeName: string) {
+  return BOSS_BY_BIOME[biomeName] ?? { emoji: "👑", name: "Chefe", halo: "from-amber-300/60 to-transparent" };
+}
+
+
 // ==================== STORE (Pay-to-fast) ====================
 // Regra de design: nada aqui empurra o jogador direto pra frente em stats
 // permanentes. Só acelera o que ele já pode conseguir jogando. NUNCA vender:
