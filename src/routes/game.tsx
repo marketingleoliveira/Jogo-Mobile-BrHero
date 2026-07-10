@@ -2967,18 +2967,69 @@ function GamePage() {
           </div>
         </div>
 
-        {/* Death banner */}
-        {deathBanner && (
+        {/* Enemy defeated flash */}
+        {deathBanner === "enemy" && (
           <div
-            key={deathBanner + Date.now()}
+            key={"enemy-" + Date.now()}
             className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
           >
             <span
               className="animate-[deathPop_1.1s_ease-out_forwards] text-5xl font-black tracking-widest text-red-500 drop-shadow-[0_4px_0_rgba(0,0,0,0.8)]"
               style={{ fontFamily: "'Luckiest Guy', cursive", WebkitTextStroke: "2px #1a0000" }}
             >
-              {deathBanner === "hero" ? "MORREU!" : "DERROTADO!"}
+              DERROTADO!
             </span>
+          </div>
+        )}
+
+        {/* Hero death overlay — MORREU 5s fade + action buttons */}
+        {deathBanner === "hero" && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/70 backdrop-blur-sm animate-[fadeInOverlay_400ms_ease-out_forwards]">
+            <span
+              className="animate-[morreu5s_5s_ease-in-out_forwards] text-6xl font-black tracking-widest text-red-500 drop-shadow-[0_4px_0_rgba(0,0,0,0.9)]"
+              style={{ fontFamily: "'Luckiest Guy', cursive", WebkitTextStroke: "2px #1a0000" }}
+            >
+              MORREU!
+            </span>
+            <div className="flex flex-col gap-2 w-56 animate-[fadeInOverlay_600ms_ease-out_400ms_both]">
+              <button
+                onClick={() => {
+                  setDeathBanner(null);
+                  setHeroDying(false);
+                  heroDyingRef.current = false;
+                  respawn();
+                }}
+                className="rounded-xl border-2 border-emerald-900 bg-gradient-to-b from-emerald-500 to-emerald-700 px-4 py-2 text-sm font-bold text-white shadow-lg active:translate-y-0.5"
+                style={{ fontFamily: "'Luckiest Guy', cursive" }}
+              >
+                🔁 TENTAR NOVAMENTE
+              </button>
+              <button
+                onClick={() => {
+                  setDeathBanner(null);
+                  setHeroDying(false);
+                  heroDyingRef.current = false;
+                  navigate({ to: "/dashboard" });
+                }}
+                className="rounded-xl border-2 border-slate-900 bg-gradient-to-b from-slate-500 to-slate-700 px-4 py-2 text-sm font-bold text-white shadow-lg active:translate-y-0.5"
+                style={{ fontFamily: "'Luckiest Guy', cursive" }}
+              >
+                🏠 MENU INICIAL
+              </button>
+              <button
+                onClick={() => {
+                  setDeathBanner(null);
+                  setHeroDying(false);
+                  heroDyingRef.current = false;
+                  respawn();
+                  setModal("store");
+                }}
+                className="rounded-xl border-2 border-amber-900 bg-gradient-to-b from-amber-400 to-amber-600 px-4 py-2 text-sm font-bold text-amber-950 shadow-lg active:translate-y-0.5"
+                style={{ fontFamily: "'Luckiest Guy', cursive" }}
+              >
+                💎 COMPRAR PODER
+              </button>
+            </div>
           </div>
         )}
 
