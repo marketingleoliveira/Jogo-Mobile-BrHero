@@ -25,6 +25,8 @@ import {
   Users,
   LogOut,
   Pencil,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 import heroSprite from "@/assets/sprite-hero.png";
 import skinClassicSprite from "@/assets/skins/hero-classic.png";
