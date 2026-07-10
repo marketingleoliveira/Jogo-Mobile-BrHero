@@ -1517,6 +1517,32 @@ function GamePage() {
   const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | "runes" | "cosmetics" | "codes" | "menu" | "cloud" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const refStats = useReferralStats(currentUserId);
+
+  // Convites: captura ?ref= da URL e tenta creditar 10💎 ao convidante quando o jogador loga
+  useEffect(() => {
+    captureReferralFromUrl();
+    let disposed = false;
+    const run = async () => {
+      const { data } = await _supaClient.auth.getSession();
+      const uid = data.session?.user.id ?? null;
+      if (disposed) return;
+      setCurrentUserId(uid);
+      if (uid) {
+        const res = await tryClaimPendingReferral(uid);
+        if (res?.ok && !disposed) {
+          try { window.dispatchEvent(new CustomEvent("brhero:toast", { detail: `🎁 Convite ativado! +${res.gems ?? 10}💎 para quem te convidou` })); } catch { /* noop */ }
+        }
+      }
+    };
+    void run();
+    const { data: sub } = _supaClient.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN") { setCurrentUserId(session?.user.id ?? null); void run(); }
+      if (event === "SIGNED_OUT") setCurrentUserId(null);
+    });
+    return () => { disposed = true; sub.subscription.unsubscribe(); };
+  }, []);
 
 
   // Init
