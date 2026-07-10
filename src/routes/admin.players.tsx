@@ -23,6 +23,8 @@ import {
   updateAdminPlayer,
   type AdminPlayerRow,
 } from "@/lib/admin/players.functions";
+import { formatStage } from "@/lib/game/cloud-save";
+
 
 export const Route = createFileRoute("/admin/players")({ component: PlayersPage });
 
@@ -121,7 +123,12 @@ function PlayersPage() {
                     {!p.hasSave && <span className="ml-2 text-[10px] uppercase text-muted-foreground">sem save</span>}
                   </TableCell>
                   <TableCell>Lv {p.level}</TableCell>
-                  <TableCell>{p.stage} / {p.maxStage}</TableCell>
+                  <TableCell title={`Stage bruto ${p.stage} · Máx ${p.maxStage}`}>
+                    {p.stage} <span className="text-xs text-muted-foreground">({formatStage(p.stage)})</span>
+                    {" / "}
+                    {p.maxStage} <span className="text-xs text-muted-foreground">({formatStage(p.maxStage)})</span>
+                  </TableCell>
+
                   <TableCell>P{p.prestigeLevel}</TableCell>
                   <TableCell>{p.gems.toLocaleString("pt-BR")}</TableCell>
                   <TableCell>{p.gold.toLocaleString("pt-BR")}</TableCell>
@@ -235,28 +242,40 @@ function EditPlayerDialog({ player, onClose }: { player: AdminPlayerRow | null; 
         {player && (
           <div className="grid grid-cols-2 gap-3 py-2">
             <div className="col-span-2 rounded-md border border-border/60 bg-muted/30 p-2 text-xs text-muted-foreground">
-              <strong>Stage:</strong> "Atual" é o andar em que o jogador está agora. "Máximo" é o recorde já alcançado (usado no ranking). O máximo nunca deve ser menor que o atual.
+              <strong>Stage:</strong> valor bruto (ex.: <code>91</code>). O HUD do jogo mostra no formato <code>bloco-andar</code> (ex.: <code>91 = 10-1</code>). A conversão é <code>bloco = ⌊(stage-1)/10⌋+1</code>, <code>andar = ((stage-1) mod 10)+1</code>. "Máximo" nunca pode ser menor que o "atual".
             </div>
             {[
               { k: "level", label: "Nível do herói" },
               { k: "prestigeLevel", label: "Prestígio" },
-              { k: "stage", label: "Stage atual (andar agora)" },
-              { k: "maxStage", label: "Stage máximo (recorde)" },
+              { k: "stage", label: "Stage atual (bruto)" },
+              { k: "maxStage", label: "Stage máximo (bruto)" },
               { k: "gems", label: "Cristais (diamantes)" },
               { k: "gold", label: "Ouro (moedas)" },
               { k: "essence", label: "Essência" },
-            ].map(({ k, label }) => (
-              <div key={k} className="space-y-1">
-                <Label htmlFor={`f-${k}`} className="text-xs">{label}</Label>
-                <Input
-                  id={`f-${k}`}
-                  type="number"
-                  min={0}
-                  value={form[k] ?? ""}
-                  onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))}
-                />
-              </div>
-            ))}
+            ].map(({ k, label }) => {
+              const raw = Number(form[k]);
+              const showConv = (k === "stage" || k === "maxStage") && Number.isFinite(raw) && raw > 0;
+              return (
+                <div key={k} className="space-y-1">
+                  <Label htmlFor={`f-${k}`} className="text-xs">
+                    {label}
+                    {showConv && (
+                      <span className="ml-2 text-[10px] font-normal text-muted-foreground">
+                        HUD: {formatStage(raw)}
+                      </span>
+                    )}
+                  </Label>
+                  <Input
+                    id={`f-${k}`}
+                    type="number"
+                    min={0}
+                    value={form[k] ?? ""}
+                    onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))}
+                  />
+                </div>
+              );
+            })}
+
             <div className="col-span-2 space-y-1">
               <Label htmlFor="f-reason" className="text-xs">Motivo (audit log)</Label>
               <Textarea

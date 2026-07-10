@@ -56,7 +56,7 @@ function WalletCornerOverlay() {
     </div>
   );
 }
-import { getCloudUser, saveCloudSave, loadCloudSave } from "@/lib/game/cloud-save";
+import { getCloudUser, saveCloudSave, loadCloudSave, formatStage } from "@/lib/game/cloud-save";
 import { useSingleSessionGuard, forceSignOut } from "@/lib/game/single-session";
 import { beginSandboxCheckout, beginInfinitepayCheckoutClient, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
 import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
@@ -1763,8 +1763,12 @@ function GamePage() {
   }, []);
 
   // Persistência em tempo real na nuvem (debounce 1.2s).
+  // Trava (`autoSavePausedUntilRef`): após detectar update externo (painel admin),
+  // suspendemos o auto-save por alguns segundos para não sobrescrever o que
+  // o admin acabou de aplicar antes do reload acontecer.
   const cloudDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastOwnWriteAtRef = useRef<string | null>(null);
+  const autoSavePausedUntilRef = useRef<number>(0);
   useEffect(() => {
     if (!save) return;
     saveRef.current = save;
@@ -1772,6 +1776,7 @@ function GamePage() {
     if (!uid) return;
     if (cloudDebounceRef.current) clearTimeout(cloudDebounceRef.current);
     cloudDebounceRef.current = setTimeout(() => {
+      if (Date.now() < autoSavePausedUntilRef.current) return; // trava ativa
       const stamp = new Date(save.lastSeenAt ?? Date.now()).toISOString();
       lastOwnWriteAtRef.current = stamp;
       void saveCloudSave(uid, save).catch(() => { /* silencioso */ });
@@ -1781,25 +1786,35 @@ function GamePage() {
     };
   }, [save]);
 
-  // Detecta edições externas (painel admin) e recarrega o jogo.
+  // Realtime: escuta UPDATE na linha do próprio jogador em player_saves.
+  // Se o timestamp remoto for diferente do último write feito por este cliente,
+  // é uma edição externa (painel admin) — pausa o auto-save por 8s e recarrega.
   useEffect(() => {
-    const iv = setInterval(async () => {
-      const uid = cloudUserIdRef.current;
-      if (!uid || document.hidden) return;
-      try {
-        const remote = await loadCloudSave(uid);
-        if (!remote) return;
-        const remoteStamp = remote.client_updated_at;
-        const ownStamp = lastOwnWriteAtRef.current;
-        // Se o timestamp remoto é diferente do último write que fizemos,
-        // significa que alguém (admin) editou por fora — recarrega.
-        if (ownStamp && remoteStamp && remoteStamp !== ownStamp) {
-          window.location.reload();
-        }
-      } catch { /* silencioso */ }
-    }, 20_000);
-    return () => clearInterval(iv);
-  }, []);
+    const uid = cloudUserIdRef.current;
+    if (!uid) return;
+    const channel = _supaClient
+      .channel(`player-save-${uid}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "player_saves", filter: `user_id=eq.${uid}` },
+        (payload) => {
+          const row = payload.new as { client_updated_at?: string } | null;
+          const remoteStamp = row?.client_updated_at ?? null;
+          const ownStamp = lastOwnWriteAtRef.current;
+          if (!remoteStamp) return;
+          if (ownStamp && remoteStamp === ownStamp) return; // eco do próprio write
+          autoSavePausedUntilRef.current = Date.now() + 8_000;
+          if (cloudDebounceRef.current) {
+            clearTimeout(cloudDebounceRef.current);
+            cloudDebounceRef.current = null;
+          }
+          if (!document.hidden) window.location.reload();
+        },
+      )
+      .subscribe();
+    return () => { void _supaClient.removeChannel(channel); };
+  }, [cloudUserIdRef.current]);
+
 
 
 
@@ -3191,7 +3206,7 @@ function GamePage() {
             className="text-sm tracking-wider text-amber-100 drop-shadow-[0_2px_0_rgba(0,0,0,0.6)]"
             style={{ fontFamily: "'Luckiest Guy', cursive" }}
           >
-            {biome.name.toUpperCase()}: {Math.floor((save.stage - 1) / 10) + 1}-{((save.stage - 1) % 10) + 1}
+            {biome.name.toUpperCase()}: {formatStage(save.stage)}
           </span>
         </div>
         {enemy.isBoss && (
