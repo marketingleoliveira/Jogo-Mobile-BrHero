@@ -1479,6 +1479,11 @@ function GamePage() {
   const [heroHit, setHeroHit] = useState(false);
   const [enemyHit, setEnemyHit] = useState(false);
   const [enemyDying, setEnemyDying] = useState(false);
+  const [heroDying, setHeroDying] = useState(false);
+  const heroDyingRef = useRef(false);
+  const [heroLunge, setHeroLunge] = useState(false);
+  const [enemyLunge, setEnemyLunge] = useState(false);
+  const [deathBanner, setDeathBanner] = useState<null | "hero" | "enemy">(null);
   const [toast, setToast] = useState<string | null>(null);
   const [levelFlash, setLevelFlash] = useState(false);
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
@@ -1666,7 +1671,9 @@ function GamePage() {
         enemyHpRef.current = Math.max(0, enemyHpRef.current - dmg);
         setEnemyHp(enemyHpRef.current);
         setEnemyHit(true);
+        setHeroLunge(true);
         setTimeout(() => setEnemyHit(false), 120);
+        setTimeout(() => setHeroLunge(false), 220);
         spawnDamage(dmg, crit, "hero");
         // lifesteal
         if (stats.lifesteal > 0) {
@@ -1687,27 +1694,39 @@ function GamePage() {
         heroHpRef.current = Math.max(0, heroHpRef.current - dmg);
         setHeroHp(heroHpRef.current);
         setHeroHit(true);
+        setEnemyLunge(true);
         setTimeout(() => setHeroHit(false), 120);
+        setTimeout(() => setEnemyLunge(false), 220);
         spawnDamage(dmg, false, "enemy");
       }
 
       // Enemy killed
       if (enemyHpRef.current <= 0) {
         setEnemyDying(true);
+        setDeathBanner("enemy");
         setTimeout(() => setEnemyDying(false), 250);
+        setTimeout(() => setDeathBanner((b) => (b === "enemy" ? null : b)), 700);
         onEnemyKilled();
       }
 
-      // Hero died — respawn with full hp, retreat 1 stage (min 1)
-      if (heroHpRef.current <= 0) {
-        const cur = saveRef.current;
-        if (cur) {
-          const newStage = Math.max(1, cur.stage - 1);
-          const next = { ...cur, stage: newStage };
-          setSave(next);
-          saveRef.current = next;
-        }
-        respawn();
+      // Hero died — show MORREU banner, then respawn with full hp, retreat 1 stage
+      if (heroHpRef.current <= 0 && !heroDyingRef.current) {
+        heroDyingRef.current = true;
+        setHeroDying(true);
+        setDeathBanner("hero");
+        setTimeout(() => {
+          const cur = saveRef.current;
+          if (cur) {
+            const newStage = Math.max(1, cur.stage - 1);
+            const next = { ...cur, stage: newStage };
+            setSave(next);
+            saveRef.current = next;
+          }
+          respawn();
+          setHeroDying(false);
+          setDeathBanner(null);
+          heroDyingRef.current = false;
+        }, 1200);
       }
     }, TICK);
     return () => clearInterval(interval);
@@ -2898,9 +2917,9 @@ function GamePage() {
 
         {/* Hero */}
         <div
-          className={`absolute bottom-10 left-6 flex flex-col items-center ${
-            heroHit ? "translate-x-1" : ""
-          } transition-transform`}
+          className={`absolute bottom-10 left-6 flex flex-col items-center transition-transform duration-150 ease-out ${
+            heroDying ? "opacity-0 scale-75 rotate-12 translate-y-2" : ""
+          } ${heroLunge ? "translate-x-16" : heroHit ? "-translate-x-1" : ""}`}
         >
           <div className="mb-1 h-2 w-16 overflow-hidden rounded-full border-2 border-black/60 bg-black/50">
             <div
@@ -2921,9 +2940,9 @@ function GamePage() {
 
         {/* Enemy */}
         <div
-          className={`absolute bottom-10 right-6 flex flex-col items-center ${
-            enemyHit ? "-translate-x-1" : ""
-          } ${enemyDying ? "opacity-0 scale-50" : ""} transition-all duration-200`}
+          className={`absolute bottom-10 right-6 flex flex-col items-center transition-transform duration-150 ease-out ${
+            enemyDying ? "opacity-0 scale-50 rotate-12" : ""
+          } ${enemyLunge ? "-translate-x-16" : enemyHit ? "-translate-x-1" : ""}`}
         >
           <div className="mb-1 h-2 w-20 overflow-hidden rounded-full border-2 border-black/60 bg-black/50">
             <div
@@ -2941,6 +2960,21 @@ function GamePage() {
             {fmt(enemyHp)}/{fmt(enemy.hp)}
           </div>
         </div>
+
+        {/* Death banner */}
+        {deathBanner && (
+          <div
+            key={deathBanner + Date.now()}
+            className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
+          >
+            <span
+              className="animate-[deathPop_1.1s_ease-out_forwards] text-5xl font-black tracking-widest text-red-500 drop-shadow-[0_4px_0_rgba(0,0,0,0.8)]"
+              style={{ fontFamily: "'Luckiest Guy', cursive", WebkitTextStroke: "2px #1a0000" }}
+            >
+              {deathBanner === "hero" ? "MORREU!" : "DERROTADO!"}
+            </span>
+          </div>
+        )}
 
         {/* ground grass strip */}
         <div className="absolute bottom-6 left-0 right-0 h-2 bg-emerald-400/70 rounded-full scale-x-110" />
@@ -2967,6 +3001,7 @@ function GamePage() {
           @keyframes heroBounce{0%,100%{transform:translateY(0) scale(1)}20%{transform:translateY(-18px) scale(1.15)}45%{transform:translateY(0) scale(0.92)}65%{transform:translateY(-8px) scale(1.05)}85%{transform:translateY(0) scale(0.98)}}
           @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
           @keyframes levelPop{0%{transform:scale(0.5) rotate(-8deg);opacity:0}60%{transform:scale(1.15) rotate(4deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+          @keyframes deathPop{0%{transform:scale(0.2) rotate(-15deg);opacity:0}25%{transform:scale(1.4) rotate(6deg);opacity:1}45%{transform:scale(1) rotate(-3deg);opacity:1}80%{transform:scale(1.05) rotate(0);opacity:1}100%{transform:scale(1.2) rotate(0);opacity:0}}
         `}</style>
       </section>
 
