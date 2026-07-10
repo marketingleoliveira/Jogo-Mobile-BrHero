@@ -1556,6 +1556,10 @@ type DamageNumber = {
 
 function GamePage() {
   const navigate = useNavigate();
+  useSingleSessionGuard((reason) => {
+    alert(reason);
+    navigate({ to: "/" });
+  });
   const [save, setSave] = useState<SaveState | null>(null);
   const saveRef = useRef<SaveState | null>(null);
   const [heroHp, setHeroHp] = useState(0);
