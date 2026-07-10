@@ -24,6 +24,7 @@ import {
   Package,
   Users,
   LogOut,
+  Pencil,
 } from "lucide-react";
 import heroSprite from "@/assets/sprite-hero.png";
 import goblinSprite from "@/assets/sprite-goblin.png";
