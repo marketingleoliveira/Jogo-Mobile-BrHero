@@ -3358,7 +3358,7 @@ function GamePage() {
           </div>
           <img
             key={heroSkin.id}
-            src={heroSprite}
+            src={heroSkin.sprite ?? heroSprite}
             alt="Herói"
             className={`h-20 w-20 object-contain drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] ${levelFlash ? "animate-[heroBounce_0.9s_ease-out]" : ""}`}
             style={{ filter: heroSkin.filter ?? "none" }}
