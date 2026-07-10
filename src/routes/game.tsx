@@ -6612,7 +6612,7 @@ function RemoteOffersPanel({ offers }: { offers: RemoteOffer[] }) {
             <div className="flex flex-col items-end gap-1">
               <div className="text-[11px] text-amber-100">
                 {paid
-                  ? `R$ ${(o.price / 100).toFixed(2).replace(".", ",")}`
+                  ? `R$ ${o.price.toFixed(2).replace(".", ",")}`
                   : `${currencyIcon(o.currency)} ${o.price.toLocaleString("pt-BR")}`}
               </div>
               {showBuy ? (
