@@ -3749,6 +3749,47 @@ function GamePage() {
 
 
 
+      {editingName && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setEditingName(false)}>
+          <div
+            className="w-full max-w-xs rounded-xl border-4 border-[#8B4513] bg-gradient-to-b from-[#3E2723] to-[#2D1B0E] p-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-2 text-center text-sm font-bold tracking-wider text-amber-200" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+              NOME DE EXIBIÇÃO
+            </h3>
+            <p className="mb-3 text-center text-[11px] text-amber-100/70">
+              Este nome aparecerá no ranking e para outros jogadores.
+            </p>
+            <input
+              autoFocus
+              maxLength={20}
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") void saveDisplayName(nameDraft); }}
+              placeholder="Seu nome (máx 20)"
+              className="mb-3 w-full rounded-md border-2 border-[#8B4513] bg-[#1A0F08] px-3 py-2 text-sm text-amber-100 outline-none focus:border-amber-400"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingName(false)}
+                className="flex-1 rounded-md border-2 border-[#8B4513] bg-black/40 px-3 py-2 text-xs font-bold text-amber-200 hover:bg-black/60"
+              >
+                CANCELAR
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveDisplayName(nameDraft)}
+                className="flex-1 rounded-md border-2 border-amber-600 bg-amber-500 px-3 py-2 text-xs font-bold text-amber-950 hover:bg-amber-400 active:scale-95"
+              >
+                SALVAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
       )}
