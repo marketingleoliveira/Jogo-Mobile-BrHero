@@ -40,6 +40,7 @@ import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
 
 import { WalletHud } from "@/components/game/wallet-hud";
 import { useWallet } from "@/lib/game/wallet";
+import { ChatPopup } from "@/components/game/chat-popup";
 
 function WalletCornerOverlay() {
   const { wallet, loading } = useWallet();
@@ -1603,6 +1604,12 @@ function GamePage() {
   const [bgCache, setBgCache] = useState<Record<string, string>>({});
   const [modal, setModal] = useState<"equip" | "arena" | "store" | "rebirth" | "crystals" | "daily" | "missions" | "dungeon" | "pets" | "tower" | "blessings" | "guild" | "event" | "skins" | "achievements" | "runes" | "cosmetics" | "codes" | "menu" | "cloud" | null>(null);
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
+  const handleChatUnread = useCallback((n: number) => {
+    // sentinela: n === -1 significa "incrementa 1"
+    setChatUnread((prev) => (n < 0 ? prev + 1 : n));
+  }, []);
   const prevLevelRef = useRef(1);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>(() => {
@@ -3125,6 +3132,7 @@ function GamePage() {
       <LiveOpsBanner snap={liveOps} />
       <WalletHud gemsOverride={save.gems} goldOverride={save.gold} />
       <WalletCornerOverlay />
+      <ChatPopup open={chatOpen} onClose={() => setChatOpen(false)} onUnreadChange={handleChatUnread} />
       {/* ===== Top HUD ===== */}
       <header className="relative z-[80] bg-gradient-to-b from-[#3E2723] to-[#2D1B0E] border-b-4 border-[#8B4513] px-3 pt-2 pb-2">
         {/* Row 1: player name + top actions */}
@@ -3147,14 +3155,20 @@ function GamePage() {
             >
               ROADMAP
             </Link>
-            <Link
-              to="/chat"
+            <button
+              type="button"
+              onClick={() => { setChatOpen(true); setChatUnread(0); }}
               aria-label="Chat Global"
               title="Chat Global"
-              className="flex items-center gap-1 rounded-md border border-emerald-500/60 bg-emerald-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-emerald-200 hover:bg-emerald-900/70 hover:text-emerald-100 active:scale-95"
+              className="relative flex items-center gap-1 rounded-md border border-emerald-500/60 bg-emerald-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-emerald-200 hover:bg-emerald-900/70 hover:text-emerald-100 active:scale-95"
             >
               💬 CHAT
-            </Link>
+              {chatUnread > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 min-w-[16px] rounded-full border border-black/60 bg-rose-500 px-1 text-[9px] font-black text-white shadow">
+                  {chatUnread > 99 ? "99+" : chatUnread}
+                </span>
+              )}
+            </button>
             <button
               type="button"
               onClick={async () => {
