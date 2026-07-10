@@ -71,6 +71,27 @@ export async function signOut(): Promise<void> {
   try { await supabase.auth.signOut(); } catch { /* ignore */ }
 }
 
+// -------- Stage <-> "bloco-andar" (regra ÚNICA usada por HUD e admin) --------
+// Convenção: stage bruto = (bloco - 1) * 10 + andar; andar ∈ [1..10].
+// Ex.: 91 -> "10-1", 9 -> "1-9".
+export function stageToBlockFloor(stage: number): { block: number; floor: number } {
+  const s = Math.max(1, Math.floor(stage));
+  return { block: Math.floor((s - 1) / 10) + 1, floor: ((s - 1) % 10) + 1 };
+}
+export function formatStage(stage: number): string {
+  const { block, floor } = stageToBlockFloor(stage);
+  return `${block}-${floor}`;
+}
+/** Converte "10-1" para 91. Retorna null se inválido. */
+export function parseStageLabel(text: string): number | null {
+  const m = /^\s*(\d+)\s*-\s*(\d+)\s*$/.exec(text);
+  if (!m) return null;
+  const b = parseInt(m[1], 10);
+  const f = parseInt(m[2], 10);
+  if (!b || b < 1 || !f || f < 1 || f > 10) return null;
+  return (b - 1) * 10 + f;
+}
+
 // -------- Save summary helpers --------
 type MinimalSave = {
   level?: number; stage?: number; maxStage?: number; prestigeLevel?: number;
