@@ -40,6 +40,23 @@ import { beginSandboxCheckout, usePaymentsConfig, usePlayerTransactions, type Pa
 import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
 import { closeNativeAuthBrowser, completeNativeOAuthFromUrl, isBrHeroNativeApp } from "@/lib/native-auth";
 import { BiomeBackdrop } from "@/components/game/biome-backdrop";
+import biomeFloresta from "@/assets/biome-floresta.jpg";
+import biomeCaverna from "@/assets/biome-caverna.jpg";
+import biomeDeserto from "@/assets/biome-deserto.jpg";
+import biomeVulcao from "@/assets/biome-vulcao.jpg";
+import biomeCastelo from "@/assets/biome-castelo.jpg";
+import biomeInferno from "@/assets/biome-inferno.jpg";
+import biomeCeu from "@/assets/biome-ceu.jpg";
+
+const BIOME_BG: Record<string, string> = {
+  Floresta: biomeFloresta,
+  Caverna: biomeCaverna,
+  Deserto: biomeDeserto,
+  Vulcão: biomeVulcao,
+  Castelo: biomeCastelo,
+  Inferno: biomeInferno,
+  Céu: biomeCeu,
+};
 import {
   fetchArenaOpponents,
   canRefreshOpponents,
@@ -2880,15 +2897,16 @@ function GamePage() {
       {/* ===== Battle arena ===== */}
       <section
         className={`relative h-56 overflow-hidden bg-gradient-to-b ${biome.bg} border-b-4 border-[#1A0F08]`}
-        style={
-          bgCache[biome.name]
+        style={(() => {
+          const src = BIOME_BG[biome.name] ?? bgCache[biome.name];
+          return src
             ? {
-                backgroundImage: `url(${bgCache[biome.name]})`,
+                backgroundImage: `url(${src})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }
-            : undefined
-        }
+            : undefined;
+        })()}
         aria-label="Campo de batalha"
       >
         {/* stage banner */}
