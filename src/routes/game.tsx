@@ -37,7 +37,7 @@ import { captureReferralFromUrl, tryClaimPendingReferral, buildInviteLink, useRe
 import { supabase as _supaClient } from "@/integrations/supabase/client";
 import { getLiveOpsMultipliers, useLiveOps } from "@/lib/game/remote-liveops";
 import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
-import { CloudSaveModal } from "@/components/game/cloud-save-modal";
+
 import { WalletHud } from "@/components/game/wallet-hud";
 import { useWallet } from "@/lib/game/wallet";
 
