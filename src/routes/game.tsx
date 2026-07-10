@@ -6235,25 +6235,27 @@ function CodesModal({
           </div>
         )}
 
-        <div className="rounded-lg border-2 border-[#1A0F08] bg-amber-50 p-2">
-          <div className="mb-1 text-xs font-black text-[#1A0F08]">📜 Códigos beta disponíveis</div>
-          <ul className="space-y-1 text-[11px] text-[#3A2415]">
-            {Object.entries(REDEEM_CODES).map(([k, def]) => {
-              const isUsed = used.includes(k);
-              return (
-                <li key={k} className="flex items-start justify-between gap-2">
-                  <div>
-                    <span className="font-mono font-black">{k}</span>
-                    <span className="ml-1">— {def.desc}</span>
-                  </div>
-                  <span className={`shrink-0 rounded px-1 text-[10px] font-bold ${isUsed ? "bg-gray-400 text-white" : "bg-emerald-500 text-white"}`}>
-                    {isUsed ? "USADO" : "NOVO"}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        {Object.keys(REDEEM_CODES).length > 0 && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-amber-50 p-2">
+            <div className="mb-1 text-xs font-black text-[#1A0F08]">📜 Códigos disponíveis</div>
+            <ul className="space-y-1 text-[11px] text-[#3A2415]">
+              {Object.entries(REDEEM_CODES).map(([k, def]) => {
+                const isUsed = used.includes(k);
+                return (
+                  <li key={k} className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="font-mono font-black">{k}</span>
+                      <span className="ml-1">— {def.desc}</span>
+                    </div>
+                    <span className={`shrink-0 rounded px-1 text-[10px] font-bold ${isUsed ? "bg-gray-400 text-white" : "bg-emerald-500 text-white"}`}>
+                      {isUsed ? "USADO" : "NOVO"}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
