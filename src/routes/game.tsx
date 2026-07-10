@@ -3147,6 +3147,14 @@ function GamePage() {
             >
               ROADMAP
             </Link>
+            <Link
+              to="/chat"
+              aria-label="Chat Global"
+              title="Chat Global"
+              className="flex items-center gap-1 rounded-md border border-emerald-500/60 bg-emerald-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-emerald-200 hover:bg-emerald-900/70 hover:text-emerald-100 active:scale-95"
+            >
+              💬 CHAT
+            </Link>
             <button
               type="button"
               onClick={async () => {
