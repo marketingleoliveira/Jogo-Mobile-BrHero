@@ -1294,12 +1294,25 @@ const UNLOCKS: Array<{ level: number; label: string; icon: React.ReactNode }> = 
   { level: 50, label: "Multiplayer", icon: <Crown className="h-3 w-3" /> },
 ];
 
-const SKILLS = [
-  { name: "Ataque", unlock: 1 },
-  { name: "Golpe", unlock: 5 },
-  { name: "Fúria", unlock: 20 },
-  { name: "Ultimate", unlock: 40 },
+const SKILLS: {
+  name: string;
+  unlock: number;
+  icon: "sword" | "zap" | "flame" | "crown";
+  color: string;      // active gradient
+  border: string;     // active border
+  desc: string;       // tooltip / didactic hint
+}[] = [
+  { name: "Ataque",   unlock: 1,  icon: "sword", color: "from-orange-400 to-orange-600", border: "border-orange-800", desc: "Golpe básico automático — sempre ativo." },
+  { name: "Golpe",    unlock: 5,  icon: "zap",   color: "from-rose-400 to-rose-600",     border: "border-rose-800",   desc: "Investida rápida a cada poucos segundos." },
+  { name: "Fúria",    unlock: 20, icon: "flame", color: "from-sky-400 to-sky-600",       border: "border-sky-800",    desc: "Combo em área que causa dano extra." },
+  { name: "Ultimate", unlock: 40, icon: "crown", color: "from-amber-300 to-yellow-500",  border: "border-amber-700",  desc: "Habilidade suprema — abre no Lv 40." },
 ];
+
+const PASSIVE_SLOTS = [
+  { name: "Passiva I",  unlock: 60, desc: "Bônus permanente de dano." },
+  { name: "Passiva II", unlock: 80, desc: "Bônus permanente de vida." },
+];
+
 
 // Biomes by stage
 function biomeFor(stage: number) {
