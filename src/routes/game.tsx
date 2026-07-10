@@ -1671,7 +1671,9 @@ function GamePage() {
         enemyHpRef.current = Math.max(0, enemyHpRef.current - dmg);
         setEnemyHp(enemyHpRef.current);
         setEnemyHit(true);
+        setHeroLunge(true);
         setTimeout(() => setEnemyHit(false), 120);
+        setTimeout(() => setHeroLunge(false), 220);
         spawnDamage(dmg, crit, "hero");
         // lifesteal
         if (stats.lifesteal > 0) {
@@ -1692,27 +1694,39 @@ function GamePage() {
         heroHpRef.current = Math.max(0, heroHpRef.current - dmg);
         setHeroHp(heroHpRef.current);
         setHeroHit(true);
+        setEnemyLunge(true);
         setTimeout(() => setHeroHit(false), 120);
+        setTimeout(() => setEnemyLunge(false), 220);
         spawnDamage(dmg, false, "enemy");
       }
 
       // Enemy killed
       if (enemyHpRef.current <= 0) {
         setEnemyDying(true);
+        setDeathBanner("enemy");
         setTimeout(() => setEnemyDying(false), 250);
+        setTimeout(() => setDeathBanner((b) => (b === "enemy" ? null : b)), 700);
         onEnemyKilled();
       }
 
-      // Hero died — respawn with full hp, retreat 1 stage (min 1)
-      if (heroHpRef.current <= 0) {
-        const cur = saveRef.current;
-        if (cur) {
-          const newStage = Math.max(1, cur.stage - 1);
-          const next = { ...cur, stage: newStage };
-          setSave(next);
-          saveRef.current = next;
-        }
-        respawn();
+      // Hero died — show MORREU banner, then respawn with full hp, retreat 1 stage
+      if (heroHpRef.current <= 0 && !heroDyingRef.current) {
+        heroDyingRef.current = true;
+        setHeroDying(true);
+        setDeathBanner("hero");
+        setTimeout(() => {
+          const cur = saveRef.current;
+          if (cur) {
+            const newStage = Math.max(1, cur.stage - 1);
+            const next = { ...cur, stage: newStage };
+            setSave(next);
+            saveRef.current = next;
+          }
+          respawn();
+          setHeroDying(false);
+          setDeathBanner(null);
+          heroDyingRef.current = false;
+        }, 1200);
       }
     }, TICK);
     return () => clearInterval(interval);
