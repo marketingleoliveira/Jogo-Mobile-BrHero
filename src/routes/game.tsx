@@ -39,6 +39,23 @@ import { getLiveOpsMultipliers, useLiveOps } from "@/lib/game/remote-liveops";
 import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
 import { CloudSaveModal } from "@/components/game/cloud-save-modal";
 import { WalletHud } from "@/components/game/wallet-hud";
+import { useWallet } from "@/lib/game/wallet";
+
+function WalletCornerOverlay() {
+  const { wallet, loading } = useWallet();
+  const fmt = (n: number) => n.toLocaleString("pt-BR");
+  return (
+    <div className="pointer-events-none fixed top-2 left-2 z-[60] flex items-center gap-1.5 rounded-full border-2 border-amber-900/70 bg-black/80 px-2.5 py-1 text-xs font-bold shadow-lg backdrop-blur-sm">
+      <span className="flex items-center gap-1 text-pink-300" title="Diamantes">
+        <Gem className="h-3.5 w-3.5" /> {loading ? "…" : fmt(wallet.gems)}
+      </span>
+      <span className="mx-0.5 h-3 w-px bg-amber-900/60" />
+      <span className="flex items-center gap-1 text-amber-300" title="Moedas">
+        <Coins className="h-3.5 w-3.5" /> {loading ? "…" : fmt(wallet.gold)}
+      </span>
+    </div>
+  );
+}
 import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/cloud-save";
 import { useSingleSessionGuard, forceSignOut } from "@/lib/game/single-session";
 import { beginSandboxCheckout, beginInfinitepayCheckoutClient, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
@@ -3016,6 +3033,7 @@ function GamePage() {
     >
       <LiveOpsBanner snap={liveOps} />
       <WalletHud />
+      <WalletCornerOverlay />
       {/* ===== Top HUD ===== */}
       <header className="relative bg-gradient-to-b from-[#3E2723] to-[#2D1B0E] border-b-4 border-[#8B4513] px-3 pt-2 pb-2">
         {/* Row 1: player name + top actions */}
