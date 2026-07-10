@@ -24,6 +24,7 @@ import {
   Package,
   Users,
   LogOut,
+  Pencil,
 } from "lucide-react";
 import heroSprite from "@/assets/sprite-hero.png";
 import goblinSprite from "@/assets/sprite-goblin.png";
@@ -1589,6 +1590,33 @@ function GamePage() {
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string>(() => {
+    try { return localStorage.getItem("brhero_display_name_v1") || "Herói"; } catch { return "Herói"; }
+  });
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await _supaClient.auth.getUser();
+        const u = data.user;
+        if (!u) return;
+        const stored = localStorage.getItem("brhero_display_name_v1");
+        if (stored) return;
+        const meta = (u.user_metadata ?? {}) as Record<string, unknown>;
+        const name = (meta.full_name as string) || (meta.name as string) || (u.email?.split("@")[0]) || "Herói";
+        setDisplayName(name);
+        try { localStorage.setItem("brhero_display_name_v1", name); } catch { /* noop */ }
+      } catch { /* noop */ }
+    })();
+  }, []);
+  const saveDisplayName = async (raw: string) => {
+    const name = raw.trim().slice(0, 20) || "Herói";
+    setDisplayName(name);
+    try { localStorage.setItem("brhero_display_name_v1", name); } catch { /* noop */ }
+    try { await _supaClient.auth.updateUser({ data: { full_name: name, name } }); } catch { /* noop */ }
+    setEditingName(false);
+  };
   const refStats = useReferralStats(currentUserId);
 
   // Convites: captura ?ref= da URL e tenta creditar 10💎 ao convidante quando o jogador loga
@@ -2990,8 +3018,44 @@ function GamePage() {
       <WalletHud />
       {/* ===== Top HUD ===== */}
       <header className="relative bg-gradient-to-b from-[#3E2723] to-[#2D1B0E] border-b-4 border-[#8B4513] px-3 pt-2 pb-2">
+        {/* Row 1: player name + top actions */}
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => { setNameDraft(displayName); setEditingName(true); }}
+            className="flex min-w-0 items-center gap-1.5 rounded-md border border-[#8B4513]/70 bg-black/40 px-2 py-0.5 text-[11px] font-bold text-amber-100 hover:bg-black/60 active:scale-95"
+            title="Editar nome"
+          >
+            <span className="truncate max-w-[140px]">{displayName}</span>
+            <Pencil className="h-3 w-3 opacity-70" strokeWidth={2.5} />
+          </button>
+          <div className="flex items-center gap-1">
+            <Link
+              to="/roadmap"
+              aria-label="Roadmap"
+              title="Roadmap"
+              className="rounded-md border border-[#8B4513]/70 bg-black/40 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-200/90 hover:text-amber-100 hover:bg-black/60"
+            >
+              ROADMAP
+            </Link>
+            <button
+              type="button"
+              onClick={async () => {
+                try { await forceSignOut(); } catch (e) { console.error("signOut error", e); }
+                navigate({ to: "/" });
+              }}
+              aria-label="Sair da conta"
+              title="Sair da conta"
+              className="flex items-center gap-1 rounded-md border border-rose-500/60 bg-rose-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-200 hover:bg-rose-900/70 hover:text-rose-100 active:scale-95"
+            >
+              <LogOut className="h-3 w-3" strokeWidth={2.5} />
+              SAIR
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: avatar + currencies + menu */}
         <div className="flex items-center gap-2">
-          {/* Avatar */}
           <Link
             to="/"
             aria-label="Início"
@@ -3005,37 +3069,8 @@ function GamePage() {
               Lv{save.level}
             </span>
           </Link>
-          <div className="absolute right-2 top-1 flex items-center gap-1">
-            <Link
-              to="/roadmap"
-              aria-label="Roadmap"
-              title="Roadmap"
-              className="rounded-md border border-[#8B4513]/70 bg-black/40 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-200/90 hover:text-amber-100 hover:bg-black/60"
-            >
-              ROADMAP
-            </Link>
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  await forceSignOut();
-                } catch (e) {
-                  console.error("signOut error", e);
-                }
-                navigate({ to: "/" });
-              }}
-              aria-label="Sair da conta"
-              title="Sair da conta"
-              className="flex items-center gap-1 rounded-md border border-rose-500/60 bg-rose-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-200 hover:bg-rose-900/70 hover:text-rose-100 active:scale-95"
-            >
-              <LogOut className="h-3 w-3" strokeWidth={2.5} />
-              SAIR
-            </button>
-          </div>
 
-
-          {/* Currencies */}
-          <div className="flex flex-1 flex-col gap-1">
+          <div className="flex flex-1 flex-col gap-1 min-w-0">
             <div className="flex gap-2">
               <CartoonPill
                 color="amber"
@@ -3058,7 +3093,6 @@ function GamePage() {
             </div>
           </div>
 
-          {/* Menu compacto — abre grade em modal para não atrapalhar a arena */}
           <div className="flex flex-col gap-1">
             <QuickCartoonBtn
               icon={<Sparkles className="h-3 w-3" />}
@@ -3714,6 +3748,47 @@ function GamePage() {
       )}
 
 
+
+      {editingName && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setEditingName(false)}>
+          <div
+            className="w-full max-w-xs rounded-xl border-4 border-[#8B4513] bg-gradient-to-b from-[#3E2723] to-[#2D1B0E] p-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-2 text-center text-sm font-bold tracking-wider text-amber-200" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+              NOME DE EXIBIÇÃO
+            </h3>
+            <p className="mb-3 text-center text-[11px] text-amber-100/70">
+              Este nome aparecerá no ranking e para outros jogadores.
+            </p>
+            <input
+              autoFocus
+              maxLength={20}
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") void saveDisplayName(nameDraft); }}
+              placeholder="Seu nome (máx 20)"
+              className="mb-3 w-full rounded-md border-2 border-[#8B4513] bg-[#1A0F08] px-3 py-2 text-sm text-amber-100 outline-none focus:border-amber-400"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingName(false)}
+                className="flex-1 rounded-md border-2 border-[#8B4513] bg-black/40 px-3 py-2 text-xs font-bold text-amber-200 hover:bg-black/60"
+              >
+                CANCELAR
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveDisplayName(nameDraft)}
+                className="flex-1 rounded-md border-2 border-amber-600 bg-amber-500 px-3 py-2 text-xs font-bold text-amber-950 hover:bg-amber-400 active:scale-95"
+              >
+                SALVAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {offlineReport && (
         <OfflineModal report={offlineReport} onClose={closeOfflineReport} />
