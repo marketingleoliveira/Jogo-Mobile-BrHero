@@ -6205,7 +6205,7 @@ function CodesModal({
         </div>
 
         <p className="mb-2 text-xs text-[#3A2415]">
-          Insira códigos beta para resgatar recompensas. Cada código pode ser usado apenas uma vez por save.
+          Insira códigos promocionais para resgatar recompensas. Cada código pode ser usado apenas uma vez por save.
         </p>
 
         <div className="mb-2 flex gap-2">
