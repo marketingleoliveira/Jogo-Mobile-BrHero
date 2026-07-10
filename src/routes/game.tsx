@@ -27,6 +27,17 @@ import {
   Pencil,
 } from "lucide-react";
 import heroSprite from "@/assets/sprite-hero.png";
+import skinClassicSprite from "@/assets/skins/hero-classic.png";
+import skinGreenSprite from "@/assets/skins/hero-green.png";
+import skinGoldSprite from "@/assets/skins/hero-gold.png";
+import skinBrasilSprite from "@/assets/skins/hero-brasil.png";
+import skinShadowSprite from "@/assets/skins/hero-shadow.png";
+import skinSamuraiSprite from "@/assets/skins/hero-samurai.png";
+import skinMagoSprite from "@/assets/skins/hero-mago.png";
+import skinArqueiroSprite from "@/assets/skins/hero-arqueiro.png";
+import skinPaladinoSprite from "@/assets/skins/hero-paladino.png";
+import skinPirataSprite from "@/assets/skins/hero-pirata.png";
+import skinVampiroSprite from "@/assets/skins/hero-vampiro.png";
 import goblinSprite from "@/assets/sprite-goblin.png";
 import slimeSprite from "@/assets/sprite-slime.png";
 import skeletonSprite from "@/assets/sprite-skeleton.png";
