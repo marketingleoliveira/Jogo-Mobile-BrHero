@@ -1589,6 +1589,33 @@ function GamePage() {
   const [offlineReport, setOfflineReport] = useState<{ ms: number; gold: number; xp: number; drops: number } | null>(null);
   const prevLevelRef = useRef(1);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string>(() => {
+    try { return localStorage.getItem("brhero_display_name_v1") || "Herói"; } catch { return "Herói"; }
+  });
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await _supaClient.auth.getUser();
+        const u = data.user;
+        if (!u) return;
+        const stored = localStorage.getItem("brhero_display_name_v1");
+        if (stored) return;
+        const meta = (u.user_metadata ?? {}) as Record<string, unknown>;
+        const name = (meta.full_name as string) || (meta.name as string) || (u.email?.split("@")[0]) || "Herói";
+        setDisplayName(name);
+        try { localStorage.setItem("brhero_display_name_v1", name); } catch { /* noop */ }
+      } catch { /* noop */ }
+    })();
+  }, []);
+  const saveDisplayName = async (raw: string) => {
+    const name = raw.trim().slice(0, 20) || "Herói";
+    setDisplayName(name);
+    try { localStorage.setItem("brhero_display_name_v1", name); } catch { /* noop */ }
+    try { await _supaClient.auth.updateUser({ data: { full_name: name, name } }); } catch { /* noop */ }
+    setEditingName(false);
+  };
   const refStats = useReferralStats(currentUserId);
 
   // Convites: captura ?ref= da URL e tenta creditar 10💎 ao convidante quando o jogador loga
