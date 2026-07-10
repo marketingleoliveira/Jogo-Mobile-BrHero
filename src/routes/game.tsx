@@ -6292,6 +6292,45 @@ function CodesModal({
           </div>
         )}
 
+        {/* Painel de convite — 10💎 por amigo que loga pelo link */}
+        <div className="mb-2 rounded-lg border-2 border-[#1A0F08] bg-gradient-to-b from-sky-100 to-sky-200 p-2">
+          <div className="mb-1 flex items-center justify-between">
+            <div className="text-xs font-black text-[#1A0F08]">🎁 Convide amigos · +10 💎 por convite</div>
+            {typeof referralCount === "number" && (
+              <span className="rounded bg-emerald-600 px-2 py-[1px] text-[10px] font-bold text-white">
+                {referralCount} convidado{referralCount === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
+          {inviteLink ? (
+            <>
+              <div className="mb-1 truncate rounded border border-[#1A0F08]/40 bg-white px-2 py-1 font-mono text-[11px] text-[#1A0F08]">
+                {inviteLink}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={copyInvite}
+                  className="flex-1 rounded-lg border-2 border-[#1A0F08] bg-amber-400 px-2 py-1 text-[11px] font-black text-[#1A0F08] active:scale-95"
+                >
+                  {copied ? "✅ COPIADO" : "📋 COPIAR"}
+                </button>
+                <button
+                  onClick={shareInvite}
+                  className="flex-1 rounded-lg border-2 border-[#1A0F08] bg-emerald-500 px-2 py-1 text-[11px] font-black text-white active:scale-95"
+                >
+                  📤 COMPARTILHAR
+                </button>
+              </div>
+              <p className="mt-1 text-[10px] text-[#3A2415]">
+                Cada amigo que entrar pelo seu link e logar te dá <b>+10 💎</b>. 1 recompensa por amigo.
+              </p>
+            </>
+          ) : (
+            <p className="text-[11px] text-[#3A2415]">Faça login para gerar seu link de convite.</p>
+          )}
+        </div>
+
+
         {Object.keys(REDEEM_CODES).length > 0 && (
           <div className="rounded-lg border-2 border-[#1A0F08] bg-amber-50 p-2">
             <div className="mb-1 text-xs font-black text-[#1A0F08]">📜 Códigos disponíveis</div>
