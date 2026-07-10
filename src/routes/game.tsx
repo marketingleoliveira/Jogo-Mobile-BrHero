@@ -2608,6 +2608,22 @@ function GamePage() {
     });
   }, [flashToast]);
 
+  const buySkin = useCallback((id: SkinId) => {
+    setSave((prev) => {
+      if (!prev) return prev;
+      const def = SKIN_DEFS[id];
+      if (!def?.priceGems) { flashToast("Skin indisponível na loja"); return prev; }
+      if (prev.skins.owned.includes(id)) { flashToast("Você já tem"); return prev; }
+      if (prev.gems < def.priceGems) { flashToast("Gemas insuficientes"); return prev; }
+      flashToast(`✨ ${def.label} desbloqueado(a)!`);
+      return {
+        ...prev,
+        gems: prev.gems - def.priceGems,
+        skins: { owned: [...prev.skins.owned, id], equipped: id },
+      };
+    });
+  }, [flashToast]);
+
   // ==== Conquistas / Achievements (Fase 3 — Bloco 9) ====
   const claimAchievement = useCallback((id: AchievementId) => {
     setSave((prev) => {
