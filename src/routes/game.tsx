@@ -1574,6 +1574,10 @@ function GamePage() {
   });
   const [save, setSave] = useState<SaveState | null>(null);
   const saveRef = useRef<SaveState | null>(null);
+  const cloudDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastOwnWriteAtRef = useRef<string | null>(null);
+  const lastAppliedRemoteStampRef = useRef<string | null>(null);
+  const autoSavePausedUntilRef = useRef<number>(0);
   const [heroHp, setHeroHp] = useState(0);
   const [enemyHp, setEnemyHp] = useState(0);
   const enemyRef = useRef<ReturnType<typeof enemyForStage> | null>(null);
@@ -1670,6 +1674,7 @@ function GamePage() {
       let s: SaveState;
       try {
         const remote = await loadCloudSave(user.id);
+        lastOwnWriteAtRef.current = remote?.client_updated_at ?? null;
         s = remote ? mergeSave(remote.save_data) : defaultSave();
       } catch {
         s = defaultSave();
@@ -1755,6 +1760,7 @@ function GamePage() {
       const cur = saveRef.current;
       const uid = cloudUserIdRef.current;
       if (!cur || !uid) return;
+      if (Date.now() < autoSavePausedUntilRef.current) return;
       void saveCloudSave(uid, { ...cur, lastSeenAt: Date.now() }).catch(() => { /* silencioso */ });
     };
     window.addEventListener("beforeunload", flush);
@@ -1765,10 +1771,7 @@ function GamePage() {
   // Persistência em tempo real na nuvem (debounce 1.2s).
   // Trava (`autoSavePausedUntilRef`): após detectar update externo (painel admin),
   // suspendemos o auto-save por alguns segundos para não sobrescrever o que
-  // o admin acabou de aplicar antes do reload acontecer.
-  const cloudDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastOwnWriteAtRef = useRef<string | null>(null);
-  const autoSavePausedUntilRef = useRef<number>(0);
+  // o admin acabou de aplicar.
   useEffect(() => {
     if (!save) return;
     saveRef.current = save;
@@ -1788,7 +1791,8 @@ function GamePage() {
 
   // Realtime: escuta UPDATE na linha do próprio jogador em player_saves.
   // Se o timestamp remoto for diferente do último write feito por este cliente,
-  // é uma edição externa (painel admin) — pausa o auto-save por 8s e recarrega.
+  // é uma edição externa (painel admin) — pausa o auto-save por 8s e aplica
+  // o novo save em memória, sem recarregar a página.
   useEffect(() => {
     const uid = cloudUserIdRef.current;
     if (!uid) return;
@@ -1798,17 +1802,40 @@ function GamePage() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "player_saves", filter: `user_id=eq.${uid}` },
         (payload) => {
-          const row = payload.new as { client_updated_at?: string } | null;
+          const row = payload.new as { client_updated_at?: string; save_data?: unknown } | null;
           const remoteStamp = row?.client_updated_at ?? null;
           const ownStamp = lastOwnWriteAtRef.current;
           if (!remoteStamp) return;
           if (ownStamp && remoteStamp === ownStamp) return; // eco do próprio write
+          if (lastAppliedRemoteStampRef.current === remoteStamp) return;
+          if (!row || row.save_data === undefined) return;
+
           autoSavePausedUntilRef.current = Date.now() + 8_000;
           if (cloudDebounceRef.current) {
             clearTimeout(cloudDebounceRef.current);
             cloudDebounceRef.current = null;
           }
-          if (!document.hidden) window.location.reload();
+
+          const next = ensureEventStarted(mergeSave(row.save_data));
+          lastAppliedRemoteStampRef.current = remoteStamp;
+          saveRef.current = next;
+          setSave(next);
+
+          const stats = computeStats(next);
+          heroHpRef.current = stats.hp;
+          setHeroHp(stats.hp);
+          const enemy = enemyForStage(next.stage);
+          enemyRef.current = enemy;
+          enemyHpRef.current = enemy.hp;
+          setEnemyHp(enemy.hp);
+          heroCdRef.current = 200;
+          enemyCdRef.current = 700;
+          setHeroDying(false);
+          heroDyingRef.current = false;
+          setEnemyDying(false);
+          setDeathCountdown(null);
+          setToast(`✅ Save atualizado pelo painel · Stage ${formatStage(next.stage)}`);
+          window.setTimeout(() => setToast(null), 2200);
         },
       )
       .subscribe();
