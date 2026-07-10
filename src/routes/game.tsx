@@ -6367,7 +6367,7 @@ function RemoteOffersPanel({ offers }: { offers: RemoteOffer[] }) {
                   disabled={busyId === o.id}
                   className="rounded-lg border-2 border-amber-400 bg-gradient-to-b from-amber-400 to-amber-600 px-2 py-1 text-[10px] font-black text-[#0a1c3a] disabled:opacity-60"
                 >
-                  {busyId === o.id ? "..." : "COMPRAR (SANDBOX)"}
+                  {busyId === o.id ? "..." : isInfinitepay ? "COMPRAR (INFINITEPAY)" : "COMPRAR (SANDBOX)"}
                 </button>
               ) : (
                 <span className="rounded border border-amber-400/40 px-2 py-[2px] text-[9px] uppercase text-amber-200/70">
