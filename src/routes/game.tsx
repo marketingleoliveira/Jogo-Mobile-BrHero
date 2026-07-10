@@ -6300,18 +6300,28 @@ function RemoteOffersPanel({ offers }: { offers: RemoteOffer[] }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const canBuy = !!paymentsCfg?.enabled;
 
-  const buySandbox = async (o: RemoteOffer) => {
+  const isInfinitepay = paymentsCfg?.provider === "infinitepay";
+
+  const buy = async (o: RemoteOffer) => {
     setBusyId(o.id);
-    const res = await beginSandboxCheckout(o);
-    setBusyId(null);
-    if (!res.ok) {
-      // eslint-disable-next-line no-alert
-      alert(res.reason ?? "Falha no checkout");
-      return;
+    try {
+      if (isInfinitepay) {
+        const redirect = typeof window !== "undefined" ? `${window.location.origin}/?payment=success` : undefined;
+        const res = await beginInfinitepayCheckoutClient(o, redirect);
+        if (!res.ok) { alert(res.reason ?? "Falha no checkout"); return; }
+        refresh();
+        if (res.checkoutUrl && typeof window !== "undefined") {
+          window.open(res.checkoutUrl, "_blank", "noopener,noreferrer");
+        }
+        return;
+      }
+      const res = await beginSandboxCheckout(o);
+      if (!res.ok) { alert(res.reason ?? "Falha no checkout"); return; }
+      refresh();
+      alert("🛒 Transação criada como PENDING.\nO Admin precisa confirmar para liberar a recompensa.");
+    } finally {
+      setBusyId(null);
     }
-    refresh();
-    // eslint-disable-next-line no-alert
-    alert("🛒 Transação criada como PENDING.\nO Admin precisa confirmar para liberar a recompensa.");
   };
 
   const currencyIcon = (c: RemoteOffer["currency"]) =>
