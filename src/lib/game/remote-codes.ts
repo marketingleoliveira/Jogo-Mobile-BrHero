@@ -11,6 +11,7 @@ export interface RemoteRewardDef {
   essence?: number;
   epicChest?: boolean;
   cosmetic?: string;
+  skin?: string;
 }
 
 export interface RemoteRedeemDef {
@@ -152,6 +153,7 @@ function mapReward(r: RemoteCodeRewards): RemoteRewardDef {
   if (r.essence) out.essence = r.essence;
   if (r.chest && r.chest.trim()) out.epicChest = true;
   if (r.cosmetic && r.cosmetic.trim()) out.cosmetic = r.cosmetic.trim();
+  if (r.skin && r.skin.trim()) out.skin = r.skin.trim();
   return out;
 }
 
