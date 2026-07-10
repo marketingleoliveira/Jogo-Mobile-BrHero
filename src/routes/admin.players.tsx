@@ -23,6 +23,8 @@ import {
   updateAdminPlayer,
   type AdminPlayerRow,
 } from "@/lib/admin/players.functions";
+import { formatStage } from "@/lib/game/cloud-save";
+
 
 export const Route = createFileRoute("/admin/players")({ component: PlayersPage });
 
