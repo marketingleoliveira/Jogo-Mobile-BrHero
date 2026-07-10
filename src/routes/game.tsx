@@ -891,11 +891,8 @@ type RedeemReward = {
 };
 type RedeemDef = { label: string; desc: string; reward: RedeemReward };
 
-const REDEEM_CODES: Record<string, RedeemDef> = {
-  BETA100:   { label: "Recompensa Beta",   desc: "+100 💎 cristais",              reward: { gems: 100 } },
-  BRHERO:    { label: "Herói do Brasil",   desc: "+50k 🪙 ouro + 🎁 baú épico",   reward: { gold: 50000, epicChest: true } },
-  FUNDADOR:  { label: "Fundador",          desc: "🎭 Aura Lendária desbloqueada", reward: { cosmetic: "aura_legendary" } },
-};
+// Códigos beta removidos. Cupons ativos são gerenciados pelo Admin (remote).
+const REDEEM_CODES: Record<string, RedeemDef> = {};
 
 
 
@@ -2768,9 +2765,10 @@ function GamePage() {
   const redeemCode = useCallback((raw: string): { ok: boolean; msg: string } => {
     const code = raw.trim().toUpperCase();
     if (!code) return { ok: false, msg: "Digite um código" };
-    // Fase 3 · Bloco 1 — tenta registro remoto primeiro (Supabase → cache local);
-    // se o código não existir remotamente, usa o fallback local REDEEM_CODES.
-    const remote = resolveRemoteRedeem(code, save?.redeem.used ?? []);
+    if (!save) return { ok: false, msg: "Carregando save..." };
+
+    // Fase 3 · Bloco 1 — tenta registro remoto primeiro; fallback local.
+    const remote = resolveRemoteRedeem(code, save.redeem.used);
     if (remote && !remote.ok) {
       flashToast(`❌ ${remote.error}`);
       return { ok: false, msg: remote.error };
@@ -2780,21 +2778,20 @@ function GamePage() {
       flashToast("❌ Código inválido");
       return { ok: false, msg: "Código inválido" };
     }
-    let result: { ok: boolean; msg: string } = { ok: false, msg: "" };
+    if (save.redeem.used.includes(code)) {
+      flashToast("⚠️ Código já usado");
+      return { ok: false, msg: "Código já resgatado" };
+    }
+
     setSave((prev) => {
       if (!prev) return prev;
-      if (prev.redeem.used.includes(code)) {
-        result = { ok: false, msg: "Código já resgatado" };
-        flashToast("⚠️ Código já usado");
-        return prev;
-      }
+      if (prev.redeem.used.includes(code)) return prev;
       let next: SaveState = { ...prev, redeem: { used: [...prev.redeem.used, code] } };
       const r = def.reward;
       if (r.gold) next = { ...next, gold: next.gold + r.gold };
       if (r.gems) next = { ...next, gems: next.gems + r.gems };
       if (r.essence) next = { ...next, essence: next.essence + r.essence };
       if (r.epicChest) {
-        // Baú épico: 1 equipamento de slot aleatório baseado no stage atual
         const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
         const item = rollItem(slot, next.stage);
         next = { ...next, inventory: [...next.inventory, item].slice(-60) };
@@ -2802,12 +2799,12 @@ function GamePage() {
       if (r.cosmetic && COSMETIC_DEFS[r.cosmetic] && !next.cosmetics.owned.includes(r.cosmetic)) {
         next = { ...next, cosmetics: { ...next.cosmetics, owned: [...next.cosmetics.owned, r.cosmetic] } };
       }
-      flashToast(`🎁 ${def.label} resgatado!`);
-      result = { ok: true, msg: `${def.label}: ${def.desc}` };
       return next;
     });
-    return result;
-  }, [flashToast]);
+
+    flashToast(`🎁 ${def.label} resgatado!`);
+    return { ok: true, msg: `${def.label}: ${def.desc}` };
+  }, [save, flashToast]);
 
 
 
@@ -6208,7 +6205,7 @@ function CodesModal({
         </div>
 
         <p className="mb-2 text-xs text-[#3A2415]">
-          Insira códigos beta para resgatar recompensas. Cada código pode ser usado apenas uma vez por save.
+          Insira códigos promocionais para resgatar recompensas. Cada código pode ser usado apenas uma vez por save.
         </p>
 
         <div className="mb-2 flex gap-2">
@@ -6238,25 +6235,27 @@ function CodesModal({
           </div>
         )}
 
-        <div className="rounded-lg border-2 border-[#1A0F08] bg-amber-50 p-2">
-          <div className="mb-1 text-xs font-black text-[#1A0F08]">📜 Códigos beta disponíveis</div>
-          <ul className="space-y-1 text-[11px] text-[#3A2415]">
-            {Object.entries(REDEEM_CODES).map(([k, def]) => {
-              const isUsed = used.includes(k);
-              return (
-                <li key={k} className="flex items-start justify-between gap-2">
-                  <div>
-                    <span className="font-mono font-black">{k}</span>
-                    <span className="ml-1">— {def.desc}</span>
-                  </div>
-                  <span className={`shrink-0 rounded px-1 text-[10px] font-bold ${isUsed ? "bg-gray-400 text-white" : "bg-emerald-500 text-white"}`}>
-                    {isUsed ? "USADO" : "NOVO"}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        {Object.keys(REDEEM_CODES).length > 0 && (
+          <div className="rounded-lg border-2 border-[#1A0F08] bg-amber-50 p-2">
+            <div className="mb-1 text-xs font-black text-[#1A0F08]">📜 Códigos disponíveis</div>
+            <ul className="space-y-1 text-[11px] text-[#3A2415]">
+              {Object.entries(REDEEM_CODES).map(([k, def]) => {
+                const isUsed = used.includes(k);
+                return (
+                  <li key={k} className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="font-mono font-black">{k}</span>
+                      <span className="ml-1">— {def.desc}</span>
+                    </div>
+                    <span className={`shrink-0 rounded px-1 text-[10px] font-bold ${isUsed ? "bg-gray-400 text-white" : "bg-emerald-500 text-white"}`}>
+                      {isUsed ? "USADO" : "NOVO"}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
