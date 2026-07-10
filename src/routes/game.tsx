@@ -3005,14 +3005,31 @@ function GamePage() {
               Lv{save.level}
             </span>
           </Link>
-          <Link
-            to="/roadmap"
-            aria-label="Roadmap"
-            title="Roadmap"
-            className="absolute right-2 top-1 rounded-md border border-[#8B4513]/70 bg-black/40 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-200/90 hover:text-amber-100 hover:bg-black/60"
-          >
-            ROADMAP
-          </Link>
+          <div className="absolute right-2 top-1 flex items-center gap-1">
+            <Link
+              to="/roadmap"
+              aria-label="Roadmap"
+              title="Roadmap"
+              className="rounded-md border border-[#8B4513]/70 bg-black/40 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-200/90 hover:text-amber-100 hover:bg-black/60"
+            >
+              ROADMAP
+            </Link>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!confirm("Deseja realmente sair da sua conta?")) return;
+                await forceSignOut();
+                navigate({ to: "/" });
+              }}
+              aria-label="Sair da conta"
+              title="Sair da conta"
+              className="flex items-center gap-1 rounded-md border border-rose-500/60 bg-rose-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-200 hover:bg-rose-900/70 hover:text-rose-100"
+            >
+              <LogOut className="h-3 w-3" strokeWidth={2.5} />
+              SAIR
+            </button>
+          </div>
+
 
           {/* Currencies */}
           <div className="flex flex-1 flex-col gap-1">
