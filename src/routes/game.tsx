@@ -3763,19 +3763,8 @@ function GamePage() {
           referralCount={refStats.count}
         />
       )}
-      {modal === "cloud" && (
-        <CloudSaveModal
-          localSave={save}
-          onClose={() => setModal(null)}
-          onApplySave={(remote) => {
-            const uid = cloudUserIdRef.current;
-            if (!uid) { window.location.reload(); return; }
-            void saveCloudSave(uid, remote)
-              .catch(() => { /* silencioso */ })
-              .finally(() => window.location.reload());
-          }}
-        />
-      )}
+
+
 
       {modal === "menu" && (
         <GameMenuModal
