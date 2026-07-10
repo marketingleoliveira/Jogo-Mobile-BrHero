@@ -1778,6 +1778,38 @@ function GamePage() {
     enemyCdRef.current = 700;
   };
 
+  // Death countdown: auto-respawn at start of current biome block after 5s
+  useEffect(() => {
+    if (deathBanner !== "hero" || pickStageOpen) {
+      setDeathCountdown(null);
+      return;
+    }
+    setDeathCountdown(5);
+    const tick = setInterval(() => {
+      setDeathCountdown((c) => (c === null ? null : c - 1));
+    }, 1000);
+    const timeout = setTimeout(() => {
+      const s = saveRef.current;
+      if (!s) return;
+      const blockStart = Math.floor((s.stage - 1) / 10) * 10 + 1;
+      setSave((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, stage: blockStart };
+        saveRef.current = next;
+        return next;
+      });
+      setDeathBanner(null);
+      setHeroDying(false);
+      heroDyingRef.current = false;
+      setTimeout(() => respawn(), 0);
+    }, 5000);
+    return () => {
+      clearInterval(tick);
+      clearTimeout(timeout);
+    };
+  }, [deathBanner, pickStageOpen]);
+
+
   const onEnemyKilled = () => {
     const cur = saveRef.current;
     if (!cur) return;
