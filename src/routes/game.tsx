@@ -1782,9 +1782,9 @@ function GamePage() {
     if (cloudDebounceRef.current) clearTimeout(cloudDebounceRef.current);
     cloudDebounceRef.current = setTimeout(() => {
       if (Date.now() < autoSavePausedUntilRef.current) return; // trava ativa
-      const stamp = new Date(save.lastSeenAt ?? Date.now()).toISOString();
-      lastOwnWriteAtRef.current = stamp;
-      void saveCloudSave(uid, save).catch(() => { /* silencioso */ });
+      void saveCloudSave(uid, save)
+        .then((canonicalStamp) => { lastOwnWriteAtRef.current = canonicalStamp; })
+        .catch(() => { /* silencioso */ });
     }, 1200);
     return () => {
       if (cloudDebounceRef.current) clearTimeout(cloudDebounceRef.current);
