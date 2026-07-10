@@ -15,7 +15,7 @@ const FLAG_KEY = "payments.config";
 
 export interface PaymentsConfig {
   enabled: boolean;
-  provider: "sandbox" | "stripe" | "google_play";
+  provider: "sandbox" | "stripe" | "google_play" | "infinitepay";
 }
 
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";

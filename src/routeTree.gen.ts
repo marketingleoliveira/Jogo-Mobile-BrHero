@@ -35,6 +35,7 @@ import { Route as AdminBalancingRouteImport } from './routes/admin.balancing'
 import { Route as AdminApkRouteImport } from './routes/admin.apk'
 import { Route as ApiPublicApkRouteImport } from './routes/api/public/apk'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as ApiPublicHooksInfinitepayRouteImport } from './routes/api/public/hooks/infinitepay'
 import { Route as ApiPublicHooksCloseSeasonRouteImport } from './routes/api/public/hooks/close-season'
 
 const TermosRoute = TermosRouteImport.update({
@@ -168,6 +169,12 @@ const LovableEmailQueueProcessRoute =
     path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksInfinitepayRoute =
+  ApiPublicHooksInfinitepayRouteImport.update({
+    id: '/api/public/hooks/infinitepay',
+    path: '/api/public/hooks/infinitepay',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksCloseSeasonRoute =
   ApiPublicHooksCloseSeasonRouteImport.update({
     id: '/api/public/hooks/close-season',
@@ -202,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/api/public/apk': typeof ApiPublicApkRoute
   '/api/public/hooks/close-season': typeof ApiPublicHooksCloseSeasonRoute
+  '/api/public/hooks/infinitepay': typeof ApiPublicHooksInfinitepayRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
@@ -230,6 +238,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/api/public/apk': typeof ApiPublicApkRoute
   '/api/public/hooks/close-season': typeof ApiPublicHooksCloseSeasonRoute
+  '/api/public/hooks/infinitepay': typeof ApiPublicHooksInfinitepayRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
@@ -260,6 +269,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/api/public/apk': typeof ApiPublicApkRoute
   '/api/public/hooks/close-season': typeof ApiPublicHooksCloseSeasonRoute
+  '/api/public/hooks/infinitepay': typeof ApiPublicHooksInfinitepayRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
@@ -291,6 +301,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/api/public/apk'
     | '/api/public/hooks/close-season'
+    | '/api/public/hooks/infinitepay'
     | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -319,6 +330,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/api/public/apk'
     | '/api/public/hooks/close-season'
+    | '/api/public/hooks/infinitepay'
     | '/lovable/email/queue/process'
   id:
     | '__root__'
@@ -348,6 +360,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/api/public/apk'
     | '/api/public/hooks/close-season'
+    | '/api/public/hooks/infinitepay'
     | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
@@ -365,6 +378,7 @@ export interface RootRouteChildren {
   PerfilUserIdRoute: typeof PerfilUserIdRoute
   ApiPublicApkRoute: typeof ApiPublicApkRoute
   ApiPublicHooksCloseSeasonRoute: typeof ApiPublicHooksCloseSeasonRoute
+  ApiPublicHooksInfinitepayRoute: typeof ApiPublicHooksInfinitepayRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
@@ -552,6 +566,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/infinitepay': {
+      id: '/api/public/hooks/infinitepay'
+      path: '/api/public/hooks/infinitepay'
+      fullPath: '/api/public/hooks/infinitepay'
+      preLoaderRoute: typeof ApiPublicHooksInfinitepayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/close-season': {
       id: '/api/public/hooks/close-season'
       path: '/api/public/hooks/close-season'
@@ -610,6 +631,7 @@ const rootRouteChildren: RootRouteChildren = {
   PerfilUserIdRoute: PerfilUserIdRoute,
   ApiPublicApkRoute: ApiPublicApkRoute,
   ApiPublicHooksCloseSeasonRoute: ApiPublicHooksCloseSeasonRoute,
+  ApiPublicHooksInfinitepayRoute: ApiPublicHooksInfinitepayRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
