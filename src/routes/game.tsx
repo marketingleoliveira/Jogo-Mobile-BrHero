@@ -40,6 +40,7 @@ import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
 
 import { WalletHud } from "@/components/game/wallet-hud";
 import { useWallet } from "@/lib/game/wallet";
+import { ChatPopup } from "@/components/game/chat-popup";
 
 function WalletCornerOverlay() {
   const { wallet, loading } = useWallet();
