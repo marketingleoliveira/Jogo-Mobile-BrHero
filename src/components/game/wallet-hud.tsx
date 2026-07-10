@@ -9,19 +9,29 @@ function fmt(n: number): string {
   return n.toLocaleString("pt-BR");
 }
 
-export function WalletHud() {
+export interface WalletHudProps {
+  /** Sobrescreve a leitura do servidor com os valores locais do save (fonte da verdade em jogo). */
+  gemsOverride?: number;
+  goldOverride?: number;
+}
+
+export function WalletHud({ gemsOverride, goldOverride }: WalletHudProps = {}) {
   const { wallet, titles, equippedTitle, loading, error, userId, refresh, equipTitle } = useWallet();
   const [open, setOpen] = useState(false);
+
+  const displayGems = gemsOverride ?? wallet.gems;
+  const displayGold = goldOverride ?? wallet.gold;
+  const isLoadingDisplay = loading && gemsOverride === undefined && goldOverride === undefined;
 
   return (
     <>
       <div className="flex items-center justify-between gap-2 border-b-2 border-amber-900/40 bg-black/40 px-3 py-1.5 text-xs">
         <div className="flex items-center gap-3 font-semibold">
-          <span className="flex items-center gap-1 text-pink-300" title="Cristais da carteira do servidor">
-            <Gem className="h-3.5 w-3.5" /> {loading ? "…" : fmt(wallet.gems)}
+          <span className="flex items-center gap-1 text-pink-300" title="Cristais">
+            <Gem className="h-3.5 w-3.5" /> {isLoadingDisplay ? "…" : fmt(displayGems)}
           </span>
-          <span className="flex items-center gap-1 text-amber-300" title="Ouro da carteira do servidor">
-            <Coins className="h-3.5 w-3.5" /> {loading ? "…" : fmt(wallet.gold)}
+          <span className="flex items-center gap-1 text-amber-300" title="Ouro">
+            <Coins className="h-3.5 w-3.5" /> {isLoadingDisplay ? "…" : fmt(displayGold)}
           </span>
           {equippedTitle && (
             <span className="hidden sm:inline text-yellow-200" title="Título equipado">
