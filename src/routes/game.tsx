@@ -1655,59 +1655,81 @@ function GamePage() {
   }, []);
 
 
-  // Init
+  // Init — carrega SOMENTE da nuvem. Sem conta, volta para a home.
+  const cloudUserIdRef = useRef<string | null>(null);
   useEffect(() => {
-    const s = loadSave();
-    // Inicia/rotaciona evento se elegível
-    s.event = ensureEventStarted(s);
-    // ==== Recompensas Offline ====
-    const now = Date.now();
-    const elapsed = Math.max(0, Math.min(OFFLINE_MAX_MS, now - (s.lastSeenAt ?? now)));
-    if (elapsed > 60_000) {
-      // Aproximação: 1 batalha ~ 2s no estágio atual
-      const battles = Math.floor(elapsed / 2000);
-      const enemy = enemyForStage(s.stage);
-      const lo = getLiveOpsMultipliers();
-      const goldMul = (1 + (s.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * lo.gold;
-      const xpMul = (1 + (s.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * lo.xp;
-      const gold = Math.floor(battles * enemy.gold * 0.4 * goldMul);
-      const xp = Math.floor(battles * enemy.xp * 0.4 * xpMul);
-      const drops = Math.min(20, Math.floor(battles * 0.02 * lo.drop));
-      s.gold += gold;
-      s.xp += xp;
-      // Level up
-      while (s.xp >= xpForLevel(s.level)) { s.xp -= xpForLevel(s.level); s.level += 1; }
-      for (let i = 0; i < drops; i++) {
-        const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
-        s.inventory = [...s.inventory, rollItem(slot, s.stage)].slice(-60);
+    let cancelled = false;
+    (async () => {
+      const user = await getCloudUser();
+      if (cancelled) return;
+      if (!user) {
+        navigate({ to: "/", replace: true });
+        return;
       }
-      s.lastSeenAt = now;
-      setOfflineReport({ ms: elapsed, gold, xp, drops });
-    } else {
-      s.lastSeenAt = now;
-    }
-    // ==== Rotação de missões ====
-    const dk = todayKey();
-    const wk = weekKey();
-    if (s.missions.dailyKey !== dk || s.missions.daily.length === 0) {
-      s.missions = { ...s.missions, daily: generateDaily(s.stage, s.counters), dailyKey: dk };
-    }
-    if (s.missions.weeklyKey !== wk || s.missions.weekly.length === 0) {
-      s.missions = { ...s.missions, weekly: generateWeekly(s.stage, s.counters), weeklyKey: wk };
-    }
-    setSave(s);
-    saveRef.current = s;
-    const stats = computeStats(s);
-    heroHpRef.current = stats.hp;
-    setHeroHp(stats.hp);
-    const e = enemyForStage(s.stage);
-    enemyRef.current = e;
-    enemyHpRef.current = e.hp;
-    setEnemyHp(e.hp);
-    prevLevelRef.current = s.level;
-  }, []);
+      cloudUserIdRef.current = user.id;
+      let s: SaveState;
+      try {
+        const remote = await loadCloudSave(user.id);
+        s = remote ? mergeSave(remote.save_data) : defaultSave();
+      } catch {
+        s = defaultSave();
+      }
+      if (cancelled) return;
+      s.event = ensureEventStarted(s);
+      // ==== Recompensas Offline ====
+      const now = Date.now();
+      const elapsed = Math.max(0, Math.min(OFFLINE_MAX_MS, now - (s.lastSeenAt ?? now)));
+      if (elapsed > 60_000) {
+        const battles = Math.floor(elapsed / 2000);
+        const enemy = enemyForStage(s.stage);
+        const lo = getLiveOpsMultipliers();
+        const goldMul = (1 + (s.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * lo.gold;
+        const xpMul = (1 + (s.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * lo.xp;
+        const gold = Math.floor(battles * enemy.gold * 0.4 * goldMul);
+        const xp = Math.floor(battles * enemy.xp * 0.4 * xpMul);
+        const drops = Math.min(20, Math.floor(battles * 0.02 * lo.drop));
+        s.gold += gold;
+        s.xp += xp;
+        while (s.xp >= xpForLevel(s.level)) { s.xp -= xpForLevel(s.level); s.level += 1; }
+        for (let i = 0; i < drops; i++) {
+          const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+          s.inventory = [...s.inventory, rollItem(slot, s.stage)].slice(-60);
+        }
+        s.lastSeenAt = now;
+        setOfflineReport({ ms: elapsed, gold, xp, drops });
+      } else {
+        s.lastSeenAt = now;
+      }
+      const dk = todayKey();
+      const wk = weekKey();
+      if (s.missions.dailyKey !== dk || s.missions.daily.length === 0) {
+        s.missions = { ...s.missions, daily: generateDaily(s.stage, s.counters), dailyKey: dk };
+      }
+      if (s.missions.weeklyKey !== wk || s.missions.weekly.length === 0) {
+        s.missions = { ...s.missions, weekly: generateWeekly(s.stage, s.counters), weeklyKey: wk };
+      }
+      setSave(s);
+      saveRef.current = s;
+      const stats = computeStats(s);
+      heroHpRef.current = stats.hp;
+      setHeroHp(stats.hp);
+      const e = enemyForStage(s.stage);
+      enemyRef.current = e;
+      enemyHpRef.current = e.hp;
+      setEnemyHp(e.hp);
+      prevLevelRef.current = s.level;
+    })();
+    // Se o usuário deslogar durante o jogo, volta imediatamente para a home.
+    const { data: sub } = _supaClient.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        cloudUserIdRef.current = null;
+        navigate({ to: "/", replace: true });
+      }
+    });
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
+  }, [navigate]);
 
-  // Marca "visto agora" a cada 30s, contabiliza playtime e checa rotação de missões
+  // Tick 30s: playtime + rotação de missões. Persistência é feita no efeito de save.
   useEffect(() => {
     const iv = setInterval(() => {
       setSave((p) => {
@@ -1729,31 +1751,33 @@ function GamePage() {
         };
       });
     }, 30_000);
-    const onHide = () => {
+    const flush = () => {
       const cur = saveRef.current;
-      if (!cur) return;
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...cur, lastSeenAt: Date.now() })); } catch {}
-      // Auto-sync opcional (desligado por padrão)
-      if (getAutoSyncEnabled()) {
-        void getCloudUser().then((u) => {
-          if (u) void saveCloudSave(u.id, cur).catch(() => { /* silencioso */ });
-        });
-      }
+      const uid = cloudUserIdRef.current;
+      if (!cur || !uid) return;
+      void saveCloudSave(uid, { ...cur, lastSeenAt: Date.now() }).catch(() => { /* silencioso */ });
     };
-    window.addEventListener("beforeunload", onHide);
-    window.addEventListener("visibilitychange", onHide);
-    return () => { clearInterval(iv); window.removeEventListener("beforeunload", onHide); window.removeEventListener("visibilitychange", onHide); };
+    window.addEventListener("beforeunload", flush);
+    window.addEventListener("visibilitychange", flush);
+    return () => { clearInterval(iv); window.removeEventListener("beforeunload", flush); window.removeEventListener("visibilitychange", flush); };
   }, []);
 
-  // Persist (debounced-ish via effect on save)
+  // Persistência em tempo real na nuvem (debounce 1.2s).
+  const cloudDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (save) {
-      saveRef.current = save;
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
-      } catch {}
-    }
+    if (!save) return;
+    saveRef.current = save;
+    const uid = cloudUserIdRef.current;
+    if (!uid) return;
+    if (cloudDebounceRef.current) clearTimeout(cloudDebounceRef.current);
+    cloudDebounceRef.current = setTimeout(() => {
+      void saveCloudSave(uid, save).catch(() => { /* silencioso */ });
+    }, 1200);
+    return () => {
+      if (cloudDebounceRef.current) clearTimeout(cloudDebounceRef.current);
+    };
   }, [save]);
+
 
   // Level up detection
   useEffect(() => {
