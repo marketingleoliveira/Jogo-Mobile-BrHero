@@ -83,13 +83,9 @@ function Landing() {
   const [signingIn, setSigningIn] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
 
-  // Autologado? Vai direto para o jogo (web-first).
-  useEffect(() => {
-    if (localStorage.getItem(LOGOUT_INTENT_KEY) === "1") return;
-    if (account) {
-      navigate({ to: "/game", replace: true });
-    }
-  }, [account, navigate]);
+  // Não redireciona automaticamente para /game — evita loop de flicker.
+  // O usuário logado vê o card "JOGAR AGORA" e entra por clique.
+
 
 
   // Hydrate session from Supabase and keep in sync
