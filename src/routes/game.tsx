@@ -1808,7 +1808,11 @@ function GamePage() {
           const remoteStamp = row?.client_updated_at ?? null;
           const ownStamp = lastOwnWriteAtRef.current;
           if (!remoteStamp) return;
-          if (ownStamp && remoteStamp === ownStamp) return; // eco do próprio write
+          if (ownStamp) {
+            const dr = new Date(remoteStamp).getTime();
+            const dl = new Date(ownStamp).getTime();
+            if (Number.isFinite(dr) && Number.isFinite(dl) && Math.abs(dr - dl) < 2000) return; // eco do próprio write
+          }
           if (lastAppliedRemoteStampRef.current === remoteStamp) return;
           if (!row || row.save_data === undefined) return;
 
