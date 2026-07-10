@@ -1688,7 +1688,7 @@ function GamePage() {
 
       // Hero attack
       heroCdRef.current -= TICK;
-      const heroInterval = 1000 / (stats.atkSpeed / 100);
+      const heroInterval = (1000 / (stats.atkSpeed / 100)) * 1.7;
       if (heroCdRef.current <= 0 && enemyHpRef.current > 0 && heroHpRef.current > 0) {
         heroCdRef.current = heroInterval;
         const crit = Math.random() * 100 < Math.min(80, stats.critChance);
@@ -1700,8 +1700,8 @@ function GamePage() {
         setEnemyHp(enemyHpRef.current);
         setEnemyHit(true);
         setHeroLunge(true);
-        setTimeout(() => setEnemyHit(false), 120);
-        setTimeout(() => setHeroLunge(false), 220);
+        setTimeout(() => setEnemyHit(false), 260);
+        setTimeout(() => setHeroLunge(false), 480);
         spawnDamage(dmg, crit, "hero");
         // lifesteal
         if (stats.lifesteal > 0) {
@@ -1716,15 +1716,15 @@ function GamePage() {
       // Enemy attack
       enemyCdRef.current -= TICK;
       if (enemyCdRef.current <= 0 && heroHpRef.current > 0 && enemyHpRef.current > 0) {
-        enemyCdRef.current = 1400;
+        enemyCdRef.current = 2100;
         let dmg = Math.max(1, enemy.atk - stats.defense);
         dmg = Math.floor(dmg * (0.92 + Math.random() * 0.16));
         heroHpRef.current = Math.max(0, heroHpRef.current - dmg);
         setHeroHp(heroHpRef.current);
         setHeroHit(true);
         setEnemyLunge(true);
-        setTimeout(() => setHeroHit(false), 120);
-        setTimeout(() => setEnemyLunge(false), 220);
+        setTimeout(() => setHeroHit(false), 260);
+        setTimeout(() => setEnemyLunge(false), 480);
         spawnDamage(dmg, false, "enemy");
       }
 
@@ -2942,7 +2942,7 @@ function GamePage() {
 
       {/* ===== Battle arena ===== */}
       <section
-        className={`relative h-56 overflow-hidden bg-gradient-to-b ${biome.bg} border-b-4 border-[#1A0F08]`}
+        className={`relative h-72 sm:h-[420px] md:h-[480px] overflow-hidden bg-gradient-to-b ${biome.bg} border-b-4 border-[#1A0F08]`}
         style={(() => {
           const src = BIOME_BG[biome.name] ?? bgCache[biome.name];
           return src
@@ -2981,9 +2981,9 @@ function GamePage() {
 
         {/* Hero */}
         <div
-          className={`absolute bottom-10 left-6 flex flex-col items-center transition-transform duration-150 ease-out ${
+          className={`absolute bottom-10 left-6 sm:left-16 md:left-24 flex flex-col items-center transition-transform duration-[380ms] ease-in-out ${
             heroDying ? "opacity-0 scale-75 rotate-12 translate-y-2" : ""
-          } ${heroLunge ? "translate-x-16" : heroHit ? "-translate-x-1" : ""}`}
+          } ${heroLunge ? "translate-x-24 sm:translate-x-40" : heroHit ? "-translate-x-2" : ""}`}
         >
           <div className="mb-1 h-2 w-16 overflow-hidden rounded-full border-2 border-black/60 bg-black/50">
             <div
@@ -3005,9 +3005,9 @@ function GamePage() {
 
         {/* Enemy */}
         <div
-          className={`absolute bottom-10 right-6 flex flex-col items-center transition-transform duration-150 ease-out ${
+          className={`absolute bottom-10 right-6 sm:right-16 md:right-24 flex flex-col items-center transition-transform duration-[380ms] ease-in-out ${
             enemyDying ? "opacity-0 scale-50 rotate-12" : ""
-          } ${enemyLunge ? "-translate-x-16" : enemyHit ? "-translate-x-1" : ""}`}
+          } ${enemyLunge ? "-translate-x-24 sm:-translate-x-40" : enemyHit ? "-translate-x-2" : ""}`}
         >
           <div className="mb-1 h-2 w-20 overflow-hidden rounded-full border-2 border-black/60 bg-black/50">
             <div
@@ -3043,9 +3043,9 @@ function GamePage() {
 
         {/* Hero death overlay — MORREU 5s fade + action buttons */}
         {deathBanner === "hero" && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/70 backdrop-blur-sm animate-[fadeInOverlay_400ms_ease-out_forwards]">
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 overflow-y-auto py-4 bg-black/70 backdrop-blur-sm animate-[fadeInOverlay_400ms_ease-out_forwards]">
             <span
-              className="animate-[morreu5s_5s_ease-in-out_forwards] text-6xl font-black tracking-widest text-red-500 drop-shadow-[0_4px_0_rgba(0,0,0,0.9)]"
+              className="animate-[morreu5s_5s_ease-in-out_forwards] text-4xl sm:text-6xl font-black tracking-widest text-red-500 drop-shadow-[0_4px_0_rgba(0,0,0,0.9)]"
               style={{ fontFamily: "'Luckiest Guy', cursive", WebkitTextStroke: "2px #1a0000" }}
             >
               MORREU!
