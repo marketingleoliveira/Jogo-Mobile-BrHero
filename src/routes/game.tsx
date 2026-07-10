@@ -1940,6 +1940,26 @@ function GamePage() {
     });
   };
 
+  const bulkSellItems = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setSave((prev) => {
+      if (!prev) return prev;
+      const idSet = new Set(ids);
+      const sold = prev.inventory.filter((i) => idSet.has(i.id));
+      if (sold.length === 0) return prev;
+      const gain = sold.reduce(
+        (acc, item) => acc + Math.floor(50 * (RARITIES.find((r) => r.name === item.rarity)?.mult ?? 1)),
+        0,
+      );
+      flashToast(`♻️ ${sold.length} destruído(s) · +${fmt(gain)} 🪙`);
+      return {
+        ...prev,
+        gold: prev.gold + gain,
+        inventory: prev.inventory.filter((i) => !idSet.has(i.id)),
+      };
+    });
+  };
+
   const doPvp = () => {
     setSave((prev) => {
       if (!prev) return prev;
