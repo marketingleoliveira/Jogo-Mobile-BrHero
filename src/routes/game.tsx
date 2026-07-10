@@ -3066,9 +3066,10 @@ function GamePage() {
             className="absolute right-2 top-12 rounded-lg border-2 border-amber-950 bg-amber-500 px-2 py-0.5 text-[10px] text-amber-950 shadow"
             style={{ fontFamily: "'Luckiest Guy', cursive" }}
           >
-            👑 BOSS
+            👑 {bossForBiome(biome.name).name.toUpperCase()}
           </div>
         )}
+
 
         {/* clouds */}
         <div className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none">
