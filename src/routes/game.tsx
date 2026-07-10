@@ -891,11 +891,8 @@ type RedeemReward = {
 };
 type RedeemDef = { label: string; desc: string; reward: RedeemReward };
 
-const REDEEM_CODES: Record<string, RedeemDef> = {
-  BETA100:   { label: "Recompensa Beta",   desc: "+100 💎 cristais",              reward: { gems: 100 } },
-  BRHERO:    { label: "Herói do Brasil",   desc: "+50k 🪙 ouro + 🎁 baú épico",   reward: { gold: 50000, epicChest: true } },
-  FUNDADOR:  { label: "Fundador",          desc: "🎭 Aura Lendária desbloqueada", reward: { cosmetic: "aura_legendary" } },
-};
+// Códigos beta removidos. Cupons ativos são gerenciados pelo Admin (remote).
+const REDEEM_CODES: Record<string, RedeemDef> = {};
 
 
 
