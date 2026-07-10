@@ -3017,8 +3017,44 @@ function GamePage() {
       <WalletHud />
       {/* ===== Top HUD ===== */}
       <header className="relative bg-gradient-to-b from-[#3E2723] to-[#2D1B0E] border-b-4 border-[#8B4513] px-3 pt-2 pb-2">
+        {/* Row 1: player name + top actions */}
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => { setNameDraft(displayName); setEditingName(true); }}
+            className="flex min-w-0 items-center gap-1.5 rounded-md border border-[#8B4513]/70 bg-black/40 px-2 py-0.5 text-[11px] font-bold text-amber-100 hover:bg-black/60 active:scale-95"
+            title="Editar nome"
+          >
+            <span className="truncate max-w-[140px]">{displayName}</span>
+            <Pencil className="h-3 w-3 opacity-70" strokeWidth={2.5} />
+          </button>
+          <div className="flex items-center gap-1">
+            <Link
+              to="/roadmap"
+              aria-label="Roadmap"
+              title="Roadmap"
+              className="rounded-md border border-[#8B4513]/70 bg-black/40 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-200/90 hover:text-amber-100 hover:bg-black/60"
+            >
+              ROADMAP
+            </Link>
+            <button
+              type="button"
+              onClick={async () => {
+                try { await forceSignOut(); } catch (e) { console.error("signOut error", e); }
+                navigate({ to: "/" });
+              }}
+              aria-label="Sair da conta"
+              title="Sair da conta"
+              className="flex items-center gap-1 rounded-md border border-rose-500/60 bg-rose-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-200 hover:bg-rose-900/70 hover:text-rose-100 active:scale-95"
+            >
+              <LogOut className="h-3 w-3" strokeWidth={2.5} />
+              SAIR
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: avatar + currencies + menu */}
         <div className="flex items-center gap-2">
-          {/* Avatar */}
           <Link
             to="/"
             aria-label="Início"
@@ -3032,37 +3068,8 @@ function GamePage() {
               Lv{save.level}
             </span>
           </Link>
-          <div className="absolute right-2 top-1 flex items-center gap-1">
-            <Link
-              to="/roadmap"
-              aria-label="Roadmap"
-              title="Roadmap"
-              className="rounded-md border border-[#8B4513]/70 bg-black/40 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-200/90 hover:text-amber-100 hover:bg-black/60"
-            >
-              ROADMAP
-            </Link>
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  await forceSignOut();
-                } catch (e) {
-                  console.error("signOut error", e);
-                }
-                navigate({ to: "/" });
-              }}
-              aria-label="Sair da conta"
-              title="Sair da conta"
-              className="flex items-center gap-1 rounded-md border border-rose-500/60 bg-rose-950/60 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-rose-200 hover:bg-rose-900/70 hover:text-rose-100 active:scale-95"
-            >
-              <LogOut className="h-3 w-3" strokeWidth={2.5} />
-              SAIR
-            </button>
-          </div>
 
-
-          {/* Currencies */}
-          <div className="flex flex-1 flex-col gap-1">
+          <div className="flex flex-1 flex-col gap-1 min-w-0">
             <div className="flex gap-2">
               <CartoonPill
                 color="amber"
@@ -3085,7 +3092,6 @@ function GamePage() {
             </div>
           </div>
 
-          {/* Menu compacto — abre grade em modal para não atrapalhar a arena */}
           <div className="flex flex-col gap-1">
             <QuickCartoonBtn
               icon={<Sparkles className="h-3 w-3" />}
