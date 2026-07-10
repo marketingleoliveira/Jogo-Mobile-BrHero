@@ -1764,6 +1764,7 @@ function GamePage() {
 
   // Persistência em tempo real na nuvem (debounce 1.2s).
   const cloudDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastOwnWriteAtRef = useRef<string | null>(null);
   useEffect(() => {
     if (!save) return;
     saveRef.current = save;
@@ -1771,12 +1772,35 @@ function GamePage() {
     if (!uid) return;
     if (cloudDebounceRef.current) clearTimeout(cloudDebounceRef.current);
     cloudDebounceRef.current = setTimeout(() => {
+      const stamp = new Date(save.lastSeenAt ?? Date.now()).toISOString();
+      lastOwnWriteAtRef.current = stamp;
       void saveCloudSave(uid, save).catch(() => { /* silencioso */ });
     }, 1200);
     return () => {
       if (cloudDebounceRef.current) clearTimeout(cloudDebounceRef.current);
     };
   }, [save]);
+
+  // Detecta edições externas (painel admin) e recarrega o jogo.
+  useEffect(() => {
+    const iv = setInterval(async () => {
+      const uid = cloudUserIdRef.current;
+      if (!uid || document.hidden) return;
+      try {
+        const remote = await loadCloudSave(uid);
+        if (!remote) return;
+        const remoteStamp = remote.client_updated_at;
+        const ownStamp = lastOwnWriteAtRef.current;
+        // Se o timestamp remoto é diferente do último write que fizemos,
+        // significa que alguém (admin) editou por fora — recarrega.
+        if (ownStamp && remoteStamp && remoteStamp !== ownStamp) {
+          window.location.reload();
+        }
+      } catch { /* silencioso */ }
+    }, 20_000);
+    return () => clearInterval(iv);
+  }, []);
+
 
 
   // Level up detection
