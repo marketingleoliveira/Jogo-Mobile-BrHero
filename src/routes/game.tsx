@@ -40,6 +40,7 @@ import skinArqueiroSprite from "@/assets/skins/hero-arqueiro.png";
 import skinPaladinoSprite from "@/assets/skins/hero-paladino.png";
 import skinPirataSprite from "@/assets/skins/hero-pirata.png";
 import skinVampiroSprite from "@/assets/skins/hero-vampiro.png";
+import skinGabiSprite from "@/assets/skins/hero-gabi.png";
 import goblinSprite from "@/assets/sprite-goblin.png";
 import slimeSprite from "@/assets/sprite-slime.png";
 import skeletonSprite from "@/assets/sprite-skeleton.png";
