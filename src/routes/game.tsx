@@ -3090,7 +3090,34 @@ function GamePage() {
 
 
   const stats = useMemo(() => (save ? computeStats(save) : null), [save]);
-  const heroSkin = useMemo(() => (save ? equippedSkinDef(save) : SKIN_DEFS.classic), [save?.skins.equipped]);
+  const heroSkin = useMemo(
+    () => (save ? equippedSkinDef(save) : SKIN_DEFS.classic),
+    [save?.skins?.equipped, save?.skins],
+  );
+
+  // Força sincronização da skin equipada ao montar (entrar na arena / recarregar)
+  const skinSyncRef = useRef(false);
+  useEffect(() => {
+    if (skinSyncRef.current) return;
+    if (!save) return;
+    skinSyncRef.current = true;
+    setSave((prev) => {
+      if (!prev) return prev;
+      const normalized = normalizeSkins(prev.skins);
+      if (
+        normalized.equipped === prev.skins?.equipped &&
+        normalized.owned.length === (prev.skins?.owned?.length ?? 0)
+      ) {
+        // trigger re-render mesmo sem mudança para reaplicar o filtro no HUD
+        return { ...prev, skins: { ...normalized } };
+      }
+      return { ...prev, skins: normalized };
+    });
+    setHeroLunge(false);
+    setHeroHit(false);
+    setHeroDying(false);
+    heroDyingRef.current = false;
+  }, [save]);
   const biome = useMemo(() => biomeFor(save?.stage ?? 1), [save?.stage]);
   const nextUnlock = useMemo(
     () => UNLOCKS.find((u) => u.level > (save?.level ?? 1)),
