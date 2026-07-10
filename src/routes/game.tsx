@@ -3768,13 +3768,15 @@ function GamePage() {
           localSave={save}
           onClose={() => setModal(null)}
           onApplySave={(remote) => {
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
-            } catch { /* ignore */ }
-            window.location.reload();
+            const uid = cloudUserIdRef.current;
+            if (!uid) { window.location.reload(); return; }
+            void saveCloudSave(uid, remote)
+              .catch(() => { /* silencioso */ })
+              .finally(() => window.location.reload());
           }}
         />
       )}
+
       {modal === "menu" && (
         <GameMenuModal
           save={save}
