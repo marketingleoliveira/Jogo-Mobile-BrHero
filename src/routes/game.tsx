@@ -1716,15 +1716,15 @@ function GamePage() {
       // Enemy attack
       enemyCdRef.current -= TICK;
       if (enemyCdRef.current <= 0 && heroHpRef.current > 0 && enemyHpRef.current > 0) {
-        enemyCdRef.current = 1400;
+        enemyCdRef.current = 2100;
         let dmg = Math.max(1, enemy.atk - stats.defense);
         dmg = Math.floor(dmg * (0.92 + Math.random() * 0.16));
         heroHpRef.current = Math.max(0, heroHpRef.current - dmg);
         setHeroHp(heroHpRef.current);
         setHeroHit(true);
         setEnemyLunge(true);
-        setTimeout(() => setHeroHit(false), 120);
-        setTimeout(() => setEnemyLunge(false), 220);
+        setTimeout(() => setHeroHit(false), 260);
+        setTimeout(() => setEnemyLunge(false), 480);
         spawnDamage(dmg, false, "enemy");
       }
 
