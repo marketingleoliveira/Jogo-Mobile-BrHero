@@ -172,22 +172,19 @@ function EditPlayerDialog({ player, onClose }: { player: AdminPlayerRow | null; 
   const [reason, setReason] = useState("");
 
   const open = player !== null;
-  // Reset when player changes
-  const key = player?.userId ?? "";
-  const initialised = form.__key === key;
-  if (open && !initialised) {
+  useEffect(() => {
+    if (!player) return;
     setForm({
-      __key: key,
-      level: String(player!.level),
-      stage: String(player!.stage),
-      maxStage: String(player!.maxStage),
-      prestigeLevel: String(player!.prestigeLevel),
-      essence: String(player!.essence),
-      gems: String(player!.gems),
-      gold: String(player!.gold),
+      level: String(player.level),
+      stage: String(player.stage),
+      maxStage: String(player.maxStage),
+      prestigeLevel: String(player.prestigeLevel),
+      essence: String(player.essence),
+      gems: String(player.gems),
+      gold: String(player.gold),
     });
     setReason("");
-  }
+  }, [player]);
 
   const mutation = useMutation({
     mutationFn: async () => {
