@@ -1940,6 +1940,26 @@ function GamePage() {
     });
   };
 
+  const bulkSellItems = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setSave((prev) => {
+      if (!prev) return prev;
+      const idSet = new Set(ids);
+      const sold = prev.inventory.filter((i) => idSet.has(i.id));
+      if (sold.length === 0) return prev;
+      const gain = sold.reduce(
+        (acc, item) => acc + Math.floor(50 * (RARITIES.find((r) => r.name === item.rarity)?.mult ?? 1)),
+        0,
+      );
+      flashToast(`♻️ ${sold.length} destruído(s) · +${fmt(gain)} 🪙`);
+      return {
+        ...prev,
+        gold: prev.gold + gain,
+        inventory: prev.inventory.filter((i) => !idSet.has(i.id)),
+      };
+    });
+  };
+
   const doPvp = () => {
     setSave((prev) => {
       if (!prev) return prev;
@@ -3402,6 +3422,7 @@ function GamePage() {
           onEquip={equipItem}
           onUnequip={unequipItem}
           onSell={sellItem}
+          onBulkSell={bulkSellItems}
         />
       )}
       {modal === "arena" && (
@@ -3825,20 +3846,55 @@ function ModalShell({
   );
 }
 
+function itemPower(item: Item) {
+  return item.bonus.atk + item.bonus.hp + item.bonus.def;
+}
+
 function EquipmentModal({
   save,
   onClose,
   onEquip,
   onUnequip,
   onSell,
+  onBulkSell,
 }: {
   save: SaveState;
   onClose: () => void;
   onEquip: (item: Item) => void;
   onUnequip: (slot: SlotKey) => void;
   onSell: (id: string) => void;
+  onBulkSell: (ids: string[]) => void;
 }) {
   const bonus = equipmentBonus(save.equipment);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const isWeak = (item: Item) => {
+    const eq = save.equipment[item.slot];
+    return !!eq && itemPower(eq) > itemPower(item);
+  };
+
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+
+  const weakItems = save.inventory.filter(isWeak);
+  const selectAllWeak = () => setSelected(new Set(weakItems.map((i) => i.id)));
+  const clearSel = () => setSelected(new Set());
+
+  const selectedGold = save.inventory
+    .filter((i) => selected.has(i.id))
+    .reduce((acc, item) => acc + Math.floor(50 * (RARITIES.find((r) => r.name === item.rarity)?.mult ?? 1)), 0);
+
+  const destroySelected = () => {
+    if (selected.size === 0) return;
+    onBulkSell(Array.from(selected));
+    clearSel();
+  };
+
   return (
     <ModalShell title="Equipamentos" onClose={onClose}>
       {/* equipped slots */}
@@ -3865,9 +3921,38 @@ function EquipmentModal({
         <span>DEF <span className="font-bold text-sky-300">+{fmt(bonus.def)}</span></span>
       </div>
 
-      <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-        Inventário ({save.inventory.length})
-      </h3>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          Inventário ({save.inventory.length})
+        </h3>
+        <div className="flex flex-wrap gap-1">
+          <button
+            onClick={selectAllWeak}
+            disabled={weakItems.length === 0}
+            className="rounded bg-rose-700 px-2 py-1 text-[10px] font-bold text-white disabled:opacity-40 active:scale-95"
+          >
+            Selecionar fracos ({weakItems.length})
+          </button>
+          {selected.size > 0 && (
+            <button
+              onClick={clearSel}
+              className="rounded bg-slate-700 px-2 py-1 text-[10px] font-bold text-slate-200 active:scale-95"
+            >
+              Limpar
+            </button>
+          )}
+        </div>
+      </div>
+
+      {selected.size > 0 && (
+        <button
+          onClick={destroySelected}
+          className="mb-3 w-full rounded-lg bg-gradient-to-r from-rose-600 to-red-700 px-3 py-2 text-xs font-bold text-white shadow active:scale-95"
+        >
+          ♻️ Destruir {selected.size} · +{fmt(selectedGold)} 🪙
+        </button>
+      )}
+
       {save.inventory.length === 0 && (
         <p className="rounded-lg border border-dashed border-slate-800 py-6 text-center text-xs text-slate-500">
           Vença inimigos e chefes para ganhar equipamentos.
@@ -3877,20 +3962,37 @@ function EquipmentModal({
         {save.inventory.map((item) => {
           const slotInfo = SLOTS.find((s) => s.key === item.slot)!;
           const color = RARITIES.find((r) => r.name === item.rarity)!.color;
+          const weak = isWeak(item);
+          const isSel = selected.has(item.id);
           return (
             <div
               key={item.id}
-              className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border ${color} bg-slate-900/60 px-2 py-2`}
+              className={`grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2 rounded-lg border-2 px-2 py-2 ${
+                weak
+                  ? "border-red-500 bg-red-950/50"
+                  : `${color} bg-slate-900/60`
+              } ${isSel ? "ring-2 ring-amber-400" : ""}`}
             >
+              <input
+                type="checkbox"
+                checked={isSel}
+                onChange={() => toggle(item.id)}
+                className="h-4 w-4 cursor-pointer accent-rose-500"
+              />
               <span className="text-2xl">{slotInfo.emoji}</span>
               <div className="min-w-0 text-[11px]">
-                <div className="flex items-center gap-1 font-bold">
+                <div className="flex flex-wrap items-center gap-1 font-bold">
                   <span className="truncate">{slotInfo.label}</span>
                   <span className="opacity-70">·</span>
                   <span className="truncate">{item.rarity}</span>
                   <span className="text-amber-300">{"★".repeat(item.stars)}</span>
+                  {weak && (
+                    <span className="rounded bg-red-600 px-1 text-[9px] font-bold text-white">
+                      FRACO
+                    </span>
+                  )}
                 </div>
-                <div className="text-[10px] text-slate-400 tabular-nums">
+                <div className={`text-[10px] tabular-nums ${weak ? "text-red-300" : "text-slate-400"}`}>
                   +{item.bonus.atk} ATK · +{item.bonus.hp} HP · +{item.bonus.def} DEF
                 </div>
               </div>
@@ -3905,7 +4007,7 @@ function EquipmentModal({
                   onClick={() => onSell(item.id)}
                   className="rounded bg-slate-800 px-2 py-1 text-[10px] font-bold text-slate-300 active:scale-95"
                 >
-                  Vender
+                  Destruir
                 </button>
               </div>
             </div>
