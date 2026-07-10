@@ -8,12 +8,18 @@ import { supabase } from "@/integrations/supabase/client";
 const LS_KEY = "brhero_session_id_v1";
 const ACCOUNT_KEY = "hero-rise-account-v1";
 const DISPLAY_NAME_KEY = "brhero_display_name_v1";
+export const LOGOUT_INTENT_KEY = "brhero_force_logout_v1";
 const POLL_MS = 15_000;
 
 function clearLocalAuthState() {
   try { localStorage.removeItem(LS_KEY); } catch { /* noop */ }
   try { localStorage.removeItem(ACCOUNT_KEY); } catch { /* noop */ }
   try { localStorage.removeItem(DISPLAY_NAME_KEY); } catch { /* noop */ }
+}
+
+function markLogoutIntent() {
+  try { localStorage.setItem(LOGOUT_INTENT_KEY, "1"); } catch { /* noop */ }
+  clearLocalAuthState();
 }
 
 function newSessionId(): string {
@@ -44,7 +50,7 @@ export function useSingleSessionGuard(onKick?: (reason: string) => void) {
     const kick = async (reason: string) => {
       if (kickedRef.current) return;
       kickedRef.current = true;
-      clearLocalAuthState();
+      markLogoutIntent();
       try { await supabase.auth.signOut(); } catch { /* noop */ }
       if (onKick) onKick(reason);
       else alert(reason);
@@ -120,7 +126,7 @@ export function useSingleSessionGuard(onKick?: (reason: string) => void) {
 }
 
 export async function forceSignOut() {
-  clearLocalAuthState();
+  markLogoutIntent();
   try {
     await supabase.auth.signOut();
   } finally {

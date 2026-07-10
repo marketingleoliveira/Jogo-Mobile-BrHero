@@ -3059,7 +3059,7 @@ function GamePage() {
             <button
               type="button"
               onClick={async () => {
-                try { await forceSignOut(); } catch (e) { console.error("signOut error", e); }
+                void forceSignOut().catch((e) => { console.error("signOut error", e); });
                 navigate({ to: "/", replace: true });
               }}
               aria-label="Sair da conta"
