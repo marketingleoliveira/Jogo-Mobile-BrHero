@@ -3361,8 +3361,8 @@ function GamePage() {
               </div>
 
               {/* Upgrade button */}
-              <button
-                onClick={() => upgrade(key)}
+              <HoldButton
+                onTick={() => upgrade(key)}
                 disabled={!can}
                 className={`flex h-14 shrink-0 flex-col items-center justify-center rounded-2xl border-b-4 px-3 transition-transform active:translate-y-1 active:border-b-0 ${
                   can
