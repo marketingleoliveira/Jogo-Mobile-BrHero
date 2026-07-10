@@ -3113,12 +3113,22 @@ function GamePage() {
               style={{ width: `${(enemyHp / enemy.hp) * 100}%` }}
             />
           </div>
-          <img
-            src={enemy.isBoss ? bossDragonSprite : pickEnemySprite(save.stage)}
-            alt={enemy.isBoss ? "Chefe" : "Inimigo"}
-            className={`object-contain drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] ${enemy.isBoss ? "h-24 w-24" : "h-20 w-20"} ${enemyHit ? "animate-[shake_0.15s]" : ""}`}
-            draggable={false}
-          />
+          {enemy.isBoss ? (
+            <div className={`relative flex items-center justify-center h-24 w-24 ${enemyHit ? "animate-[shake_0.15s]" : ""}`}>
+              <div className={`absolute inset-0 rounded-full bg-gradient-radial ${bossForBiome(biome.name).halo} blur-xl opacity-80`} />
+              <span className="relative text-6xl drop-shadow-[0_4px_6px_rgba(0,0,0,0.7)] leading-none">
+                {bossForBiome(biome.name).emoji}
+              </span>
+            </div>
+          ) : (
+            <img
+              src={pickEnemySprite(save.stage)}
+              alt="Inimigo"
+              className={`object-contain drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] h-20 w-20 ${enemyHit ? "animate-[shake_0.15s]" : ""}`}
+              draggable={false}
+            />
+          )}
+
           <div className="mt-0.5 text-[9px] tabular-nums text-white/90 font-bold">
             {fmt(enemyHp)}/{fmt(enemy.hp)}
           </div>
