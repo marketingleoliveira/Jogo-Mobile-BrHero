@@ -5580,10 +5580,12 @@ function SkinsModal({
   save,
   onClose,
   onEquip,
+  onBuy,
 }: {
   save: SaveState;
   onClose: () => void;
   onEquip: (id: SkinId) => void;
+  onBuy: (id: SkinId) => void;
 }) {
   const locked = save.level < SKIN_UNLOCK_LEVEL;
   const allIds = Object.keys(SKIN_DEFS) as SkinId[];
@@ -5596,8 +5598,8 @@ function SkinsModal({
         style={{ animation: "slideUp 200ms ease" }}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>👗 Skins</h2>
-          <div className="text-[10px] opacity-70">Apenas cosmético · sem bônus</div>
+          <h2 className="text-lg font-black" style={{ fontFamily: "'Luckiest Guy', cursive" }}>👗 Personagens</h2>
+          <div className="text-[10px] opacity-70">💎 {save.gems}</div>
         </div>
 
         {locked && (
@@ -5613,28 +5615,47 @@ function SkinsModal({
               const def = SKIN_DEFS[id];
               const owned = save.skins.owned.includes(id);
               const equipped = save.skins.equipped === id;
+              const canBuy = !owned && !!def.priceGems;
+              const affordable = canBuy && save.gems >= (def.priceGems ?? 0);
               return (
-                <div key={id} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-2 ${owned ? "" : "opacity-60"}`}>
+                <div key={id} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-2 ${owned ? "" : "opacity-90"}`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <div className="text-3xl">{owned ? def.icon : "🔒"}</div>
+                      <div className="text-3xl" style={{ filter: def.filter }}>{owned ? def.icon : "🔒"}</div>
                       <div>
                         <div className="text-xs font-black text-amber-50 drop-shadow">{def.label}</div>
                         <div className="text-[10px] text-amber-50/90">{def.rarity} · {def.desc}</div>
-                        {!owned && (
+                        {!owned && !def.priceGems && (
                           <div className="mt-0.5 text-[10px] font-black text-amber-50/80">
                             Obtenha em baús raros ou na loja do evento.
                           </div>
                         )}
                       </div>
                     </div>
-                    <button
-                      onClick={() => onEquip(id)}
-                      disabled={!owned || equipped}
-                      className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2.5 py-1.5 text-[11px] font-black text-amber-100 disabled:opacity-50"
-                    >
-                      {equipped ? "Equipada" : owned ? "Equipar" : "Bloqueada"}
-                    </button>
+                    {owned ? (
+                      <button
+                        onClick={() => onEquip(id)}
+                        disabled={equipped}
+                        className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2.5 py-1.5 text-[11px] font-black text-amber-100 disabled:opacity-50"
+                      >
+                        {equipped ? "Equipada" : "Equipar"}
+                      </button>
+                    ) : canBuy ? (
+                      <button
+                        onClick={() => onBuy(id)}
+                        disabled={!affordable}
+                        className="rounded-md border-2 border-[#1A0F08] bg-amber-500/90 px-2.5 py-1.5 text-[11px] font-black text-amber-950 disabled:opacity-50"
+                      >
+                        💎 {def.priceGems}
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="rounded-md border-2 border-[#1A0F08] bg-black/40 px-2.5 py-1.5 text-[11px] font-black text-amber-100 opacity-50"
+                      >
+                        Bloqueada
+                      </button>
+                    )}
                   </div>
                 </div>
               );
