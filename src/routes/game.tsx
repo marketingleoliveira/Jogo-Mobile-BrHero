@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Coins,
@@ -1481,6 +1481,7 @@ type DamageNumber = {
 };
 
 function GamePage() {
+  const navigate = useNavigate();
   const [save, setSave] = useState<SaveState | null>(null);
   const saveRef = useRef<SaveState | null>(null);
   const [heroHp, setHeroHp] = useState(0);
@@ -1726,24 +1727,11 @@ function GamePage() {
         onEnemyKilled();
       }
 
-      // Hero died — show MORREU banner, then respawn with full hp, retreat 1 stage
+      // Hero died — show MORREU banner + action buttons; wait for user
       if (heroHpRef.current <= 0 && !heroDyingRef.current) {
         heroDyingRef.current = true;
         setHeroDying(true);
         setDeathBanner("hero");
-        setTimeout(() => {
-          const cur = saveRef.current;
-          if (cur) {
-            const newStage = Math.max(1, cur.stage - 1);
-            const next = { ...cur, stage: newStage };
-            setSave(next);
-            saveRef.current = next;
-          }
-          respawn();
-          setHeroDying(false);
-          setDeathBanner(null);
-          heroDyingRef.current = false;
-        }, 1200);
       }
     }, TICK);
     return () => clearInterval(interval);
@@ -2979,18 +2967,69 @@ function GamePage() {
           </div>
         </div>
 
-        {/* Death banner */}
-        {deathBanner && (
+        {/* Enemy defeated flash */}
+        {deathBanner === "enemy" && (
           <div
-            key={deathBanner + Date.now()}
+            key={"enemy-" + Date.now()}
             className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
           >
             <span
               className="animate-[deathPop_1.1s_ease-out_forwards] text-5xl font-black tracking-widest text-red-500 drop-shadow-[0_4px_0_rgba(0,0,0,0.8)]"
               style={{ fontFamily: "'Luckiest Guy', cursive", WebkitTextStroke: "2px #1a0000" }}
             >
-              {deathBanner === "hero" ? "MORREU!" : "DERROTADO!"}
+              DERROTADO!
             </span>
+          </div>
+        )}
+
+        {/* Hero death overlay — MORREU 5s fade + action buttons */}
+        {deathBanner === "hero" && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-black/70 backdrop-blur-sm animate-[fadeInOverlay_400ms_ease-out_forwards]">
+            <span
+              className="animate-[morreu5s_5s_ease-in-out_forwards] text-6xl font-black tracking-widest text-red-500 drop-shadow-[0_4px_0_rgba(0,0,0,0.9)]"
+              style={{ fontFamily: "'Luckiest Guy', cursive", WebkitTextStroke: "2px #1a0000" }}
+            >
+              MORREU!
+            </span>
+            <div className="flex flex-col gap-2 w-56 animate-[fadeInOverlay_600ms_ease-out_400ms_both]">
+              <button
+                onClick={() => {
+                  setDeathBanner(null);
+                  setHeroDying(false);
+                  heroDyingRef.current = false;
+                  respawn();
+                }}
+                className="rounded-xl border-2 border-emerald-900 bg-gradient-to-b from-emerald-500 to-emerald-700 px-4 py-2 text-sm font-bold text-white shadow-lg active:translate-y-0.5"
+                style={{ fontFamily: "'Luckiest Guy', cursive" }}
+              >
+                🔁 TENTAR NOVAMENTE
+              </button>
+              <button
+                onClick={() => {
+                  setDeathBanner(null);
+                  setHeroDying(false);
+                  heroDyingRef.current = false;
+                  navigate({ to: "/dashboard" });
+                }}
+                className="rounded-xl border-2 border-slate-900 bg-gradient-to-b from-slate-500 to-slate-700 px-4 py-2 text-sm font-bold text-white shadow-lg active:translate-y-0.5"
+                style={{ fontFamily: "'Luckiest Guy', cursive" }}
+              >
+                🏠 MENU INICIAL
+              </button>
+              <button
+                onClick={() => {
+                  setDeathBanner(null);
+                  setHeroDying(false);
+                  heroDyingRef.current = false;
+                  respawn();
+                  setModal("store");
+                }}
+                className="rounded-xl border-2 border-amber-900 bg-gradient-to-b from-amber-400 to-amber-600 px-4 py-2 text-sm font-bold text-amber-950 shadow-lg active:translate-y-0.5"
+                style={{ fontFamily: "'Luckiest Guy', cursive" }}
+              >
+                💎 COMPRAR PODER
+              </button>
+            </div>
           </div>
         )}
 
@@ -3020,6 +3059,8 @@ function GamePage() {
           @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
           @keyframes levelPop{0%{transform:scale(0.5) rotate(-8deg);opacity:0}60%{transform:scale(1.15) rotate(4deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
           @keyframes deathPop{0%{transform:scale(0.2) rotate(-15deg);opacity:0}25%{transform:scale(1.4) rotate(6deg);opacity:1}45%{transform:scale(1) rotate(-3deg);opacity:1}80%{transform:scale(1.05) rotate(0);opacity:1}100%{transform:scale(1.2) rotate(0);opacity:0}}
+          @keyframes morreu5s{0%{transform:scale(0.2) rotate(-10deg);opacity:0}15%{transform:scale(1.3) rotate(4deg);opacity:1}25%{transform:scale(1) rotate(0);opacity:1}85%{transform:scale(1) rotate(0);opacity:1}100%{transform:scale(1.4) rotate(0);opacity:0}}
+          @keyframes fadeInOverlay{from{opacity:0}to{opacity:1}}
         `}</style>
       </section>
 
