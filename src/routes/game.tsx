@@ -3294,12 +3294,14 @@ function GamePage() {
             />
           </div>
           <img
+            key={equippedSkinDef(save).id}
             src={heroSprite}
             alt="Herói"
             className={`h-20 w-20 object-contain drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] ${levelFlash ? "animate-[heroBounce_0.9s_ease-out]" : ""}`}
-            style={{ filter: equippedSkinDef(save).filter }}
+            style={{ filter: equippedSkinDef(save).filter ?? "none" }}
             draggable={false}
           />
+
           <div className="mt-0.5 text-[9px] tabular-nums text-white/90 font-bold">
             {fmt(heroHp)}/{fmt(stats.hp)}
           </div>
