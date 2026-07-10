@@ -97,6 +97,21 @@ function Landing() {
     let mounted = true;
     const storedAccount = loadAccount();
     if (storedAccount) setAccount(storedAccount);
+
+    const applyUser = (u: { id: string; email?: string | null; user_metadata?: Record<string, unknown> } | null | undefined) => {
+      if (!mounted) return;
+      if (!u) return;
+      const acc = accountFromUser(u);
+      setAccount((prev) => {
+        // Avoid re-render/redirect loop on TOKEN_REFRESHED / INITIAL_SESSION
+        if (prev && prev.sub === acc.sub && prev.email === acc.email && prev.name === acc.name) {
+          return prev;
+        }
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify(acc));
+        return acc;
+      });
+    };
+
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
       if (localStorage.getItem(LOGOUT_INTENT_KEY) === "1") {
@@ -107,32 +122,31 @@ function Landing() {
         });
         return;
       }
-      const u = data.session?.user;
-      if (u) {
-        const acc = accountFromUser(u);
-        localStorage.setItem(ACCOUNT_KEY, JSON.stringify(acc));
-        setAccount(acc);
-      }
+      applyUser(data.session?.user);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      // Ignore noisy events that cause flicker/redirect loops
+      if (event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") return;
       if (localStorage.getItem(LOGOUT_INTENT_KEY) === "1") {
         localStorage.removeItem(ACCOUNT_KEY);
         setAccount(null);
         if (!session) localStorage.removeItem(LOGOUT_INTENT_KEY);
         return;
       }
-      const u = session?.user;
-      if (u) {
-        const acc = accountFromUser(u);
-        localStorage.setItem(ACCOUNT_KEY, JSON.stringify(acc));
-        setAccount(acc);
+      if (event === "SIGNED_OUT") {
+        localStorage.removeItem(ACCOUNT_KEY);
+        setAccount(null);
+        return;
       }
+      applyUser(session?.user);
     });
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
     };
   }, []);
+
 
   const handleGoogle = async () => {
     localStorage.removeItem(LOGOUT_INTENT_KEY);
