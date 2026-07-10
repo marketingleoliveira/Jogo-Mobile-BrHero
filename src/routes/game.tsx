@@ -37,7 +37,7 @@ import { captureReferralFromUrl, tryClaimPendingReferral, buildInviteLink, useRe
 import { supabase as _supaClient } from "@/integrations/supabase/client";
 import { getLiveOpsMultipliers, useLiveOps } from "@/lib/game/remote-liveops";
 import { useRemoteOffers, type RemoteOffer } from "@/lib/game/remote-shop";
-import { CloudSaveModal } from "@/components/game/cloud-save-modal";
+
 import { WalletHud } from "@/components/game/wallet-hud";
 import { useWallet } from "@/lib/game/wallet";
 
@@ -3763,19 +3763,8 @@ function GamePage() {
           referralCount={refStats.count}
         />
       )}
-      {modal === "cloud" && (
-        <CloudSaveModal
-          localSave={save}
-          onClose={() => setModal(null)}
-          onApplySave={(remote) => {
-            const uid = cloudUserIdRef.current;
-            if (!uid) { window.location.reload(); return; }
-            void saveCloudSave(uid, remote)
-              .catch(() => { /* silencioso */ })
-              .finally(() => window.location.reload());
-          }}
-        />
-      )}
+
+
 
       {modal === "menu" && (
         <GameMenuModal
@@ -6701,8 +6690,8 @@ function GameMenuModal({
     { key: "runes",        icon: "🔮", label: "Runas",     unlock: RUNE_UNLOCK_LEVEL },
     { key: "cosmetics",    icon: "🎭", label: "Cosméticos" },
     { key: "codes",        icon: "🎟️", label: "Códigos" },
-    { key: "cloud",        icon: "☁️", label: "Nuvem" },
   ];
+
 
   return (
     <div

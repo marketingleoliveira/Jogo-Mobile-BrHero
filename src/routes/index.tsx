@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import brheroLogo from "@/assets/brhero-logo.png.asset.json";
 
@@ -78,18 +78,14 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  const navigate = useNavigate();
+  
   const [account, setAccount] = useState<Account | null>(null);
   const [signingIn, setSigningIn] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
 
-  // Autologado? Vai direto para o jogo (web-first).
-  useEffect(() => {
-    if (localStorage.getItem(LOGOUT_INTENT_KEY) === "1") return;
-    if (account) {
-      navigate({ to: "/game", replace: true });
-    }
-  }, [account, navigate]);
+  // Não redireciona automaticamente para /game — evita loop de flicker.
+  // O usuário logado vê o card "JOGAR AGORA" e entra por clique.
+
 
 
   // Hydrate session from Supabase and keep in sync
