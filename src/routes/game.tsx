@@ -56,7 +56,7 @@ function WalletCornerOverlay() {
     </div>
   );
 }
-import { getAutoSyncEnabled, getCloudUser, saveCloudSave } from "@/lib/game/cloud-save";
+import { getCloudUser, saveCloudSave, loadCloudSave } from "@/lib/game/cloud-save";
 import { useSingleSessionGuard, forceSignOut } from "@/lib/game/single-session";
 import { beginSandboxCheckout, beginInfinitepayCheckoutClient, usePaymentsConfig, usePlayerTransactions, type PaymentTransaction } from "@/lib/game/payments";
 import { useSandboxDelivery, type ParsedReward } from "@/lib/game/sandbox-purchase";
@@ -1443,86 +1443,80 @@ function defaultSave(): SaveState {
   };
 }
 
-function loadSave(): SaveState {
-  if (typeof window === "undefined") return defaultSave();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultSave();
-    const parsed = JSON.parse(raw);
-    // Migração aditiva: qualquer save anterior (v1..v18) é preservado.
-    // Campos novos herdam defaults; a versão é reescrita ao salvar.
-    const base = defaultSave();
-    const merged: SaveState = {
-      ...base,
-      ...parsed,
-      attrs: { ...base.attrs, ...(parsed.attrs ?? {}) } as Record<AttrKey, Attr>,
-      equipment: { ...emptyEquipment(), ...(parsed.equipment ?? {}) },
-      inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
-      globalUp: { ...emptyGlobalUp(), ...(parsed.globalUp ?? {}) },
-      daily: { ...base.daily, ...(parsed.daily ?? {}), streakClaimed: Array.isArray(parsed.daily?.streakClaimed) ? parsed.daily.streakClaimed : [] },
-      freeChest: { ...base.freeChest, ...(parsed.freeChest ?? {}) },
-      lastSeenAt: typeof parsed.lastSeenAt === "number" ? parsed.lastSeenAt : Date.now(),
-      counters: { ...emptyCounters(), ...(parsed.counters ?? {}) },
-      missions: {
-        ...emptyMissions(),
-        ...(parsed.missions ?? {}),
-        daily: Array.isArray(parsed.missions?.daily) ? parsed.missions.daily : [],
-        weekly: Array.isArray(parsed.missions?.weekly) ? parsed.missions.weekly : [],
-      },
-      dungeon: { ...emptyDungeon(), ...(parsed.dungeon ?? {}) },
-      pets: Array.isArray(parsed.pets) ? parsed.pets : [],
-      equippedPetId: typeof parsed.equippedPetId === "string" ? parsed.equippedPetId : null,
-      petFragments: { ...emptyPetFragments(), ...(parsed.petFragments ?? {}) },
-      tower: { ...emptyTower(), ...(parsed.tower ?? {}) },
-      blessings: { ...emptyBlessings(), ...(parsed.blessings ?? {}) },
-      guild: { ...emptyGuild(), ...(parsed.guild ?? {}) },
-      arena: { ...emptyArena(), ...(parsed.arena ?? {}) },
-      event: {
-        ...emptyEvent(),
-        ...(parsed.event ?? {}),
-        missions: Array.isArray(parsed.event?.missions) ? parsed.event.missions : [],
-      },
-      skins: {
-        owned: Array.isArray(parsed.skins?.owned) && parsed.skins.owned.length > 0
-          ? (parsed.skins.owned.filter((x: string) => (x as SkinId) in SKIN_DEFS) as SkinId[])
-          : ["classic"],
-        equipped: (parsed.skins?.equipped as SkinId) in SKIN_DEFS ? parsed.skins.equipped : "classic",
-      },
-      achievements: {
-        claimed: Array.isArray(parsed.achievements?.claimed) ? parsed.achievements.claimed : [],
-      },
-      runes: {
-        fragments: typeof parsed.runes?.fragments === "number" ? parsed.runes.fragments : 0,
-        levels: { ...emptyRunes().levels, ...(parsed.runes?.levels ?? {}) },
-        equipped: Array.isArray(parsed.runes?.equipped)
-          ? (parsed.runes.equipped.filter((k: string) => (RUNE_ORDER as string[]).includes(k)) as RuneKind[]).slice(0, RUNE_MAX_EQUIPPED)
-          : [],
-      },
-      cosmetics: (() => {
-        const base = emptyCosmetics();
-        const parsedOwned: string[] = Array.isArray(parsed.cosmetics?.owned) ? parsed.cosmetics.owned : [];
-        const ownedSet = new Set<string>([...base.owned, ...parsedOwned.filter((id) => id in COSMETIC_DEFS)]);
-        const eq: Partial<Record<CosmeticCategory, CosmeticId | null>> = { ...base.equipped };
-        const pe = (parsed.cosmetics?.equipped ?? {}) as Record<string, unknown>;
-        for (const c of COSMETIC_CATEGORIES) {
-          const v = pe[c.key];
-          if (typeof v === "string" && v in COSMETIC_DEFS && ownedSet.has(v) && COSMETIC_DEFS[v].category === c.key) {
-            eq[c.key] = v;
-          }
+function mergeSave(parsed: unknown): SaveState {
+  const base = defaultSave();
+  if (!parsed || typeof parsed !== "object") return base;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const p = parsed as any;
+  const merged: SaveState = {
+    ...base,
+    ...p,
+    attrs: { ...base.attrs, ...(p.attrs ?? {}) } as Record<AttrKey, Attr>,
+    equipment: { ...emptyEquipment(), ...(p.equipment ?? {}) },
+    inventory: Array.isArray(p.inventory) ? p.inventory : [],
+    globalUp: { ...emptyGlobalUp(), ...(p.globalUp ?? {}) },
+    daily: { ...base.daily, ...(p.daily ?? {}), streakClaimed: Array.isArray(p.daily?.streakClaimed) ? p.daily.streakClaimed : [] },
+    freeChest: { ...base.freeChest, ...(p.freeChest ?? {}) },
+    lastSeenAt: typeof p.lastSeenAt === "number" ? p.lastSeenAt : Date.now(),
+    counters: { ...emptyCounters(), ...(p.counters ?? {}) },
+    missions: {
+      ...emptyMissions(),
+      ...(p.missions ?? {}),
+      daily: Array.isArray(p.missions?.daily) ? p.missions.daily : [],
+      weekly: Array.isArray(p.missions?.weekly) ? p.missions.weekly : [],
+    },
+    dungeon: { ...emptyDungeon(), ...(p.dungeon ?? {}) },
+    pets: Array.isArray(p.pets) ? p.pets : [],
+    equippedPetId: typeof p.equippedPetId === "string" ? p.equippedPetId : null,
+    petFragments: { ...emptyPetFragments(), ...(p.petFragments ?? {}) },
+    tower: { ...emptyTower(), ...(p.tower ?? {}) },
+    blessings: { ...emptyBlessings(), ...(p.blessings ?? {}) },
+    guild: { ...emptyGuild(), ...(p.guild ?? {}) },
+    arena: { ...emptyArena(), ...(p.arena ?? {}) },
+    event: {
+      ...emptyEvent(),
+      ...(p.event ?? {}),
+      missions: Array.isArray(p.event?.missions) ? p.event.missions : [],
+    },
+    skins: {
+      owned: Array.isArray(p.skins?.owned) && p.skins.owned.length > 0
+        ? (p.skins.owned.filter((x: string) => (x as SkinId) in SKIN_DEFS) as SkinId[])
+        : ["classic"],
+      equipped: (p.skins?.equipped as SkinId) in SKIN_DEFS ? p.skins.equipped : "classic",
+    },
+    achievements: {
+      claimed: Array.isArray(p.achievements?.claimed) ? p.achievements.claimed : [],
+    },
+    runes: {
+      fragments: typeof p.runes?.fragments === "number" ? p.runes.fragments : 0,
+      levels: { ...emptyRunes().levels, ...(p.runes?.levels ?? {}) },
+      equipped: Array.isArray(p.runes?.equipped)
+        ? (p.runes.equipped.filter((k: string) => (RUNE_ORDER as string[]).includes(k)) as RuneKind[]).slice(0, RUNE_MAX_EQUIPPED)
+        : [],
+    },
+    cosmetics: (() => {
+      const b = emptyCosmetics();
+      const parsedOwned: string[] = Array.isArray(p.cosmetics?.owned) ? p.cosmetics.owned : [];
+      const ownedSet = new Set<string>([...b.owned, ...parsedOwned.filter((id) => id in COSMETIC_DEFS)]);
+      const eq: Partial<Record<CosmeticCategory, CosmeticId | null>> = { ...b.equipped };
+      const pe = (p.cosmetics?.equipped ?? {}) as Record<string, unknown>;
+      for (const c of COSMETIC_CATEGORIES) {
+        const v = pe[c.key];
+        if (typeof v === "string" && v in COSMETIC_DEFS && ownedSet.has(v) && COSMETIC_DEFS[v].category === c.key) {
+          eq[c.key] = v;
         }
-        return { owned: Array.from(ownedSet), equipped: eq };
-      })(),
-      redeem: { used: Array.isArray(parsed.redeem?.used) ? parsed.redeem.used.filter((c: unknown) => typeof c === "string") : [] },
-      version: SAVE_VERSION,
-    };
-    for (const k of ATTR_ORDER) {
-      if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
-    }
-    return merged;
-  } catch {
-    return defaultSave();
+      }
+      return { owned: Array.from(ownedSet), equipped: eq };
+    })(),
+    redeem: { used: Array.isArray(p.redeem?.used) ? p.redeem.used.filter((c: unknown) => typeof c === "string") : [] },
+    version: SAVE_VERSION,
+  };
+  for (const k of ATTR_ORDER) {
+    if (!merged.attrs[k]) merged.attrs[k] = { level: 0 };
   }
+  return merged;
 }
+
 
 // -------- Route --------
 export const Route = createFileRoute("/game")({
@@ -1661,59 +1655,81 @@ function GamePage() {
   }, []);
 
 
-  // Init
+  // Init — carrega SOMENTE da nuvem. Sem conta, volta para a home.
+  const cloudUserIdRef = useRef<string | null>(null);
   useEffect(() => {
-    const s = loadSave();
-    // Inicia/rotaciona evento se elegível
-    s.event = ensureEventStarted(s);
-    // ==== Recompensas Offline ====
-    const now = Date.now();
-    const elapsed = Math.max(0, Math.min(OFFLINE_MAX_MS, now - (s.lastSeenAt ?? now)));
-    if (elapsed > 60_000) {
-      // Aproximação: 1 batalha ~ 2s no estágio atual
-      const battles = Math.floor(elapsed / 2000);
-      const enemy = enemyForStage(s.stage);
-      const lo = getLiveOpsMultipliers();
-      const goldMul = (1 + (s.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * lo.gold;
-      const xpMul = (1 + (s.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * lo.xp;
-      const gold = Math.floor(battles * enemy.gold * 0.4 * goldMul);
-      const xp = Math.floor(battles * enemy.xp * 0.4 * xpMul);
-      const drops = Math.min(20, Math.floor(battles * 0.02 * lo.drop));
-      s.gold += gold;
-      s.xp += xp;
-      // Level up
-      while (s.xp >= xpForLevel(s.level)) { s.xp -= xpForLevel(s.level); s.level += 1; }
-      for (let i = 0; i < drops; i++) {
-        const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
-        s.inventory = [...s.inventory, rollItem(slot, s.stage)].slice(-60);
+    let cancelled = false;
+    (async () => {
+      const user = await getCloudUser();
+      if (cancelled) return;
+      if (!user) {
+        navigate({ to: "/", replace: true });
+        return;
       }
-      s.lastSeenAt = now;
-      setOfflineReport({ ms: elapsed, gold, xp, drops });
-    } else {
-      s.lastSeenAt = now;
-    }
-    // ==== Rotação de missões ====
-    const dk = todayKey();
-    const wk = weekKey();
-    if (s.missions.dailyKey !== dk || s.missions.daily.length === 0) {
-      s.missions = { ...s.missions, daily: generateDaily(s.stage, s.counters), dailyKey: dk };
-    }
-    if (s.missions.weeklyKey !== wk || s.missions.weekly.length === 0) {
-      s.missions = { ...s.missions, weekly: generateWeekly(s.stage, s.counters), weeklyKey: wk };
-    }
-    setSave(s);
-    saveRef.current = s;
-    const stats = computeStats(s);
-    heroHpRef.current = stats.hp;
-    setHeroHp(stats.hp);
-    const e = enemyForStage(s.stage);
-    enemyRef.current = e;
-    enemyHpRef.current = e.hp;
-    setEnemyHp(e.hp);
-    prevLevelRef.current = s.level;
-  }, []);
+      cloudUserIdRef.current = user.id;
+      let s: SaveState;
+      try {
+        const remote = await loadCloudSave(user.id);
+        s = remote ? mergeSave(remote.save_data) : defaultSave();
+      } catch {
+        s = defaultSave();
+      }
+      if (cancelled) return;
+      s.event = ensureEventStarted(s);
+      // ==== Recompensas Offline ====
+      const now = Date.now();
+      const elapsed = Math.max(0, Math.min(OFFLINE_MAX_MS, now - (s.lastSeenAt ?? now)));
+      if (elapsed > 60_000) {
+        const battles = Math.floor(elapsed / 2000);
+        const enemy = enemyForStage(s.stage);
+        const lo = getLiveOpsMultipliers();
+        const goldMul = (1 + (s.globalUp?.gold ?? 0) * GLOBAL_UP_DEFS.gold.perLevel) * lo.gold;
+        const xpMul = (1 + (s.globalUp?.xp ?? 0) * GLOBAL_UP_DEFS.xp.perLevel) * lo.xp;
+        const gold = Math.floor(battles * enemy.gold * 0.4 * goldMul);
+        const xp = Math.floor(battles * enemy.xp * 0.4 * xpMul);
+        const drops = Math.min(20, Math.floor(battles * 0.02 * lo.drop));
+        s.gold += gold;
+        s.xp += xp;
+        while (s.xp >= xpForLevel(s.level)) { s.xp -= xpForLevel(s.level); s.level += 1; }
+        for (let i = 0; i < drops; i++) {
+          const slot = SLOTS[Math.floor(Math.random() * SLOTS.length)].key;
+          s.inventory = [...s.inventory, rollItem(slot, s.stage)].slice(-60);
+        }
+        s.lastSeenAt = now;
+        setOfflineReport({ ms: elapsed, gold, xp, drops });
+      } else {
+        s.lastSeenAt = now;
+      }
+      const dk = todayKey();
+      const wk = weekKey();
+      if (s.missions.dailyKey !== dk || s.missions.daily.length === 0) {
+        s.missions = { ...s.missions, daily: generateDaily(s.stage, s.counters), dailyKey: dk };
+      }
+      if (s.missions.weeklyKey !== wk || s.missions.weekly.length === 0) {
+        s.missions = { ...s.missions, weekly: generateWeekly(s.stage, s.counters), weeklyKey: wk };
+      }
+      setSave(s);
+      saveRef.current = s;
+      const stats = computeStats(s);
+      heroHpRef.current = stats.hp;
+      setHeroHp(stats.hp);
+      const e = enemyForStage(s.stage);
+      enemyRef.current = e;
+      enemyHpRef.current = e.hp;
+      setEnemyHp(e.hp);
+      prevLevelRef.current = s.level;
+    })();
+    // Se o usuário deslogar durante o jogo, volta imediatamente para a home.
+    const { data: sub } = _supaClient.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        cloudUserIdRef.current = null;
+        navigate({ to: "/", replace: true });
+      }
+    });
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
+  }, [navigate]);
 
-  // Marca "visto agora" a cada 30s, contabiliza playtime e checa rotação de missões
+  // Tick 30s: playtime + rotação de missões. Persistência é feita no efeito de save.
   useEffect(() => {
     const iv = setInterval(() => {
       setSave((p) => {
@@ -1735,31 +1751,33 @@ function GamePage() {
         };
       });
     }, 30_000);
-    const onHide = () => {
+    const flush = () => {
       const cur = saveRef.current;
-      if (!cur) return;
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...cur, lastSeenAt: Date.now() })); } catch {}
-      // Auto-sync opcional (desligado por padrão)
-      if (getAutoSyncEnabled()) {
-        void getCloudUser().then((u) => {
-          if (u) void saveCloudSave(u.id, cur).catch(() => { /* silencioso */ });
-        });
-      }
+      const uid = cloudUserIdRef.current;
+      if (!cur || !uid) return;
+      void saveCloudSave(uid, { ...cur, lastSeenAt: Date.now() }).catch(() => { /* silencioso */ });
     };
-    window.addEventListener("beforeunload", onHide);
-    window.addEventListener("visibilitychange", onHide);
-    return () => { clearInterval(iv); window.removeEventListener("beforeunload", onHide); window.removeEventListener("visibilitychange", onHide); };
+    window.addEventListener("beforeunload", flush);
+    window.addEventListener("visibilitychange", flush);
+    return () => { clearInterval(iv); window.removeEventListener("beforeunload", flush); window.removeEventListener("visibilitychange", flush); };
   }, []);
 
-  // Persist (debounced-ish via effect on save)
+  // Persistência em tempo real na nuvem (debounce 1.2s).
+  const cloudDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    if (save) {
-      saveRef.current = save;
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
-      } catch {}
-    }
+    if (!save) return;
+    saveRef.current = save;
+    const uid = cloudUserIdRef.current;
+    if (!uid) return;
+    if (cloudDebounceRef.current) clearTimeout(cloudDebounceRef.current);
+    cloudDebounceRef.current = setTimeout(() => {
+      void saveCloudSave(uid, save).catch(() => { /* silencioso */ });
+    }, 1200);
+    return () => {
+      if (cloudDebounceRef.current) clearTimeout(cloudDebounceRef.current);
+    };
   }, [save]);
+
 
   // Level up detection
   useEffect(() => {
@@ -3750,13 +3768,15 @@ function GamePage() {
           localSave={save}
           onClose={() => setModal(null)}
           onApplySave={(remote) => {
-            try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
-            } catch { /* ignore */ }
-            window.location.reload();
+            const uid = cloudUserIdRef.current;
+            if (!uid) { window.location.reload(); return; }
+            void saveCloudSave(uid, remote)
+              .catch(() => { /* silencioso */ })
+              .finally(() => window.location.reload());
           }}
         />
       )}
+
       {modal === "menu" && (
         <GameMenuModal
           save={save}
