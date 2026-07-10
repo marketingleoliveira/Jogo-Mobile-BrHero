@@ -90,6 +90,11 @@ function mapReward(r: RemoteCodeRewards): RemoteRewardDef {
   return out;
 }
 
+function hasReward(r: RemoteCodeRewards): boolean {
+  return !!(r.gold || r.gems || r.essence || (r.chest && r.chest.trim()) || (r.cosmetic && r.cosmetic.trim()) || (r.item && r.item.trim()) || (r.skin && r.skin.trim()));
+}
+
+
 function describe(r: RemoteCodeRewards): string {
   const parts: string[] = [];
   if (r.gold)     parts.push(`+${r.gold.toLocaleString("pt-BR")} 🪙`);
