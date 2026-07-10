@@ -3066,6 +3066,88 @@ function GamePage() {
           </div>
         )}
 
+        {/* Stage picker overlay — choose which stage to farm */}
+        {pickStageOpen && save && (() => {
+          const stats = computeStats(save);
+          const power = heroPower(stats);
+          const enemyPowerAt = (st: number) => {
+            const e = enemyForStage(st);
+            const dps = e.atk * 1 * 1;
+            const tank = e.hp * (1 + e.def / 200);
+            return dps * 3 + tank;
+          };
+          // Recommend: highest stage where power >= enemyPower * 1.6 (comfortable farm)
+          let rec = 1;
+          const maxS = Math.max(1, save.maxStage || save.stage);
+          for (let s = maxS; s >= 1; s--) {
+            if (power >= enemyPowerAt(s) * 1.6) { rec = s; break; }
+          }
+          const set = new Set<number>();
+          [1, Math.floor(rec / 2), rec - 10, rec - 5, rec, rec + 5, rec + 10, save.stage, maxS].forEach((n) => {
+            if (n >= 1 && n <= maxS) set.add(n);
+          });
+          const options = Array.from(set).sort((a, b) => a - b);
+          return (
+            <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-[fadeInOverlay_300ms_ease-out_forwards]">
+              <div className="w-full max-w-sm rounded-2xl border-2 border-indigo-800 bg-slate-900 p-4 shadow-2xl">
+                <div className="mb-3 text-center">
+                  <div className="text-lg font-black text-white" style={{ fontFamily: "'Luckiest Guy', cursive" }}>🗺️ ESCOLHER ETAPA</div>
+                  <div className="text-xs text-slate-400">Seu poder: <span className="text-amber-300 font-bold">{Math.floor(power).toLocaleString()}</span></div>
+                  <div className="text-xs text-emerald-400">Recomendado: Etapa {rec}</div>
+                </div>
+                <div className="max-h-72 overflow-y-auto flex flex-col gap-1.5">
+                  {options.map((st) => {
+                    const ep = enemyPowerAt(st);
+                    const ratio = power / ep;
+                    const tag =
+                      ratio >= 2.5 ? { label: "Fácil", color: "text-emerald-400" } :
+                      ratio >= 1.6 ? { label: "Farm", color: "text-lime-400" } :
+                      ratio >= 1.0 ? { label: "Justo", color: "text-amber-400" } :
+                      { label: "Difícil", color: "text-red-400" };
+                    const isRec = st === rec;
+                    return (
+                      <button
+                        key={st}
+                        onClick={() => {
+                          setSave((prev) => {
+                            if (!prev) return prev;
+                            const next = { ...prev, stage: st };
+                            saveRef.current = next;
+                            return next;
+                          });
+                          setPickStageOpen(false);
+                          setDeathBanner(null);
+                          setHeroDying(false);
+                          heroDyingRef.current = false;
+                          setTimeout(() => respawn(), 0);
+                        }}
+                        className={`flex items-center justify-between rounded-lg border-2 px-3 py-2 text-left transition ${
+                          isRec ? "border-emerald-500 bg-emerald-950/60" : "border-slate-700 bg-slate-800 hover:bg-slate-700"
+                        }`}
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-white">
+                            Etapa {st} {isRec && <span className="text-emerald-400">⭐</span>}
+                          </span>
+                          <span className="text-[10px] text-slate-400">{biomeFor(st).name}</span>
+                        </div>
+                        <span className={`text-xs font-bold ${tag.color}`}>{tag.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => setPickStageOpen(false)}
+                  className="mt-3 w-full rounded-lg border-2 border-slate-700 bg-slate-800 py-2 text-xs font-bold text-slate-300 hover:bg-slate-700"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+
         {/* ground grass strip */}
         <div className="absolute bottom-6 left-0 right-0 h-2 bg-emerald-400/70 rounded-full scale-x-110" />
         <div className={`absolute bottom-0 left-0 right-0 h-8 ${biome.ground} border-t-4 border-emerald-950`} />
