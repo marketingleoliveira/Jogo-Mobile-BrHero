@@ -27,6 +27,17 @@ import {
   Pencil,
 } from "lucide-react";
 import heroSprite from "@/assets/sprite-hero.png";
+import skinClassicSprite from "@/assets/skins/hero-classic.png";
+import skinGreenSprite from "@/assets/skins/hero-green.png";
+import skinGoldSprite from "@/assets/skins/hero-gold.png";
+import skinBrasilSprite from "@/assets/skins/hero-brasil.png";
+import skinShadowSprite from "@/assets/skins/hero-shadow.png";
+import skinSamuraiSprite from "@/assets/skins/hero-samurai.png";
+import skinMagoSprite from "@/assets/skins/hero-mago.png";
+import skinArqueiroSprite from "@/assets/skins/hero-arqueiro.png";
+import skinPaladinoSprite from "@/assets/skins/hero-paladino.png";
+import skinPirataSprite from "@/assets/skins/hero-pirata.png";
+import skinVampiroSprite from "@/assets/skins/hero-vampiro.png";
 import goblinSprite from "@/assets/sprite-goblin.png";
 import slimeSprite from "@/assets/sprite-slime.png";
 import skeletonSprite from "@/assets/sprite-skeleton.png";
@@ -725,22 +736,23 @@ type SkinDef = {
   rarity: "Comum" | "Raro" | "Épico" | "Lendário";
   color: string;
   desc: string;
-  filter?: string;   // CSS filter aplicado ao sprite
+  sprite: string;    // Imagem do personagem jogável
+  filter?: string;   // CSS filter aplicado ao sprite (fallback/tint)
   priceGems?: number; // preço direto na loja de skins (opcional)
 };
 
 const SKIN_DEFS: Record<SkinId, SkinDef> = {
-  classic:  { id: "classic",  label: "Herói Clássico",     icon: "🧙", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "O visual original — todos começam aqui." },
-  green:    { id: "green",    label: "Guerreiro Verde",    icon: "🥷", rarity: "Raro",     color: "from-emerald-500 to-green-700",   desc: "Furtivo e ágil, camuflado na floresta.",   filter: "hue-rotate(80deg) saturate(1.3)",           priceGems: 200 },
-  gold:     { id: "gold",     label: "Cavaleiro Dourado",  icon: "🤴", rarity: "Épico",    color: "from-amber-400 to-yellow-700",    desc: "Armadura reluzente forjada em ouro.",       filter: "hue-rotate(30deg) saturate(1.6) brightness(1.15)", priceGems: 500 },
-  brasil:   { id: "brasil",   label: "Guardião do Brasil", icon: "🦸", rarity: "Épico",    color: "from-green-500 to-yellow-500",    desc: "Herói tupiniquim das terras tropicais.",   filter: "hue-rotate(60deg) saturate(1.5)",           priceGems: 400 },
-  shadow:   { id: "shadow",   label: "Sombra Lendária",    icon: "🥷", rarity: "Lendário", color: "from-purple-700 to-black",        desc: "Rumores dizem que ele nunca é visto.",     filter: "brightness(0.35) contrast(1.4) hue-rotate(260deg)", priceGems: 1200 },
-  samurai:  { id: "samurai",  label: "Samurai Carmesim",   icon: "🗡️", rarity: "Épico",    color: "from-rose-600 to-red-800",        desc: "Lâmina afiada, honra inquebrável.",         filter: "hue-rotate(320deg) saturate(1.7)",          priceGems: 600 },
-  mago:     { id: "mago",     label: "Arquimago Azul",     icon: "🧙‍♂️", rarity: "Raro",     color: "from-sky-500 to-indigo-700",      desc: "Domina os elementos arcanos.",              filter: "hue-rotate(200deg) saturate(1.4)",          priceGems: 300 },
-  arqueiro: { id: "arqueiro", label: "Arqueiro Élfico",    icon: "🏹", rarity: "Raro",     color: "from-teal-500 to-emerald-800",    desc: "Precisão sobrenatural da floresta antiga.", filter: "hue-rotate(150deg) saturate(1.3)",          priceGems: 350 },
-  paladino: { id: "paladino", label: "Paladino Sagrado",   icon: "🛡️", rarity: "Épico",    color: "from-yellow-300 to-amber-600",    desc: "Fé inabalável, escudo intransponível.",     filter: "brightness(1.2) saturate(1.4)",             priceGems: 700 },
-  pirata:   { id: "pirata",   label: "Capitão Pirata",     icon: "🏴‍☠️", rarity: "Épico",    color: "from-slate-700 to-red-900",       desc: "Terror dos sete mares.",                    filter: "hue-rotate(340deg) saturate(1.2) brightness(0.9)", priceGems: 550 },
-  vampiro:  { id: "vampiro",  label: "Lorde Vampiro",      icon: "🧛", rarity: "Lendário", color: "from-red-900 to-black",           desc: "Da noite eterna surge o predador.",         filter: "hue-rotate(340deg) saturate(1.8) brightness(0.55) contrast(1.3)", priceGems: 1500 },
+  classic:  { id: "classic",  label: "Herói Clássico",     icon: "🧙", rarity: "Comum",    color: "from-slate-500 to-slate-700",     desc: "O visual original — todos começam aqui.",  sprite: skinClassicSprite },
+  green:    { id: "green",    label: "Guerreiro Verde",    icon: "🥷", rarity: "Raro",     color: "from-emerald-500 to-green-700",   desc: "Furtivo e ágil, camuflado na floresta.",   sprite: skinGreenSprite,    priceGems: 200 },
+  gold:     { id: "gold",     label: "Cavaleiro Dourado",  icon: "🤴", rarity: "Épico",    color: "from-amber-400 to-yellow-700",    desc: "Armadura reluzente forjada em ouro.",       sprite: skinGoldSprite,     priceGems: 500 },
+  brasil:   { id: "brasil",   label: "Guardião do Brasil", icon: "🦸", rarity: "Épico",    color: "from-green-500 to-yellow-500",    desc: "Herói tupiniquim das terras tropicais.",   sprite: skinBrasilSprite,   priceGems: 400 },
+  shadow:   { id: "shadow",   label: "Sombra Lendária",    icon: "🥷", rarity: "Lendário", color: "from-purple-700 to-black",        desc: "Rumores dizem que ele nunca é visto.",     sprite: skinShadowSprite,   priceGems: 1200 },
+  samurai:  { id: "samurai",  label: "Samurai Carmesim",   icon: "🗡️", rarity: "Épico",    color: "from-rose-600 to-red-800",        desc: "Lâmina afiada, honra inquebrável.",         sprite: skinSamuraiSprite,  priceGems: 600 },
+  mago:     { id: "mago",     label: "Arquimago Azul",     icon: "🧙‍♂️", rarity: "Raro",     color: "from-sky-500 to-indigo-700",      desc: "Domina os elementos arcanos.",              sprite: skinMagoSprite,     priceGems: 300 },
+  arqueiro: { id: "arqueiro", label: "Arqueiro Élfico",    icon: "🏹", rarity: "Raro",     color: "from-teal-500 to-emerald-800",    desc: "Precisão sobrenatural da floresta antiga.", sprite: skinArqueiroSprite, priceGems: 350 },
+  paladino: { id: "paladino", label: "Paladino Sagrado",   icon: "🛡️", rarity: "Épico",    color: "from-yellow-300 to-amber-600",    desc: "Fé inabalável, escudo intransponível.",     sprite: skinPaladinoSprite, priceGems: 700 },
+  pirata:   { id: "pirata",   label: "Capitão Pirata",     icon: "🏴‍☠️", rarity: "Épico",    color: "from-slate-700 to-red-900",       desc: "Terror dos sete mares.",                    sprite: skinPirataSprite,   priceGems: 550 },
+  vampiro:  { id: "vampiro",  label: "Lorde Vampiro",      icon: "🧛", rarity: "Lendário", color: "from-red-900 to-black",           desc: "Da noite eterna surge o predador.",         sprite: skinVampiroSprite,  priceGems: 1500 },
 };
 
 function emptySkins(): SkinsState {
@@ -3346,7 +3358,7 @@ function GamePage() {
           </div>
           <img
             key={heroSkin.id}
-            src={heroSprite}
+            src={heroSkin.sprite ?? heroSprite}
             alt="Herói"
             className={`h-20 w-20 object-contain drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] ${levelFlash ? "animate-[heroBounce_0.9s_ease-out]" : ""}`}
             style={{ filter: heroSkin.filter ?? "none" }}
@@ -6354,7 +6366,18 @@ function SkinsModal({
                 <div key={id} className={`rounded-lg border-2 border-[#1A0F08] bg-gradient-to-br ${def.color} p-2 ${owned ? "" : "opacity-90"}`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <div className="text-3xl" style={{ filter: def.filter }}>{owned ? def.icon : "🔒"}</div>
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border-2 border-black/50 bg-black/30">
+                        {owned ? (
+                          <img
+                            src={def.sprite}
+                            alt={def.label}
+                            loading="lazy"
+                            className="h-full w-full object-contain"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-2xl">🔒</div>
+                        )}
+                      </div>
                       <div>
                         <div className="text-xs font-black text-amber-50 drop-shadow">{def.label}</div>
                         <div className="text-[10px] text-amber-50/90">{def.rarity} · {def.desc}</div>
