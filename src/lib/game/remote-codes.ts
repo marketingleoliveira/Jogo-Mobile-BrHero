@@ -90,6 +90,11 @@ function mapReward(r: RemoteCodeRewards): RemoteRewardDef {
   return out;
 }
 
+function hasReward(r: RemoteCodeRewards): boolean {
+  return !!(r.gold || r.gems || r.essence || (r.chest && r.chest.trim()) || (r.cosmetic && r.cosmetic.trim()) || (r.item && r.item.trim()) || (r.skin && r.skin.trim()));
+}
+
+
 function describe(r: RemoteCodeRewards): string {
   const parts: string[] = [];
   if (r.gold)     parts.push(`+${r.gold.toLocaleString("pt-BR")} 🪙`);
@@ -129,6 +134,10 @@ export function resolveRemoteRedeem(rawCode: string, usedList: string[]): Remote
   const alreadyUsed = usedList.includes(code);
   if (alreadyUsed && entry.perPlayerLimit >= 1)
     return { ok: false, error: "Código já resgatado" };
+
+  if (!hasReward(entry.rewards))
+    return { ok: false, error: "Cupom sem recompensa configurada" };
+
 
   return {
     ok: true,
