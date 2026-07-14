@@ -4264,7 +4264,13 @@ function GamePage() {
         <GameMenuModal
           save={save}
           onClose={() => setModal(null)}
-          onPick={(m) => setModal(m)}
+          onPick={(m) => {
+            if (m === "ranking") {
+              navigate({ to: "/ranking" });
+              return;
+            }
+            setModal(m);
+          }}
         />
       )}
 
