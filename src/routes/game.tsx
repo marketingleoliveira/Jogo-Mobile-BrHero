@@ -3692,6 +3692,47 @@ function GamePage() {
             {d.crit ? `✦${d.value}` : d.value}
           </span>
         ))}
+
+        {/* Barra de carregamento da habilidade (cast bar) */}
+        {casting && (() => {
+          const meta = SKILL_META[casting.name];
+          const total = casting.endsAt - casting.startedAt;
+          const elapsed = Math.min(total, Date.now() - casting.startedAt);
+          const pct = Math.max(0, Math.min(100, (elapsed / total) * 100));
+          return (
+            <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 z-30 flex flex-col items-center gap-1 animate-[fadeInOverlay_0.15s_ease-out]">
+              <div className={`flex items-center gap-1.5 rounded-full border-2 border-black/60 bg-black/70 px-3 py-1 text-white shadow-lg ${meta.glow}`}>
+                <span className="text-lg leading-none">{meta.emoji}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+                  Carregando {casting.name}
+                </span>
+              </div>
+              <div className="h-2 w-48 overflow-hidden rounded-full border-2 border-black/60 bg-black/70 shadow-inner">
+                <div
+                  className={`h-full bg-gradient-to-r ${meta.ringColor}`}
+                  style={{ width: `${pct}%`, transition: "width 100ms linear" }}
+                />
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Banner explosivo da habilidade ao concluir */}
+        {skillBanner && (
+          <div
+            key={skillBanner.id}
+            className={`pointer-events-none absolute inset-0 z-40 flex items-center justify-center`}
+          >
+            <div className={`animate-[skillPop_0.9s_ease-out_forwards] rounded-2xl border-4 border-black/70 bg-black/40 px-5 py-2 shadow-2xl ${skillBanner.glow}`}>
+              <div className="flex items-center gap-2 text-white drop-shadow-[0_2px_0_rgba(0,0,0,0.9)]">
+                <span className="text-4xl">{skillBanner.emoji}</span>
+                <span className="text-3xl font-black tracking-wider" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+                  {skillBanner.name}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
         <style>{`
           @keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-40px);opacity:0}}
           @keyframes heroBounce{0%,100%{transform:translateY(0) scale(1)}20%{transform:translateY(-18px) scale(1.15)}45%{transform:translateY(0) scale(0.92)}65%{transform:translateY(-8px) scale(1.05)}85%{transform:translateY(0) scale(0.98)}}
