@@ -7190,6 +7190,7 @@ function GameMenuModal({
   const items: { key: MenuKey; icon: string; label: string; unlock?: number; kind?: "level" }[] = [
     { key: "daily",        icon: "📅", label: "Diário" },
     { key: "missions",     icon: "🎯", label: "Missões" },
+    { key: "ranking",      icon: "🏅", label: "Ranking" },
     { key: "dungeon",      icon: "🗝️", label: "Masmorra",  unlock: DUNGEON_UNLOCK_LEVEL },
     { key: "pets",         icon: "🐾", label: "Pets",      unlock: PETS_UNLOCK_LEVEL },
     { key: "tower",        icon: "🗼", label: "Torre",     unlock: TOWER_UNLOCK_LEVEL },
