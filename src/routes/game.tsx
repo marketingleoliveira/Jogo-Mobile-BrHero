@@ -1637,6 +1637,54 @@ function GamePage() {
   const [skillCds, setSkillCds] = useState<Record<string, number>>({ Golpe: 0, Fúria: 0, Ultimate: 0 });
   const [skillBanner, setSkillBanner] = useState<{ id: number; name: string; emoji: string; glow: string } | null>(null);
   const skillBannerIdRef = useRef(0);
+  // FX visual por habilidade (raios/fogo/aura) e toque manual para forçar cast
+  const [skillFx, setSkillFx] = useState<{ id: number; kind: SkillFxKind; endsAt: number } | null>(null);
+  const skillFxIdRef = useRef(0);
+  const manualCastRef = useRef<string | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const playSkillSound = useCallback((kind: "zap" | "whoosh" | "boom") => {
+    try {
+      const AC = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+      if (!AC) return;
+      if (!audioCtxRef.current) audioCtxRef.current = new AC();
+      const ctx = audioCtxRef.current;
+      if (ctx.state === "suspended") ctx.resume().catch(() => {});
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      master.gain.value = 0.18;
+      master.connect(ctx.destination);
+      if (kind === "zap") {
+        const o = ctx.createOscillator();
+        o.type = "square";
+        o.frequency.setValueAtTime(880, now);
+        o.frequency.exponentialRampToValueAtTime(180, now + 0.22);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.001, now);
+        g.gain.exponentialRampToValueAtTime(0.9, now + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        o.connect(g); g.connect(master); o.start(now); o.stop(now + 0.3);
+      } else if (kind === "whoosh") {
+        const bufferSize = 2 * ctx.sampleRate * 0.45;
+        const noise = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = noise.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+        const src = ctx.createBufferSource(); src.buffer = noise;
+        const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 700; bp.Q.value = 1.2;
+        const g = ctx.createGain(); g.gain.value = 0.9;
+        src.connect(bp); bp.connect(g); g.connect(master); src.start(now); src.stop(now + 0.5);
+      } else {
+        // boom
+        const o = ctx.createOscillator(); o.type = "sawtooth";
+        o.frequency.setValueAtTime(120, now);
+        o.frequency.exponentialRampToValueAtTime(40, now + 0.6);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.001, now);
+        g.gain.exponentialRampToValueAtTime(1, now + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+        o.connect(g); g.connect(master); o.start(now); o.stop(now + 0.8);
+      }
+    } catch { /* audio opcional */ }
+  }, []);
   const [heroHit, setHeroHit] = useState(false);
   const [enemyHit, setEnemyHit] = useState(false);
   const [enemyDying, setEnemyDying] = useState(false);
