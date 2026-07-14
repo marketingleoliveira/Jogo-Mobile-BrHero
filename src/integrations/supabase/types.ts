@@ -672,6 +672,19 @@ export type Database = {
         Args: { _user_id?: string }
         Returns: Database["public"]["Enums"]["admin_role"]
       }
+      get_level_ranking: {
+        Args: { _limit?: number }
+        Returns: {
+          display_name: string
+          extra: Json
+          level: number
+          max_stage: number
+          prestige_level: number
+          stage: number
+          updated_at: string
+          user_id: string
+        }[]
+      }
       has_admin_permission: {
         Args: { _action: string; _module: string; _user_id?: string }
         Returns: boolean
