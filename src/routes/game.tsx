@@ -2084,20 +2084,37 @@ function GamePage() {
         enemyHpRef.current > 0 &&
         heroHpRef.current > 0
       ) {
-        // Escolhe a habilidade de maior prioridade que está pronta e desbloqueada
-        const ready = (Object.keys(SKILL_META) as (keyof typeof SKILL_META)[])
-          .filter((n) => {
-            const unlock = SKILLS.find((sk) => sk.name === n)?.unlock ?? 999;
-            return s.level >= unlock && (skillCdRef.current[n] ?? 0) <= 0;
-          })
-          .sort((a, b) => SKILL_META[b].priority - SKILL_META[a].priority);
-        if (ready.length > 0) {
-          const name = ready[0];
+        // Prioriza toque manual (força cast antes do auto-cast)
+        let chosen: keyof typeof SKILL_META | null = null;
+        const manual = manualCastRef.current;
+        if (manual && SKILL_META[manual]) {
+          const unlock = SKILLS.find((sk) => sk.name === manual)?.unlock ?? 999;
+          if (s.level >= unlock && (skillCdRef.current[manual] ?? 0) <= 0) {
+            chosen = manual as keyof typeof SKILL_META;
+          }
+          manualCastRef.current = null;
+        }
+        if (!chosen) {
+          // Auto-cast: habilidade de maior prioridade pronta e desbloqueada
+          const ready = (Object.keys(SKILL_META) as (keyof typeof SKILL_META)[])
+            .filter((n) => {
+              const unlock = SKILLS.find((sk) => sk.name === n)?.unlock ?? 999;
+              return s.level >= unlock && (skillCdRef.current[n] ?? 0) <= 0;
+            })
+            .sort((a, b) => SKILL_META[b].priority - SKILL_META[a].priority);
+          if (ready.length > 0) chosen = ready[0];
+        }
+        if (chosen) {
+          const name = chosen;
           const meta = SKILL_META[name];
           const state: CastingState = { name, startedAt: nowMs, endsAt: nowMs + meta.castMs };
           castingRef.current = state;
           setCasting(state);
           heroCdRef.current = meta.castMs + 100; // trava o básico durante o cast
+          // FX visual + som ao iniciar o cast
+          const fxId = ++skillFxIdRef.current;
+          setSkillFx({ id: fxId, kind: meta.fx, endsAt: nowMs + meta.castMs + 350 });
+          playSkillSound(meta.sound);
         } else {
           // Ataque básico
           heroCdRef.current = heroInterval;
