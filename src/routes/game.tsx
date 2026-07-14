@@ -1364,13 +1364,14 @@ const SKILLS: {
 
 // Metadados de casting/CD por habilidade ativa. Ataque é o básico, sem cast.
 // Prioridade ao escolher a próxima habilidade a executar (maior primeiro).
+type SkillFxKind = "lightning" | "fire" | "aura";
 const SKILL_META: Record<
   string,
-  { cooldownMs: number; castMs: number; mult: number; priority: number; ringColor: string; glow: string; emoji: string; label: string }
+  { cooldownMs: number; castMs: number; mult: number; priority: number; ringColor: string; glow: string; emoji: string; label: string; fx: SkillFxKind; sound: "zap" | "whoosh" | "boom" }
 > = {
-  Golpe:    { cooldownMs: 4000,  castMs: 500,  mult: 1.8, priority: 1, ringColor: "from-rose-400 to-rose-700",   glow: "shadow-rose-500/70",   emoji: "⚡", label: "GOLPE!" },
-  Fúria:    { cooldownMs: 9000,  castMs: 800,  mult: 3.2, priority: 2, ringColor: "from-sky-400 to-sky-700",     glow: "shadow-sky-500/70",    emoji: "🔥", label: "FÚRIA!" },
-  Ultimate: { cooldownMs: 22000, castMs: 1200, mult: 6.5, priority: 3, ringColor: "from-amber-300 to-yellow-600", glow: "shadow-amber-500/80",  emoji: "👑", label: "ULTIMATE!" },
+  Golpe:    { cooldownMs: 4000,  castMs: 500,  mult: 1.8, priority: 1, ringColor: "from-rose-400 to-rose-700",   glow: "shadow-rose-500/70",   emoji: "⚡", label: "GOLPE!",    fx: "lightning", sound: "zap" },
+  Fúria:    { cooldownMs: 9000,  castMs: 800,  mult: 3.2, priority: 2, ringColor: "from-sky-400 to-sky-700",     glow: "shadow-sky-500/70",    emoji: "🔥", label: "FÚRIA!",    fx: "fire",      sound: "whoosh" },
+  Ultimate: { cooldownMs: 22000, castMs: 1200, mult: 6.5, priority: 3, ringColor: "from-amber-300 to-yellow-600", glow: "shadow-amber-500/80",  emoji: "👑", label: "ULTIMATE!", fx: "aura",      sound: "boom" },
 };
 
 const PASSIVE_SLOTS = [
@@ -1636,6 +1637,54 @@ function GamePage() {
   const [skillCds, setSkillCds] = useState<Record<string, number>>({ Golpe: 0, Fúria: 0, Ultimate: 0 });
   const [skillBanner, setSkillBanner] = useState<{ id: number; name: string; emoji: string; glow: string } | null>(null);
   const skillBannerIdRef = useRef(0);
+  // FX visual por habilidade (raios/fogo/aura) e toque manual para forçar cast
+  const [skillFx, setSkillFx] = useState<{ id: number; kind: SkillFxKind; endsAt: number } | null>(null);
+  const skillFxIdRef = useRef(0);
+  const manualCastRef = useRef<string | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const playSkillSound = useCallback((kind: "zap" | "whoosh" | "boom") => {
+    try {
+      const AC = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+      if (!AC) return;
+      if (!audioCtxRef.current) audioCtxRef.current = new AC();
+      const ctx = audioCtxRef.current;
+      if (ctx.state === "suspended") ctx.resume().catch(() => {});
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      master.gain.value = 0.18;
+      master.connect(ctx.destination);
+      if (kind === "zap") {
+        const o = ctx.createOscillator();
+        o.type = "square";
+        o.frequency.setValueAtTime(880, now);
+        o.frequency.exponentialRampToValueAtTime(180, now + 0.22);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.001, now);
+        g.gain.exponentialRampToValueAtTime(0.9, now + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        o.connect(g); g.connect(master); o.start(now); o.stop(now + 0.3);
+      } else if (kind === "whoosh") {
+        const bufferSize = 2 * ctx.sampleRate * 0.45;
+        const noise = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = noise.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+        const src = ctx.createBufferSource(); src.buffer = noise;
+        const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 700; bp.Q.value = 1.2;
+        const g = ctx.createGain(); g.gain.value = 0.9;
+        src.connect(bp); bp.connect(g); g.connect(master); src.start(now); src.stop(now + 0.5);
+      } else {
+        // boom
+        const o = ctx.createOscillator(); o.type = "sawtooth";
+        o.frequency.setValueAtTime(120, now);
+        o.frequency.exponentialRampToValueAtTime(40, now + 0.6);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.001, now);
+        g.gain.exponentialRampToValueAtTime(1, now + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+        o.connect(g); g.connect(master); o.start(now); o.stop(now + 0.8);
+      }
+    } catch { /* audio opcional */ }
+  }, []);
   const [heroHit, setHeroHit] = useState(false);
   const [enemyHit, setEnemyHit] = useState(false);
   const [enemyDying, setEnemyDying] = useState(false);
@@ -2035,20 +2084,38 @@ function GamePage() {
         enemyHpRef.current > 0 &&
         heroHpRef.current > 0
       ) {
-        // Escolhe a habilidade de maior prioridade que está pronta e desbloqueada
-        const ready = (Object.keys(SKILL_META) as (keyof typeof SKILL_META)[])
-          .filter((n) => {
-            const unlock = SKILLS.find((sk) => sk.name === n)?.unlock ?? 999;
-            return s.level >= unlock && (skillCdRef.current[n] ?? 0) <= 0;
-          })
-          .sort((a, b) => SKILL_META[b].priority - SKILL_META[a].priority);
-        if (ready.length > 0) {
-          const name = ready[0];
+        // Prioriza toque manual (força cast antes do auto-cast)
+        let chosen: keyof typeof SKILL_META | null = null;
+        const manual = manualCastRef.current;
+        if (manual && SKILL_META[manual]) {
+          const unlock = SKILLS.find((sk) => sk.name === manual)?.unlock ?? 999;
+          if (s.level >= unlock && (skillCdRef.current[manual] ?? 0) <= 0) {
+            chosen = manual as keyof typeof SKILL_META;
+          }
+          manualCastRef.current = null;
+        }
+        if (!chosen) {
+          // Auto-cast: habilidade de maior prioridade pronta e desbloqueada
+          const ready = (Object.keys(SKILL_META) as (keyof typeof SKILL_META)[])
+            .filter((n) => {
+              const unlock = SKILLS.find((sk) => sk.name === n)?.unlock ?? 999;
+              return s.level >= unlock && (skillCdRef.current[n] ?? 0) <= 0;
+            })
+            .sort((a, b) => SKILL_META[b].priority - SKILL_META[a].priority);
+          if (ready.length > 0) chosen = ready[0];
+        }
+        if (chosen) {
+          const name = chosen;
           const meta = SKILL_META[name];
           const state: CastingState = { name, startedAt: nowMs, endsAt: nowMs + meta.castMs };
           castingRef.current = state;
           setCasting(state);
           heroCdRef.current = meta.castMs + 100; // trava o básico durante o cast
+          // FX visual + som ao iniciar o cast
+          const fxId = ++skillFxIdRef.current;
+          setSkillFx({ id: fxId, kind: meta.fx, endsAt: nowMs + meta.castMs + 350 });
+          setTimeout(() => setSkillFx((f) => (f && f.id === fxId ? null : f)), meta.castMs + 400);
+          playSkillSound(meta.sound);
         } else {
           // Ataque básico
           heroCdRef.current = heroInterval;
@@ -3733,6 +3800,74 @@ function GamePage() {
             </div>
           </div>
         )}
+
+        {/* FX específico por habilidade (raios / fogo / aura) */}
+        {skillFx && (
+          <div key={skillFx.id} className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
+            {skillFx.kind === "lightning" && (
+              <>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="absolute top-0 h-full w-[3px] bg-gradient-to-b from-white via-yellow-200 to-transparent opacity-90 animate-[boltFlash_0.35s_ease-out_forwards]"
+                    style={{
+                      left: `${10 + i * 11}%`,
+                      filter: "drop-shadow(0 0 6px #fef08a)",
+                      animationDelay: `${(i % 4) * 60}ms`,
+                    }}
+                  />
+                ))}
+                <div className="absolute inset-0 bg-yellow-200/10 animate-[flashOnce_0.2s_ease-out]" />
+              </>
+            )}
+            {skillFx.kind === "fire" && (
+              <>
+                {Array.from({ length: 16 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="absolute rounded-full animate-[emberRise_0.9s_ease-out_forwards]"
+                    style={{
+                      left: `${8 + i * 5.5}%`,
+                      bottom: "20%",
+                      width: 6 + (i % 4) * 3,
+                      height: 6 + (i % 4) * 3,
+                      background: `radial-gradient(circle, #fde68a, #f97316 60%, transparent)`,
+                      filter: "drop-shadow(0 0 8px #f97316)",
+                      animationDelay: `${(i % 6) * 40}ms`,
+                    }}
+                  />
+                ))}
+              </>
+            )}
+            {skillFx.kind === "aura" && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div
+                  className="h-64 w-64 rounded-full animate-[auraPulse_1.2s_ease-out_forwards]"
+                  style={{
+                    background: "radial-gradient(circle, rgba(253,224,71,0.85), rgba(217,119,6,0.35) 45%, transparent 70%)",
+                    filter: "blur(2px)",
+                  }}
+                />
+                {Array.from({ length: 10 }).map((_, i) => {
+                  const angle = (i / 10) * Math.PI * 2;
+                  return (
+                    <span
+                      key={i}
+                      className="absolute h-2 w-2 rounded-full bg-amber-200 animate-[auraOrbit_1.2s_linear_forwards]"
+                      style={{
+                        left: `calc(50% + ${Math.cos(angle) * 90}px)`,
+                        top: `calc(50% + ${Math.sin(angle) * 90}px)`,
+                        boxShadow: "0 0 10px #fcd34d",
+                        animationDelay: `${i * 40}ms`,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         <style>{`
           @keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-40px);opacity:0}}
           @keyframes heroBounce{0%,100%{transform:translateY(0) scale(1)}20%{transform:translateY(-18px) scale(1.15)}45%{transform:translateY(0) scale(0.92)}65%{transform:translateY(-8px) scale(1.05)}85%{transform:translateY(0) scale(0.98)}}
@@ -3742,6 +3877,11 @@ function GamePage() {
           @keyframes morreu5s{0%{transform:scale(0.2) rotate(-10deg);opacity:0}15%{transform:scale(1.3) rotate(4deg);opacity:1}25%{transform:scale(1) rotate(0);opacity:1}85%{transform:scale(1) rotate(0);opacity:1}100%{transform:scale(1.4) rotate(0);opacity:0}}
           @keyframes fadeInOverlay{from{opacity:0}to{opacity:1}}
           @keyframes skillPop{0%{transform:scale(0.3) rotate(-8deg);opacity:0}25%{transform:scale(1.25) rotate(4deg);opacity:1}55%{transform:scale(1) rotate(0);opacity:1}85%{transform:scale(1) rotate(0);opacity:1}100%{transform:scale(1.35) rotate(0);opacity:0}}
+          @keyframes boltFlash{0%{transform:scaleY(0);opacity:0}30%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);opacity:0}}
+          @keyframes flashOnce{0%{opacity:0}40%{opacity:1}100%{opacity:0}}
+          @keyframes emberRise{0%{transform:translateY(0) scale(0.6);opacity:0}20%{opacity:1}100%{transform:translateY(-140px) scale(1.4);opacity:0}}
+          @keyframes auraPulse{0%{transform:scale(0.4);opacity:0}30%{transform:scale(1);opacity:1}100%{transform:scale(1.6);opacity:0}}
+          @keyframes auraOrbit{0%{transform:scale(0) rotate(0);opacity:0}30%{transform:scale(1) rotate(120deg);opacity:1}100%{transform:scale(0.4) rotate(360deg);opacity:0}}
         `}</style>
       </section>
 
@@ -3751,17 +3891,27 @@ function GamePage() {
           <span className="text-[10px] uppercase tracking-wider text-amber-300/80" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
             Habilidades
           </span>
-          <span className="text-[10px] text-amber-200/60">Toque para ver • auto-cast</span>
+          <span className="text-[10px] text-amber-200/60">Toque para forçar • auto-cast</span>
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {SKILLS.map((sk) => {
             const locked = save.level < sk.unlock;
             const IconCmp = sk.icon === "sword" ? Sword : sk.icon === "zap" ? Zap : sk.icon === "flame" ? Flame : Crown;
+            const onCd = (skillCds[sk.name] ?? 0) > 0;
+            const isCasting = casting?.name === sk.name;
             return (
               <button
                 key={sk.name}
                 disabled={locked}
-                onClick={() => flashToast(locked ? `🔒 ${sk.name} libera no Lv ${sk.unlock}` : `⚡ ${sk.name}: ${sk.desc}`)}
+                onClick={() => {
+                  if (locked) { flashToast(`🔒 ${sk.name} libera no Lv ${sk.unlock}`); return; }
+                  if (!SKILL_META[sk.name]) { flashToast(`⚡ ${sk.name}: ${sk.desc}`); return; }
+                  if (onCd) { flashToast(`⏳ ${sk.name} recarregando (${Math.ceil((skillCds[sk.name] ?? 0)/1000)}s)`); return; }
+                  if (isCasting || castingRef.current) { flashToast(`⚡ Já lançando habilidade`); return; }
+                  manualCastRef.current = sk.name;
+                  heroCdRef.current = Math.min(heroCdRef.current, 0); // libera para disparar no próximo tick
+                  flashToast(`⚡ ${sk.name} forçada!`);
+                }}
                 title={locked ? `${sk.name} — libera no Lv ${sk.unlock}` : `${sk.name} — ${sk.desc}`}
                 aria-label={`${sk.name}${locked ? ` bloqueada até Lv ${sk.unlock}` : ""}`}
                 className={`group relative flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl border-4 p-1 shadow-lg transition active:translate-y-0.5 ${
