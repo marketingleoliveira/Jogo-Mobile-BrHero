@@ -7169,7 +7169,8 @@ function CodesModal({
 type MenuKey =
   | "daily" | "missions" | "dungeon" | "pets" | "tower"
   | "blessings" | "guild" | "arena" | "event" | "skins"
-  | "achievements" | "runes" | "cosmetics" | "codes" | "cloud";
+  | "achievements" | "runes" | "cosmetics" | "codes" | "cloud"
+  | "ranking";
 
 function GameMenuModal({
   save,
