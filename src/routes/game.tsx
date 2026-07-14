@@ -3818,17 +3818,28 @@ function GamePage() {
           <span className="text-[10px] uppercase tracking-wider text-amber-300/80" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
             Habilidades
           </span>
-          <span className="text-[10px] text-amber-200/60">Toque para ver • auto-cast</span>
+          <span className="text-[10px] text-amber-200/60">Toque para forçar • auto-cast</span>
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {SKILLS.map((sk) => {
             const locked = save.level < sk.unlock;
             const IconCmp = sk.icon === "sword" ? Sword : sk.icon === "zap" ? Zap : sk.icon === "flame" ? Flame : Crown;
+            const onCd = (skillCds[sk.name] ?? 0) > 0;
+            const isCasting = casting?.name === sk.name;
+            const canForce = !locked && !onCd && !isCasting && SKILL_META[sk.name];
             return (
               <button
                 key={sk.name}
                 disabled={locked}
-                onClick={() => flashToast(locked ? `🔒 ${sk.name} libera no Lv ${sk.unlock}` : `⚡ ${sk.name}: ${sk.desc}`)}
+                onClick={() => {
+                  if (locked) { flashToast(`🔒 ${sk.name} libera no Lv ${sk.unlock}`); return; }
+                  if (!SKILL_META[sk.name]) { flashToast(`⚡ ${sk.name}: ${sk.desc}`); return; }
+                  if (onCd) { flashToast(`⏳ ${sk.name} recarregando (${Math.ceil((skillCds[sk.name] ?? 0)/1000)}s)`); return; }
+                  if (isCasting || castingRef.current) { flashToast(`⚡ Já lançando habilidade`); return; }
+                  manualCastRef.current = sk.name;
+                  heroCdRef.current = Math.min(heroCdRef.current, 0); // libera para disparar no próximo tick
+                  flashToast(`⚡ ${sk.name} forçada!`);
+                }}
                 title={locked ? `${sk.name} — libera no Lv ${sk.unlock}` : `${sk.name} — ${sk.desc}`}
                 aria-label={`${sk.name}${locked ? ` bloqueada até Lv ${sk.unlock}` : ""}`}
                 className={`group relative flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl border-4 p-1 shadow-lg transition active:translate-y-0.5 ${
