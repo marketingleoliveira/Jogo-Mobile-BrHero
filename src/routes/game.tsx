@@ -1364,13 +1364,14 @@ const SKILLS: {
 
 // Metadados de casting/CD por habilidade ativa. Ataque é o básico, sem cast.
 // Prioridade ao escolher a próxima habilidade a executar (maior primeiro).
+type SkillFxKind = "lightning" | "fire" | "aura";
 const SKILL_META: Record<
   string,
-  { cooldownMs: number; castMs: number; mult: number; priority: number; ringColor: string; glow: string; emoji: string; label: string }
+  { cooldownMs: number; castMs: number; mult: number; priority: number; ringColor: string; glow: string; emoji: string; label: string; fx: SkillFxKind; sound: "zap" | "whoosh" | "boom" }
 > = {
-  Golpe:    { cooldownMs: 4000,  castMs: 500,  mult: 1.8, priority: 1, ringColor: "from-rose-400 to-rose-700",   glow: "shadow-rose-500/70",   emoji: "⚡", label: "GOLPE!" },
-  Fúria:    { cooldownMs: 9000,  castMs: 800,  mult: 3.2, priority: 2, ringColor: "from-sky-400 to-sky-700",     glow: "shadow-sky-500/70",    emoji: "🔥", label: "FÚRIA!" },
-  Ultimate: { cooldownMs: 22000, castMs: 1200, mult: 6.5, priority: 3, ringColor: "from-amber-300 to-yellow-600", glow: "shadow-amber-500/80",  emoji: "👑", label: "ULTIMATE!" },
+  Golpe:    { cooldownMs: 4000,  castMs: 500,  mult: 1.8, priority: 1, ringColor: "from-rose-400 to-rose-700",   glow: "shadow-rose-500/70",   emoji: "⚡", label: "GOLPE!",    fx: "lightning", sound: "zap" },
+  Fúria:    { cooldownMs: 9000,  castMs: 800,  mult: 3.2, priority: 2, ringColor: "from-sky-400 to-sky-700",     glow: "shadow-sky-500/70",    emoji: "🔥", label: "FÚRIA!",    fx: "fire",      sound: "whoosh" },
+  Ultimate: { cooldownMs: 22000, castMs: 1200, mult: 6.5, priority: 3, ringColor: "from-amber-300 to-yellow-600", glow: "shadow-amber-500/80",  emoji: "👑", label: "ULTIMATE!", fx: "aura",      sound: "boom" },
 };
 
 const PASSIVE_SLOTS = [
