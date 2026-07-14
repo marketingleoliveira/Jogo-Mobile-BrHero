@@ -3826,7 +3826,7 @@ function GamePage() {
             const IconCmp = sk.icon === "sword" ? Sword : sk.icon === "zap" ? Zap : sk.icon === "flame" ? Flame : Crown;
             const onCd = (skillCds[sk.name] ?? 0) > 0;
             const isCasting = casting?.name === sk.name;
-            const canForce = !locked && !onCd && !isCasting && SKILL_META[sk.name];
+            void canForce;
             return (
               <button
                 key={sk.name}
