@@ -344,6 +344,13 @@ function RankingPage() {
                                 {skin && (
                                   <div className="text-[10px] text-sky-300/80 truncate">✨ {skin}</div>
                                 )}
+                                {isPowerWeekly && idx < 10 && rewardForRank(idx + 1) && (
+                                  <div className="text-[11px] font-semibold">
+                                    <span className={idx < 3 ? "text-fuchsia-300" : "text-amber-300"}>
+                                      🎁 {formatReward(rewardForRank(idx + 1)!)}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </td>
