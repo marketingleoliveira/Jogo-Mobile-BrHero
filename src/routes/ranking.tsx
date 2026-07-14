@@ -100,8 +100,7 @@ function useLevelRanking(enabled: boolean) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const rpc = supabase.rpc as unknown as (fn: string, args?: Record<string, unknown>) => Promise<{ data: LevelRow[] | null; error: unknown }>;
-      const { data, error } = await rpc("get_level_ranking", { _limit: 200 });
+      const { data, error } = await supabase.rpc("get_level_ranking" as never, { _limit: 200 } as never) as { data: LevelRow[] | null; error: unknown };
       if (!error && data) setRows(data);
     } finally {
       setLoading(false);
