@@ -1989,29 +1989,87 @@ function GamePage() {
         }
       }
 
-      // Hero attack
+      // Cooldowns de habilidades ativas (nunca ocorrem em paralelo)
+      let cdChanged = false;
+      for (const k of Object.keys(skillCdRef.current)) {
+        if (skillCdRef.current[k] > 0) {
+          skillCdRef.current[k] = Math.max(0, skillCdRef.current[k] - TICK);
+          cdChanged = true;
+        }
+      }
+      if (cdChanged) setSkillCds({ ...skillCdRef.current });
+
+      // Resolve cast em andamento
+      const nowMs = Date.now();
+      const cast = castingRef.current;
+      if (cast && nowMs >= cast.endsAt) {
+        const meta = SKILL_META[cast.name];
+        if (enemyHpRef.current > 0 && heroHpRef.current > 0) {
+          const effDef = Math.max(0, enemy.def - stats.penetration);
+          let dmg = Math.max(1, stats.atk - effDef);
+          dmg = Math.floor(dmg * meta.mult * (0.95 + Math.random() * 0.1));
+          enemyHpRef.current = Math.max(0, enemyHpRef.current - dmg);
+          setEnemyHp(enemyHpRef.current);
+          setEnemyHit(true);
+          setHeroLunge(true);
+          setTimeout(() => setEnemyHit(false), 320);
+          setTimeout(() => setHeroLunge(false), 520);
+          spawnDamage(dmg, true, "hero");
+          const bId = ++skillBannerIdRef.current;
+          setSkillBanner({ id: bId, name: meta.label, emoji: meta.emoji, glow: meta.glow });
+          setTimeout(() => setSkillBanner((b) => (b && b.id === bId ? null : b)), 900);
+        }
+        skillCdRef.current[cast.name] = meta.cooldownMs;
+        setSkillCds({ ...skillCdRef.current });
+        castingRef.current = null;
+        setCasting(null);
+        heroCdRef.current = 350; // pequena pausa após cast
+      }
+
+      // Hero attack básico OU inicia um cast (habilidades nunca simultâneas)
       heroCdRef.current -= TICK;
       const heroInterval = (1000 / (stats.atkSpeed / 100)) * 1.7;
-      if (heroCdRef.current <= 0 && enemyHpRef.current > 0 && heroHpRef.current > 0) {
-        heroCdRef.current = heroInterval;
-        const crit = Math.random() * 100 < Math.min(80, stats.critChance);
-        const effDef = Math.max(0, enemy.def - stats.penetration);
-        let dmg = Math.max(1, stats.atk - effDef);
-        if (crit) dmg = Math.floor(dmg * (stats.critDmg / 100));
-        dmg = Math.floor(dmg * (0.92 + Math.random() * 0.16));
-        enemyHpRef.current = Math.max(0, enemyHpRef.current - dmg);
-        setEnemyHp(enemyHpRef.current);
-        setEnemyHit(true);
-        setHeroLunge(true);
-        setTimeout(() => setEnemyHit(false), 260);
-        setTimeout(() => setHeroLunge(false), 480);
-        spawnDamage(dmg, crit, "hero");
-        // lifesteal
-        if (stats.lifesteal > 0) {
-          const heal = Math.floor((dmg * Math.min(60, stats.lifesteal)) / 100);
-          if (heal > 0) {
-            heroHpRef.current = Math.min(stats.hp, heroHpRef.current + heal);
-            setHeroHp(heroHpRef.current);
+      if (
+        !castingRef.current &&
+        heroCdRef.current <= 0 &&
+        enemyHpRef.current > 0 &&
+        heroHpRef.current > 0
+      ) {
+        // Escolhe a habilidade de maior prioridade que está pronta e desbloqueada
+        const ready = (Object.keys(SKILL_META) as (keyof typeof SKILL_META)[])
+          .filter((n) => {
+            const unlock = SKILLS.find((sk) => sk.name === n)?.unlock ?? 999;
+            return s.level >= unlock && (skillCdRef.current[n] ?? 0) <= 0;
+          })
+          .sort((a, b) => SKILL_META[b].priority - SKILL_META[a].priority);
+        if (ready.length > 0) {
+          const name = ready[0];
+          const meta = SKILL_META[name];
+          const state: CastingState = { name, startedAt: nowMs, endsAt: nowMs + meta.castMs };
+          castingRef.current = state;
+          setCasting(state);
+          heroCdRef.current = meta.castMs + 100; // trava o básico durante o cast
+        } else {
+          // Ataque básico
+          heroCdRef.current = heroInterval;
+          const crit = Math.random() * 100 < Math.min(80, stats.critChance);
+          const effDef = Math.max(0, enemy.def - stats.penetration);
+          let dmg = Math.max(1, stats.atk - effDef);
+          if (crit) dmg = Math.floor(dmg * (stats.critDmg / 100));
+          dmg = Math.floor(dmg * (0.92 + Math.random() * 0.16));
+          enemyHpRef.current = Math.max(0, enemyHpRef.current - dmg);
+          setEnemyHp(enemyHpRef.current);
+          setEnemyHit(true);
+          setHeroLunge(true);
+          setTimeout(() => setEnemyHit(false), 260);
+          setTimeout(() => setHeroLunge(false), 480);
+          spawnDamage(dmg, crit, "hero");
+          if (stats.lifesteal > 0) {
+            const heal = Math.floor((dmg * Math.min(60, stats.lifesteal)) / 100);
+            if (heal > 0) {
+              heroHpRef.current = Math.min(stats.hp, heroHpRef.current + heal);
+              setHeroHp(heroHpRef.current);
+            }
           }
         }
       }
