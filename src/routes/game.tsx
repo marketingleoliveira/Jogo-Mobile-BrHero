@@ -4264,7 +4264,13 @@ function GamePage() {
         <GameMenuModal
           save={save}
           onClose={() => setModal(null)}
-          onPick={(m) => setModal(m)}
+          onPick={(m) => {
+            if (m === "ranking") {
+              navigate({ to: "/ranking" });
+              return;
+            }
+            setModal(m);
+          }}
         />
       )}
 
@@ -7169,7 +7175,8 @@ function CodesModal({
 type MenuKey =
   | "daily" | "missions" | "dungeon" | "pets" | "tower"
   | "blessings" | "guild" | "arena" | "event" | "skins"
-  | "achievements" | "runes" | "cosmetics" | "codes" | "cloud";
+  | "achievements" | "runes" | "cosmetics" | "codes" | "cloud"
+  | "ranking";
 
 function GameMenuModal({
   save,
@@ -7183,6 +7190,7 @@ function GameMenuModal({
   const items: { key: MenuKey; icon: string; label: string; unlock?: number; kind?: "level" }[] = [
     { key: "daily",        icon: "📅", label: "Diário" },
     { key: "missions",     icon: "🎯", label: "Missões" },
+    { key: "ranking",      icon: "🏅", label: "Ranking" },
     { key: "dungeon",      icon: "🗝️", label: "Masmorra",  unlock: DUNGEON_UNLOCK_LEVEL },
     { key: "pets",         icon: "🐾", label: "Pets",      unlock: PETS_UNLOCK_LEVEL },
     { key: "tower",        icon: "🗼", label: "Torre",     unlock: TOWER_UNLOCK_LEVEL },
