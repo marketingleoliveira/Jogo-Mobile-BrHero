@@ -1362,6 +1362,17 @@ const SKILLS: {
   { name: "Ultimate", unlock: 40, icon: "crown", color: "from-amber-300 to-yellow-500",  border: "border-amber-700",  desc: "Habilidade suprema — abre no Lv 40." },
 ];
 
+// Metadados de casting/CD por habilidade ativa. Ataque é o básico, sem cast.
+// Prioridade ao escolher a próxima habilidade a executar (maior primeiro).
+const SKILL_META: Record<
+  string,
+  { cooldownMs: number; castMs: number; mult: number; priority: number; ringColor: string; glow: string; emoji: string; label: string }
+> = {
+  Golpe:    { cooldownMs: 4000,  castMs: 500,  mult: 1.8, priority: 1, ringColor: "from-rose-400 to-rose-700",   glow: "shadow-rose-500/70",   emoji: "⚡", label: "GOLPE!" },
+  Fúria:    { cooldownMs: 9000,  castMs: 800,  mult: 3.2, priority: 2, ringColor: "from-sky-400 to-sky-700",     glow: "shadow-sky-500/70",    emoji: "🔥", label: "FÚRIA!" },
+  Ultimate: { cooldownMs: 22000, castMs: 1200, mult: 6.5, priority: 3, ringColor: "from-amber-300 to-yellow-600", glow: "shadow-amber-500/80",  emoji: "👑", label: "ULTIMATE!" },
+};
+
 const PASSIVE_SLOTS = [
   { name: "Passiva I",  unlock: 60, desc: "Bônus permanente de dano." },
   { name: "Passiva II", unlock: 80, desc: "Bônus permanente de vida." },
