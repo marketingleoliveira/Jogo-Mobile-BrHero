@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Trophy, RefreshCw, Home, Upload } from "lucide-react";
+import { Trophy, RefreshCw, Home, Upload, Gift, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,8 @@ import {
 } from "@/lib/game/leaderboards";
 import { currentSeasonKey, seasonLabel, type SeasonType } from "@/lib/game/seasons";
 import { useWallet } from "@/lib/game/wallet";
+import { POWER_RANKING_REWARDS, rewardForRank, formatReward } from "@/lib/game/power-rewards";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/ranking")({
   head: () => ({
