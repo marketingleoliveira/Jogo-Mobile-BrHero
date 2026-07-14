@@ -3800,6 +3800,74 @@ function GamePage() {
             </div>
           </div>
         )}
+
+        {/* FX específico por habilidade (raios / fogo / aura) */}
+        {skillFx && (
+          <div key={skillFx.id} className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
+            {skillFx.kind === "lightning" && (
+              <>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="absolute top-0 h-full w-[3px] bg-gradient-to-b from-white via-yellow-200 to-transparent opacity-90 animate-[boltFlash_0.35s_ease-out_forwards]"
+                    style={{
+                      left: `${10 + i * 11}%`,
+                      filter: "drop-shadow(0 0 6px #fef08a)",
+                      animationDelay: `${(i % 4) * 60}ms`,
+                    }}
+                  />
+                ))}
+                <div className="absolute inset-0 bg-yellow-200/10 animate-[flashOnce_0.2s_ease-out]" />
+              </>
+            )}
+            {skillFx.kind === "fire" && (
+              <>
+                {Array.from({ length: 16 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="absolute rounded-full animate-[emberRise_0.9s_ease-out_forwards]"
+                    style={{
+                      left: `${8 + i * 5.5}%`,
+                      bottom: "20%",
+                      width: 6 + (i % 4) * 3,
+                      height: 6 + (i % 4) * 3,
+                      background: `radial-gradient(circle, #fde68a, #f97316 60%, transparent)`,
+                      filter: "drop-shadow(0 0 8px #f97316)",
+                      animationDelay: `${(i % 6) * 40}ms`,
+                    }}
+                  />
+                ))}
+              </>
+            )}
+            {skillFx.kind === "aura" && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div
+                  className="h-64 w-64 rounded-full animate-[auraPulse_1.2s_ease-out_forwards]"
+                  style={{
+                    background: "radial-gradient(circle, rgba(253,224,71,0.85), rgba(217,119,6,0.35) 45%, transparent 70%)",
+                    filter: "blur(2px)",
+                  }}
+                />
+                {Array.from({ length: 10 }).map((_, i) => {
+                  const angle = (i / 10) * Math.PI * 2;
+                  return (
+                    <span
+                      key={i}
+                      className="absolute h-2 w-2 rounded-full bg-amber-200 animate-[auraOrbit_1.2s_linear_forwards]"
+                      style={{
+                        left: `calc(50% + ${Math.cos(angle) * 90}px)`,
+                        top: `calc(50% + ${Math.sin(angle) * 90}px)`,
+                        boxShadow: "0 0 10px #fcd34d",
+                        animationDelay: `${i * 40}ms`,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         <style>{`
           @keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-40px);opacity:0}}
           @keyframes heroBounce{0%,100%{transform:translateY(0) scale(1)}20%{transform:translateY(-18px) scale(1.15)}45%{transform:translateY(0) scale(0.92)}65%{transform:translateY(-8px) scale(1.05)}85%{transform:translateY(0) scale(0.98)}}
@@ -3809,6 +3877,11 @@ function GamePage() {
           @keyframes morreu5s{0%{transform:scale(0.2) rotate(-10deg);opacity:0}15%{transform:scale(1.3) rotate(4deg);opacity:1}25%{transform:scale(1) rotate(0);opacity:1}85%{transform:scale(1) rotate(0);opacity:1}100%{transform:scale(1.4) rotate(0);opacity:0}}
           @keyframes fadeInOverlay{from{opacity:0}to{opacity:1}}
           @keyframes skillPop{0%{transform:scale(0.3) rotate(-8deg);opacity:0}25%{transform:scale(1.25) rotate(4deg);opacity:1}55%{transform:scale(1) rotate(0);opacity:1}85%{transform:scale(1) rotate(0);opacity:1}100%{transform:scale(1.35) rotate(0);opacity:0}}
+          @keyframes boltFlash{0%{transform:scaleY(0);opacity:0}30%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);opacity:0}}
+          @keyframes flashOnce{0%{opacity:0}40%{opacity:1}100%{opacity:0}}
+          @keyframes emberRise{0%{transform:translateY(0) scale(0.6);opacity:0}20%{opacity:1}100%{transform:translateY(-140px) scale(1.4);opacity:0}}
+          @keyframes auraPulse{0%{transform:scale(0.4);opacity:0}30%{transform:scale(1);opacity:1}100%{transform:scale(1.6);opacity:0}}
+          @keyframes auraOrbit{0%{transform:scale(0) rotate(0);opacity:0}30%{transform:scale(1) rotate(120deg);opacity:1}100%{transform:scale(0.4) rotate(360deg);opacity:0}}
         `}</style>
       </section>
 
