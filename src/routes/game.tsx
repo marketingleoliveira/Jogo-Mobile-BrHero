@@ -1362,6 +1362,17 @@ const SKILLS: {
   { name: "Ultimate", unlock: 40, icon: "crown", color: "from-amber-300 to-yellow-500",  border: "border-amber-700",  desc: "Habilidade suprema — abre no Lv 40." },
 ];
 
+// Metadados de casting/CD por habilidade ativa. Ataque é o básico, sem cast.
+// Prioridade ao escolher a próxima habilidade a executar (maior primeiro).
+const SKILL_META: Record<
+  string,
+  { cooldownMs: number; castMs: number; mult: number; priority: number; ringColor: string; glow: string; emoji: string; label: string }
+> = {
+  Golpe:    { cooldownMs: 4000,  castMs: 500,  mult: 1.8, priority: 1, ringColor: "from-rose-400 to-rose-700",   glow: "shadow-rose-500/70",   emoji: "⚡", label: "GOLPE!" },
+  Fúria:    { cooldownMs: 9000,  castMs: 800,  mult: 3.2, priority: 2, ringColor: "from-sky-400 to-sky-700",     glow: "shadow-sky-500/70",    emoji: "🔥", label: "FÚRIA!" },
+  Ultimate: { cooldownMs: 22000, castMs: 1200, mult: 6.5, priority: 3, ringColor: "from-amber-300 to-yellow-600", glow: "shadow-amber-500/80",  emoji: "👑", label: "ULTIMATE!" },
+};
+
 const PASSIVE_SLOTS = [
   { name: "Passiva I",  unlock: 60, desc: "Bônus permanente de dano." },
   { name: "Passiva II", unlock: 80, desc: "Bônus permanente de vida." },
@@ -1617,6 +1628,14 @@ function GamePage() {
   const regenAccRef = useRef(0);
   const [damages, setDamages] = useState<DamageNumber[]>([]);
   const dmgIdRef = useRef(1);
+  // Sistema de habilidades ativas (com cast + cooldown, nunca simultâneas)
+  const skillCdRef = useRef<Record<string, number>>({ Golpe: 0, Fúria: 0, Ultimate: 0 });
+  type CastingState = { name: keyof typeof SKILL_META; startedAt: number; endsAt: number };
+  const castingRef = useRef<CastingState | null>(null);
+  const [casting, setCasting] = useState<CastingState | null>(null);
+  const [skillCds, setSkillCds] = useState<Record<string, number>>({ Golpe: 0, Fúria: 0, Ultimate: 0 });
+  const [skillBanner, setSkillBanner] = useState<{ id: number; name: string; emoji: string; glow: string } | null>(null);
+  const skillBannerIdRef = useRef(0);
   const [heroHit, setHeroHit] = useState(false);
   const [enemyHit, setEnemyHit] = useState(false);
   const [enemyDying, setEnemyDying] = useState(false);
@@ -1970,29 +1989,87 @@ function GamePage() {
         }
       }
 
-      // Hero attack
+      // Cooldowns de habilidades ativas (nunca ocorrem em paralelo)
+      let cdChanged = false;
+      for (const k of Object.keys(skillCdRef.current)) {
+        if (skillCdRef.current[k] > 0) {
+          skillCdRef.current[k] = Math.max(0, skillCdRef.current[k] - TICK);
+          cdChanged = true;
+        }
+      }
+      if (cdChanged) setSkillCds({ ...skillCdRef.current });
+
+      // Resolve cast em andamento
+      const nowMs = Date.now();
+      const cast = castingRef.current;
+      if (cast && nowMs >= cast.endsAt) {
+        const meta = SKILL_META[cast.name];
+        if (enemyHpRef.current > 0 && heroHpRef.current > 0) {
+          const effDef = Math.max(0, enemy.def - stats.penetration);
+          let dmg = Math.max(1, stats.atk - effDef);
+          dmg = Math.floor(dmg * meta.mult * (0.95 + Math.random() * 0.1));
+          enemyHpRef.current = Math.max(0, enemyHpRef.current - dmg);
+          setEnemyHp(enemyHpRef.current);
+          setEnemyHit(true);
+          setHeroLunge(true);
+          setTimeout(() => setEnemyHit(false), 320);
+          setTimeout(() => setHeroLunge(false), 520);
+          spawnDamage(dmg, true, "hero");
+          const bId = ++skillBannerIdRef.current;
+          setSkillBanner({ id: bId, name: meta.label, emoji: meta.emoji, glow: meta.glow });
+          setTimeout(() => setSkillBanner((b) => (b && b.id === bId ? null : b)), 900);
+        }
+        skillCdRef.current[cast.name] = meta.cooldownMs;
+        setSkillCds({ ...skillCdRef.current });
+        castingRef.current = null;
+        setCasting(null);
+        heroCdRef.current = 350; // pequena pausa após cast
+      }
+
+      // Hero attack básico OU inicia um cast (habilidades nunca simultâneas)
       heroCdRef.current -= TICK;
       const heroInterval = (1000 / (stats.atkSpeed / 100)) * 1.7;
-      if (heroCdRef.current <= 0 && enemyHpRef.current > 0 && heroHpRef.current > 0) {
-        heroCdRef.current = heroInterval;
-        const crit = Math.random() * 100 < Math.min(80, stats.critChance);
-        const effDef = Math.max(0, enemy.def - stats.penetration);
-        let dmg = Math.max(1, stats.atk - effDef);
-        if (crit) dmg = Math.floor(dmg * (stats.critDmg / 100));
-        dmg = Math.floor(dmg * (0.92 + Math.random() * 0.16));
-        enemyHpRef.current = Math.max(0, enemyHpRef.current - dmg);
-        setEnemyHp(enemyHpRef.current);
-        setEnemyHit(true);
-        setHeroLunge(true);
-        setTimeout(() => setEnemyHit(false), 260);
-        setTimeout(() => setHeroLunge(false), 480);
-        spawnDamage(dmg, crit, "hero");
-        // lifesteal
-        if (stats.lifesteal > 0) {
-          const heal = Math.floor((dmg * Math.min(60, stats.lifesteal)) / 100);
-          if (heal > 0) {
-            heroHpRef.current = Math.min(stats.hp, heroHpRef.current + heal);
-            setHeroHp(heroHpRef.current);
+      if (
+        !castingRef.current &&
+        heroCdRef.current <= 0 &&
+        enemyHpRef.current > 0 &&
+        heroHpRef.current > 0
+      ) {
+        // Escolhe a habilidade de maior prioridade que está pronta e desbloqueada
+        const ready = (Object.keys(SKILL_META) as (keyof typeof SKILL_META)[])
+          .filter((n) => {
+            const unlock = SKILLS.find((sk) => sk.name === n)?.unlock ?? 999;
+            return s.level >= unlock && (skillCdRef.current[n] ?? 0) <= 0;
+          })
+          .sort((a, b) => SKILL_META[b].priority - SKILL_META[a].priority);
+        if (ready.length > 0) {
+          const name = ready[0];
+          const meta = SKILL_META[name];
+          const state: CastingState = { name, startedAt: nowMs, endsAt: nowMs + meta.castMs };
+          castingRef.current = state;
+          setCasting(state);
+          heroCdRef.current = meta.castMs + 100; // trava o básico durante o cast
+        } else {
+          // Ataque básico
+          heroCdRef.current = heroInterval;
+          const crit = Math.random() * 100 < Math.min(80, stats.critChance);
+          const effDef = Math.max(0, enemy.def - stats.penetration);
+          let dmg = Math.max(1, stats.atk - effDef);
+          if (crit) dmg = Math.floor(dmg * (stats.critDmg / 100));
+          dmg = Math.floor(dmg * (0.92 + Math.random() * 0.16));
+          enemyHpRef.current = Math.max(0, enemyHpRef.current - dmg);
+          setEnemyHp(enemyHpRef.current);
+          setEnemyHit(true);
+          setHeroLunge(true);
+          setTimeout(() => setEnemyHit(false), 260);
+          setTimeout(() => setHeroLunge(false), 480);
+          spawnDamage(dmg, crit, "hero");
+          if (stats.lifesteal > 0) {
+            const heal = Math.floor((dmg * Math.min(60, stats.lifesteal)) / 100);
+            if (heal > 0) {
+              heroHpRef.current = Math.min(stats.hp, heroHpRef.current + heal);
+              setHeroHp(heroHpRef.current);
+            }
           }
         }
       }
@@ -3615,6 +3692,47 @@ function GamePage() {
             {d.crit ? `✦${d.value}` : d.value}
           </span>
         ))}
+
+        {/* Barra de carregamento da habilidade (cast bar) */}
+        {casting && (() => {
+          const meta = SKILL_META[casting.name];
+          const total = casting.endsAt - casting.startedAt;
+          const elapsed = Math.min(total, Date.now() - casting.startedAt);
+          const pct = Math.max(0, Math.min(100, (elapsed / total) * 100));
+          return (
+            <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 z-30 flex flex-col items-center gap-1 animate-[fadeInOverlay_0.15s_ease-out]">
+              <div className={`flex items-center gap-1.5 rounded-full border-2 border-black/60 bg-black/70 px-3 py-1 text-white shadow-lg ${meta.glow}`}>
+                <span className="text-lg leading-none">{meta.emoji}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+                  Carregando {casting.name}
+                </span>
+              </div>
+              <div className="h-2 w-48 overflow-hidden rounded-full border-2 border-black/60 bg-black/70 shadow-inner">
+                <div
+                  className={`h-full bg-gradient-to-r ${meta.ringColor}`}
+                  style={{ width: `${pct}%`, transition: "width 100ms linear" }}
+                />
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Banner explosivo da habilidade ao concluir */}
+        {skillBanner && (
+          <div
+            key={skillBanner.id}
+            className={`pointer-events-none absolute inset-0 z-40 flex items-center justify-center`}
+          >
+            <div className={`animate-[skillPop_0.9s_ease-out_forwards] rounded-2xl border-4 border-black/70 bg-black/40 px-5 py-2 shadow-2xl ${skillBanner.glow}`}>
+              <div className="flex items-center gap-2 text-white drop-shadow-[0_2px_0_rgba(0,0,0,0.9)]">
+                <span className="text-4xl">{skillBanner.emoji}</span>
+                <span className="text-3xl font-black tracking-wider" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+                  {skillBanner.name}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
         <style>{`
           @keyframes floatUp{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-40px);opacity:0}}
           @keyframes heroBounce{0%,100%{transform:translateY(0) scale(1)}20%{transform:translateY(-18px) scale(1.15)}45%{transform:translateY(0) scale(0.92)}65%{transform:translateY(-8px) scale(1.05)}85%{transform:translateY(0) scale(0.98)}}
@@ -3623,6 +3741,7 @@ function GamePage() {
           @keyframes deathPop{0%{transform:scale(0.2) rotate(-15deg);opacity:0}25%{transform:scale(1.4) rotate(6deg);opacity:1}45%{transform:scale(1) rotate(-3deg);opacity:1}80%{transform:scale(1.05) rotate(0);opacity:1}100%{transform:scale(1.2) rotate(0);opacity:0}}
           @keyframes morreu5s{0%{transform:scale(0.2) rotate(-10deg);opacity:0}15%{transform:scale(1.3) rotate(4deg);opacity:1}25%{transform:scale(1) rotate(0);opacity:1}85%{transform:scale(1) rotate(0);opacity:1}100%{transform:scale(1.4) rotate(0);opacity:0}}
           @keyframes fadeInOverlay{from{opacity:0}to{opacity:1}}
+          @keyframes skillPop{0%{transform:scale(0.3) rotate(-8deg);opacity:0}25%{transform:scale(1.25) rotate(4deg);opacity:1}55%{transform:scale(1) rotate(0);opacity:1}85%{transform:scale(1) rotate(0);opacity:1}100%{transform:scale(1.35) rotate(0);opacity:0}}
         `}</style>
       </section>
 
@@ -3664,6 +3783,18 @@ function GamePage() {
                     <span className="mt-0.5 text-[9px] font-bold uppercase text-white/95 leading-none drop-shadow-[0_1px_0_rgba(0,0,0,0.7)]">
                       {sk.name}
                     </span>
+                    {/* Overlay de casting em andamento */}
+                    {casting?.name === sk.name && (
+                      <div className="pointer-events-none absolute inset-0 rounded-lg ring-4 ring-white/80 animate-pulse" />
+                    )}
+                    {/* Overlay de cooldown */}
+                    {SKILL_META[sk.name] && (skillCds[sk.name] ?? 0) > 0 && (
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-black/65 text-white">
+                        <span className="text-sm font-black tabular-nums" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+                          {Math.ceil((skillCds[sk.name] ?? 0) / 1000)}s
+                        </span>
+                      </div>
+                    )}
                   </>
                 )}
               </button>
