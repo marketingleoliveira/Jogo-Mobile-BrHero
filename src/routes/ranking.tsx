@@ -208,11 +208,81 @@ function RankingPage() {
           );
         })()}
 
+        {isPowerWeekly && (
+          <Card className="border-amber-700/50 bg-gradient-to-br from-amber-950/40 via-slate-900/60 to-slate-900/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-slate-100 flex items-center gap-2 text-base">
+                <Gift className="h-5 w-5 text-amber-300" />
+                Recompensas semanais — Poder Geral
+                {live && (
+                  <Badge className="ml-2 border-emerald-500/40 bg-emerald-500/15 text-emerald-300 gap-1">
+                    <Radio className="h-3 w-3 animate-pulse" /> ao vivo
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-slate-400">
+                Toda semana os 10 heróis com maior <b>Poder Geral</b> recebem uma recompensa. O ranking
+                atualiza em tempo real conforme os jogadores ficam mais fortes.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {POWER_RANKING_REWARDS.map((r) => {
+                  const medal = r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : `#${r.rank}`;
+                  const isGems = r.gems > 0;
+                  return (
+                    <div
+                      key={r.rank}
+                      className={`rounded-lg border px-2 py-2 text-center ${
+                        isGems
+                          ? "border-fuchsia-600/40 bg-fuchsia-950/30"
+                          : "border-amber-700/40 bg-amber-950/20"
+                      }`}
+                    >
+                      <div className="text-xs text-slate-300">{medal}</div>
+                      <div className={`text-sm font-bold ${isGems ? "text-fuchsia-300" : "text-amber-300"}`}>
+                        {formatReward(r)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <div className="text-xs text-slate-400">
+                  Sua posição:{" "}
+                  <span className="text-slate-100 font-bold">
+                    {myRank >= 0 ? `#${myRank + 1}` : "sem posição"}
+                  </span>
+                  {canClaim && rewardForRank(myRank + 1) && (
+                    <span className="ml-2 text-emerald-300">
+                      · elegível para {formatReward(rewardForRank(myRank + 1)!)}
+                    </span>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  onClick={doClaim}
+                  disabled={!canClaim || claiming}
+                  className="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold"
+                >
+                  <Gift className={`h-4 w-4 mr-2 ${claiming ? "animate-pulse" : ""}`} />
+                  Resgatar da semana
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="border-slate-800 bg-slate-900/60">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-slate-100 flex items-center gap-2">
               <span>{cat.icon}</span> Top 100 — {cat.label}
               <Badge variant="outline" className="ml-2 text-xs">{seasonLabel(seasonKey)}</Badge>
+              {live && (
+                <Badge className="ml-1 border-emerald-500/40 bg-emerald-500/15 text-emerald-300 gap-1 text-[10px]">
+                  <Radio className="h-3 w-3 animate-pulse" /> ao vivo
+                </Badge>
+              )}
             </CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={doUpload} disabled={uploading}>
