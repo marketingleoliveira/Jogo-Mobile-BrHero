@@ -73,15 +73,19 @@ const SEASONS: { key: SeasonType; label: string; icon: string }[] = [
 ];
 
 function RankingPage() {
-  const [category, setCategory] = useState<LeaderboardCategory>("stage");
-  const [seasonType, setSeasonType] = useState<SeasonType>("all-time");
+  const [category, setCategory] = useState<LeaderboardCategory>("hero_power");
+  const [seasonType, setSeasonType] = useState<SeasonType>("weekly");
   const [uploading, setUploading] = useState(false);
+  const [claiming, setClaiming] = useState(false);
   const seasonKey = useMemo(() => currentSeasonKey(seasonType), [seasonType]);
-  const { rows, loading, refresh } = useLeaderboard(category, 100, seasonKey);
+  const { rows, loading, refresh, live } = useLeaderboard(category, 100, seasonKey);
   const cat = useMemo(() => CATEGORIES.find((c) => c.key === category)!, [category]);
-  const { userId: myId, equippedTitle } = useWallet();
+  const { userId: myId, equippedTitle, refresh: refreshWallet } = useWallet();
   const myRow = useMemo(() => (myId ? rows.find((r) => r.user_id === myId) ?? null : null), [rows, myId]);
   const myRank = useMemo(() => (myId ? rows.findIndex((r) => r.user_id === myId) : -1), [rows, myId]);
+
+  const isPowerWeekly = category === "hero_power" && seasonType === "weekly";
+  const canClaim = isPowerWeekly && myRank >= 0 && myRank < 10;
 
   const doUpload = async () => {
     const snap = readLocalSnapshot();
@@ -91,6 +95,34 @@ function RankingPage() {
     setUploading(false);
     if (ok) { toast.success("Snapshot enviado ao ranking."); refresh(true); }
     else toast.error("Faça login para enviar seu ranking.");
+  };
+
+  const doClaim = async () => {
+    if (!myId) { toast.error("Faça login para resgatar."); return; }
+    setClaiming(true);
+    try {
+      const { data, error } = await supabase.rpc("claim_power_ranking_reward");
+      if (error) throw error;
+      const res = data as { ok: boolean; reason?: string; rank?: number; gems?: number; gold?: number };
+      if (!res?.ok) {
+        const map: Record<string, string> = {
+          already_claimed: "Você já resgatou a recompensa desta semana.",
+          not_ranked: "Envie seu score primeiro para entrar no ranking desta semana.",
+          out_of_top10: `Você está em #${res.rank}. Só o Top 10 ganha recompensa.`,
+        };
+        toast.info(map[res?.reason ?? ""] ?? "Não foi possível resgatar agora.");
+      } else {
+        const parts: string[] = [];
+        if (res.gems) parts.push(`${res.gems} 💎`);
+        if (res.gold) parts.push(`${res.gold.toLocaleString("pt-BR")} 🪙`);
+        toast.success(`#${res.rank} — Você recebeu ${parts.join(" + ")}`);
+        await refreshWallet();
+      }
+    } catch (e) {
+      toast.error((e as Error).message ?? "Falha ao resgatar recompensa.");
+    } finally {
+      setClaiming(false);
+    }
   };
 
   return (
