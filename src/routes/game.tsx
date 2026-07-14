@@ -1628,6 +1628,14 @@ function GamePage() {
   const regenAccRef = useRef(0);
   const [damages, setDamages] = useState<DamageNumber[]>([]);
   const dmgIdRef = useRef(1);
+  // Sistema de habilidades ativas (com cast + cooldown, nunca simultâneas)
+  const skillCdRef = useRef<Record<string, number>>({ Golpe: 0, Fúria: 0, Ultimate: 0 });
+  type CastingState = { name: keyof typeof SKILL_META; startedAt: number; endsAt: number };
+  const castingRef = useRef<CastingState | null>(null);
+  const [casting, setCasting] = useState<CastingState | null>(null);
+  const [skillCds, setSkillCds] = useState<Record<string, number>>({ Golpe: 0, Fúria: 0, Ultimate: 0 });
+  const [skillBanner, setSkillBanner] = useState<{ id: number; name: string; emoji: string; glow: string } | null>(null);
+  const skillBannerIdRef = useRef(0);
   const [heroHit, setHeroHit] = useState(false);
   const [enemyHit, setEnemyHit] = useState(false);
   const [enemyDying, setEnemyDying] = useState(false);
