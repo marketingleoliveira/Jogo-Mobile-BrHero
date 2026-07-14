@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Trophy, RefreshCw, Home, Upload } from "lucide-react";
+import { Trophy, RefreshCw, Home, Upload, Gift, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,8 @@ import {
 } from "@/lib/game/leaderboards";
 import { currentSeasonKey, seasonLabel, type SeasonType } from "@/lib/game/seasons";
 import { useWallet } from "@/lib/game/wallet";
+import { POWER_RANKING_REWARDS, rewardForRank, formatReward } from "@/lib/game/power-rewards";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/ranking")({
   head: () => ({
@@ -71,15 +73,19 @@ const SEASONS: { key: SeasonType; label: string; icon: string }[] = [
 ];
 
 function RankingPage() {
-  const [category, setCategory] = useState<LeaderboardCategory>("stage");
-  const [seasonType, setSeasonType] = useState<SeasonType>("all-time");
+  const [category, setCategory] = useState<LeaderboardCategory>("hero_power");
+  const [seasonType, setSeasonType] = useState<SeasonType>("weekly");
   const [uploading, setUploading] = useState(false);
+  const [claiming, setClaiming] = useState(false);
   const seasonKey = useMemo(() => currentSeasonKey(seasonType), [seasonType]);
-  const { rows, loading, refresh } = useLeaderboard(category, 100, seasonKey);
+  const { rows, loading, refresh, live } = useLeaderboard(category, 100, seasonKey);
   const cat = useMemo(() => CATEGORIES.find((c) => c.key === category)!, [category]);
-  const { userId: myId, equippedTitle } = useWallet();
+  const { userId: myId, equippedTitle, refresh: refreshWallet } = useWallet();
   const myRow = useMemo(() => (myId ? rows.find((r) => r.user_id === myId) ?? null : null), [rows, myId]);
   const myRank = useMemo(() => (myId ? rows.findIndex((r) => r.user_id === myId) : -1), [rows, myId]);
+
+  const isPowerWeekly = category === "hero_power" && seasonType === "weekly";
+  const canClaim = isPowerWeekly && myRank >= 0 && myRank < 10;
 
   const doUpload = async () => {
     const snap = readLocalSnapshot();
@@ -89,6 +95,34 @@ function RankingPage() {
     setUploading(false);
     if (ok) { toast.success("Snapshot enviado ao ranking."); refresh(true); }
     else toast.error("Faça login para enviar seu ranking.");
+  };
+
+  const doClaim = async () => {
+    if (!myId) { toast.error("Faça login para resgatar."); return; }
+    setClaiming(true);
+    try {
+      const { data, error } = await supabase.rpc("claim_power_ranking_reward");
+      if (error) throw error;
+      const res = data as { ok: boolean; reason?: string; rank?: number; gems?: number; gold?: number };
+      if (!res?.ok) {
+        const map: Record<string, string> = {
+          already_claimed: "Você já resgatou a recompensa desta semana.",
+          not_ranked: "Envie seu score primeiro para entrar no ranking desta semana.",
+          out_of_top10: `Você está em #${res.rank}. Só o Top 10 ganha recompensa.`,
+        };
+        toast.info(map[res?.reason ?? ""] ?? "Não foi possível resgatar agora.");
+      } else {
+        const parts: string[] = [];
+        if (res.gems) parts.push(`${res.gems} 💎`);
+        if (res.gold) parts.push(`${res.gold.toLocaleString("pt-BR")} 🪙`);
+        toast.success(`#${res.rank} — Você recebeu ${parts.join(" + ")}`);
+        await refreshWallet();
+      }
+    } catch (e) {
+      toast.error((e as Error).message ?? "Falha ao resgatar recompensa.");
+    } finally {
+      setClaiming(false);
+    }
   };
 
   return (
@@ -174,11 +208,81 @@ function RankingPage() {
           );
         })()}
 
+        {isPowerWeekly && (
+          <Card className="border-amber-700/50 bg-gradient-to-br from-amber-950/40 via-slate-900/60 to-slate-900/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-slate-100 flex items-center gap-2 text-base">
+                <Gift className="h-5 w-5 text-amber-300" />
+                Recompensas semanais — Poder Geral
+                {live && (
+                  <Badge className="ml-2 border-emerald-500/40 bg-emerald-500/15 text-emerald-300 gap-1">
+                    <Radio className="h-3 w-3 animate-pulse" /> ao vivo
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-slate-400">
+                Toda semana os 10 heróis com maior <b>Poder Geral</b> recebem uma recompensa. O ranking
+                atualiza em tempo real conforme os jogadores ficam mais fortes.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {POWER_RANKING_REWARDS.map((r) => {
+                  const medal = r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : `#${r.rank}`;
+                  const isGems = r.gems > 0;
+                  return (
+                    <div
+                      key={r.rank}
+                      className={`rounded-lg border px-2 py-2 text-center ${
+                        isGems
+                          ? "border-fuchsia-600/40 bg-fuchsia-950/30"
+                          : "border-amber-700/40 bg-amber-950/20"
+                      }`}
+                    >
+                      <div className="text-xs text-slate-300">{medal}</div>
+                      <div className={`text-sm font-bold ${isGems ? "text-fuchsia-300" : "text-amber-300"}`}>
+                        {formatReward(r)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <div className="text-xs text-slate-400">
+                  Sua posição:{" "}
+                  <span className="text-slate-100 font-bold">
+                    {myRank >= 0 ? `#${myRank + 1}` : "sem posição"}
+                  </span>
+                  {canClaim && rewardForRank(myRank + 1) && (
+                    <span className="ml-2 text-emerald-300">
+                      · elegível para {formatReward(rewardForRank(myRank + 1)!)}
+                    </span>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  onClick={doClaim}
+                  disabled={!canClaim || claiming}
+                  className="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold"
+                >
+                  <Gift className={`h-4 w-4 mr-2 ${claiming ? "animate-pulse" : ""}`} />
+                  Resgatar da semana
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="border-slate-800 bg-slate-900/60">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-slate-100 flex items-center gap-2">
               <span>{cat.icon}</span> Top 100 — {cat.label}
               <Badge variant="outline" className="ml-2 text-xs">{seasonLabel(seasonKey)}</Badge>
+              {live && (
+                <Badge className="ml-1 border-emerald-500/40 bg-emerald-500/15 text-emerald-300 gap-1 text-[10px]">
+                  <Radio className="h-3 w-3 animate-pulse" /> ao vivo
+                </Badge>
+              )}
             </CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={doUpload} disabled={uploading}>
@@ -239,6 +343,13 @@ function RankingPage() {
                                 )}
                                 {skin && (
                                   <div className="text-[10px] text-sky-300/80 truncate">✨ {skin}</div>
+                                )}
+                                {isPowerWeekly && idx < 10 && rewardForRank(idx + 1) && (
+                                  <div className="text-[11px] font-semibold">
+                                    <span className={idx < 3 ? "text-fuchsia-300" : "text-amber-300"}>
+                                      🎁 {formatReward(rewardForRank(idx + 1)!)}
+                                    </span>
+                                  </div>
                                 )}
                               </div>
                             </div>

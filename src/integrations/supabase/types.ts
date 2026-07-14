@@ -557,6 +557,36 @@ export type Database = {
         }
         Relationships: []
       }
+      power_ranking_claims: {
+        Row: {
+          claimed_at: string
+          gems: number
+          gold: number
+          id: string
+          rank: number
+          user_id: string
+          week_key: string
+        }
+        Insert: {
+          claimed_at?: string
+          gems?: number
+          gold?: number
+          id?: string
+          rank: number
+          user_id: string
+          week_key: string
+        }
+        Update: {
+          claimed_at?: string
+          gems?: number
+          gold?: number
+          id?: string
+          rank?: number
+          user_id?: string
+          week_key?: string
+        }
+        Relationships: []
+      }
       season_rewards: {
         Row: {
           category: string
@@ -625,6 +655,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_power_ranking_reward: { Args: never; Returns: Json }
       claim_referral: { Args: { _referrer: string }; Returns: Json }
       claim_season_reward: { Args: { _reward_id: string }; Returns: Json }
       claim_super_admin: { Args: { _display_name?: string }; Returns: string }

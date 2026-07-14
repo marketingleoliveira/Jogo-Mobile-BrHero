@@ -155,12 +155,38 @@ export async function uploadPlayerSnapshot(snap: PlayerSnapshot, force = false):
 export function useLeaderboard(category: LeaderboardCategory, limit = 100, seasonKey: string = "all-time") {
   const [rows, setRows] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [live, setLive] = useState(false);
   const refresh = (force = false) => {
     setLoading(true);
     void fetchLeaderboard(category, limit, force, seasonKey).then((r) => { setRows(r); setLoading(false); });
   };
   useEffect(() => { refresh(false); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [category, limit, seasonKey]);
-  return { rows, loading, refresh };
+
+  // Realtime: qualquer alteração em leaderboards da (categoria, temporada) atual
+  // dispara refresh forçado. Debounce leve para não martelar em rajadas.
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const channel = supabase
+      .channel(`lb-${category}-${seasonKey}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "leaderboards", filter: `category=eq.${category}` },
+        (payload) => {
+          const rec = (payload.new ?? payload.old) as { season_key?: string } | null;
+          if (!rec || rec.season_key !== seasonKey) return;
+          if (t) clearTimeout(t);
+          t = setTimeout(() => refresh(true), 800);
+        },
+      )
+      .subscribe((status) => setLive(status === "SUBSCRIBED"));
+    return () => {
+      if (t) clearTimeout(t);
+      void supabase.removeChannel(channel);
+    };
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [category, seasonKey, limit]);
+
+  return { rows, loading, refresh, live };
 }
 
 
