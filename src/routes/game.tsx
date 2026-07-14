@@ -3783,6 +3783,18 @@ function GamePage() {
                     <span className="mt-0.5 text-[9px] font-bold uppercase text-white/95 leading-none drop-shadow-[0_1px_0_rgba(0,0,0,0.7)]">
                       {sk.name}
                     </span>
+                    {/* Overlay de casting em andamento */}
+                    {casting?.name === sk.name && (
+                      <div className="pointer-events-none absolute inset-0 rounded-lg ring-4 ring-white/80 animate-pulse" />
+                    )}
+                    {/* Overlay de cooldown */}
+                    {SKILL_META[sk.name] && (skillCds[sk.name] ?? 0) > 0 && (
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-black/65 text-white">
+                        <span className="text-sm font-black tabular-nums" style={{ fontFamily: "'Luckiest Guy', cursive" }}>
+                          {Math.ceil((skillCds[sk.name] ?? 0) / 1000)}s
+                        </span>
+                      </div>
+                    )}
                   </>
                 )}
               </button>
