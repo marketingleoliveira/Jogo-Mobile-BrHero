@@ -2114,6 +2114,7 @@ function GamePage() {
           // FX visual + som ao iniciar o cast
           const fxId = ++skillFxIdRef.current;
           setSkillFx({ id: fxId, kind: meta.fx, endsAt: nowMs + meta.castMs + 350 });
+          setTimeout(() => setSkillFx((f) => (f && f.id === fxId ? null : f)), meta.castMs + 400);
           playSkillSound(meta.sound);
         } else {
           // Ataque básico
